@@ -1,0 +1,69 @@
+version: "3.9"
+services:
+  worker:
+    depends_on:
+      - mongodb
+    build:
+      context: .
+      dockerfile: ./apps/worker/Dockerfile
+    ports:
+      - 9000:9000
+    # volumes:
+      # - ./apps/worker:/app
+      # - /app/node_modules
+    env_file:
+      - ./apps/worker/.env
+  mysql:
+    image: mysql:8.0
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql:/var/lib/mysql
+    command: mysqld --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_ROOT_PASSWORD=abc123456@
+      - MYSQL_DATABASE=base-nestjs
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_USER=mysqluser
+      - MYSQL_PASSWORD=mysqlpwd
+    cap_add:
+      - CAP_SYS_NICE
+  redis:
+    image: redis:6.2-alpine
+    ports:
+      - 6379:6379
+    expose:
+      - 6379
+    command: redis-server --save 20 1 --loglevel warning
+    volumes: 
+      - redis:/data
+  mongodb:
+    image: mongo:5.0
+    expose:
+      - 27017
+    ports:
+      - 27017:27017
+    command: mongod --auth
+    volumes:
+      - mongo:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=abc123456
+      - MONGO_INITDB_DATABASE=base-nestjs
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    platform: linux/amd64
+    ports:
+      - 80:80
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+      - PMA_ARBITRARY=1
+volumes:
+  mongo:
+    driver: local
+  mysql:
+    driver: local
+  redis:
+    driver: local

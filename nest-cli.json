@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/starion-sync/src",
+  "compilerOptions": {
+    "assets": [
+      "**/*.json"
+    ],
+    "deleteOutDir": true,
+    "webpack": false,
+    "tsConfigPath": "apps/starion-sync/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/starion-sync",
+  "projects": {
+    "@app/starion-sync": {
+      "type": "application",
+      "root": "apps/starion-sync",
+      "entryFile": "main",
+      "sourceRoot": "apps/starion-sync/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/starion-sync/tsconfig.app.json"
+      }
+    },
+    "@app/worker": {
+      "type": "application",
+      "root": "apps/worker",
+      "entryFile": "main",
+      "sourceRoot": "apps/worker/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/worker/tsconfig.app.json"
+      }
+    },
+    "@libs/modules": {
+      "type": "library",
+      "root": "libs/modules",
+      "entryFile": "index",
+      "sourceRoot": "libs/modules/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/modules/tsconfig.lib.json"
+      }
+    }
+  }
+}
