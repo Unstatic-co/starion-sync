@@ -1,0 +1,128 @@
+version: "3.9"
+services:
+  # worker:
+  # depends_on:
+  # - mongodb
+  # build:
+  # context: .
+  # dockerfile: ./apps/worker/Dockerfile
+  # ports:
+  # - 9000:9000
+  # # volumes:
+  # # - ./apps/worker:/app
+  # # - /app/node_modules
+  # # env_file:
+  # # - ./apps/worker/.env
+  # environment:
+  # - LOG_LEVEL=log,error,warn,debug,verbose
+  # - NODE_ENV=dev
+  # - PORT=9000
+  # - DB_TYPE=mongodb
+  # - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion?directConnection=true&authSource=admin
+  #--------------------------------- DATABASE ---------------------------------------#
+  mysql:
+    image: mysql:8.0
+    expose:
+      - 3306
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql:/var/lib/mysql
+    command: mysqld --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_ROOT_PASSWORD=abc123456@
+      - MYSQL_DATABASE=starion
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_USER=mysqluser
+      - MYSQL_PASSWORD=mysqlpwd
+    cap_add:
+      - CAP_SYS_NICE
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    platform: linux/amd64
+    ports:
+      - 5000:80
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+      - PMA_ARBITRARY=1
+  mongodb:
+    image: mongo:5.0
+    expose:
+      - 27017
+    ports:
+      - 27017:27017
+    command: mongod --auth
+    volumes:
+      - mongo:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=abc123456
+      - MONGO_INITDB_DATABASE=base-nestjs
+  #--------------------------------- KAFKA ---------------------------------------#
+  zookeeper:
+    # restart: always
+    image: confluentinc/cp-zookeeper:7.4.0
+    expose:
+      - 2181
+    ports:
+      - "2181:2181"
+    volumes:
+      - "zookeeper-data:/var/lib/zookeeper/data"
+      - "zookeeper-log:/var/lib/zookeeper/log"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+  kafka:
+    # restart: always
+    image: confluentinc/cp-kafka:7.4.0
+    expose:
+      - 9092
+      - 29092
+    ports:
+      - "9092:9092"
+    volumes:
+      - "kafka:/var/lib/kafka/data "
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+    depends_on:
+      - zookeeper
+  kafka-ui:
+    depends_on:
+      - kafka
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8080:8080
+    environment:
+      DYNAMIC_CONFIG_ENABLED: true
+    volumes:
+      - ./kui-config.yml:/etc/kafkaui/dynamic_config.yaml
+  #--------------------------------- CONNECTOR ---------------------------------------#
+  debezium:
+    image: debezium/connect:2.3
+    expose:
+      - 8083
+    ports:
+      - 8083:8083
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:29092
+      - GROUP_ID=1
+      - CONFIG_STORAGE_TOPIC=my_connect_configs
+      - OFFSET_STORAGE_TOPIC=my_connect_offsets
+      - STATUS_STORAGE_TOPIC=my_connect_statuses
+volumes:
+  mongo:
+  mysql:
+  redis:
+  zookeeper-log:
+  zookeeper-data:
+  kafka:
