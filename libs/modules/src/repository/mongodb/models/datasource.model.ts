@@ -1,6 +1,6 @@
+import { DataSource } from '@lib/core';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { DataSource } from '../../../entities/dataSource.entity';
 
 export type DataSourceDocument = DataSourceModel & Document;
 

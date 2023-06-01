@@ -31,13 +31,22 @@
         "tsConfigPath": "apps/worker/tsconfig.app.json"
       }
     },
-    "@libs/modules": {
+    "@lib/modules": {
       "type": "library",
       "root": "libs/modules",
       "entryFile": "index",
       "sourceRoot": "libs/modules/src",
       "compilerOptions": {
         "tsConfigPath": "libs/modules/tsconfig.lib.json"
+      }
+    },
+    "@lib/core": {
+      "type": "library",
+      "root": "libs/core",
+      "entryFile": "index",
+      "sourceRoot": "libs/core/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/core/tsconfig.lib.json"
       }
     }
   }

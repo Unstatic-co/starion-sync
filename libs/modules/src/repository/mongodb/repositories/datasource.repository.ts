@@ -6,7 +6,7 @@ import {
   DataSourceModel,
 } from '../models/datasource.model';
 import { Model } from 'mongoose';
-import { DataSource } from '../../../entities/dataSource.entity';
+import { DataSource } from '@lib/core';
 
 @Injectable()
 export class DataSourceRepository implements IDataSourceRepository {

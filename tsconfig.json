@@ -10,10 +10,16 @@
     "sourceMap": true,
     "paths": {
       "@lib/modules": [
-        "libs/modules"
+        "libs/modules/src"
       ],
       "@lib/modules/*": [
-        "libs/modules/*"
+        "libs/modules/src/*"
+      ],
+      "@lib/core": [
+        "libs/core/src"
+      ],
+      "@lib/core/*": [
+        "libs/core/src/*"
       ]
     },
     "outDir": "./dist",

@@ -1,5 +1,5 @@
+import { DataSource } from '@lib/core';
 import { IRepository } from '../baseRepository';
-import { DataSource } from '../../../entities/dataSource.entity';
 
 export interface IDataSourceRepository extends IRepository {
   getById(id: string): Promise<DataSource>;

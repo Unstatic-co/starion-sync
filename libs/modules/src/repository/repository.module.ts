@@ -1,7 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { DatabaseModule } from '../database';
 import * as MongoRepositories from './mongodb/repositories';
-import { DatabaseType } from '../config';
+import { DatabaseType } from '@lib/core/config';
 
 export interface RepositoryModuleOptions {
   databaseType: DatabaseType;

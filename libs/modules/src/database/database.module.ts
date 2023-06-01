@@ -5,7 +5,7 @@ import {
   DataSourceModel,
   DataSourceSchema,
 } from '../repository/mongodb/models/datasource.model';
-import { DatabaseType, databaseConfig as dbConfig } from '../config';
+import { DatabaseType, databaseConfig as dbConfig } from '@lib/core/config';
 
 @Module({})
 export class DatabaseModule {

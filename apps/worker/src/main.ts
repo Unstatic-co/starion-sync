@@ -1,7 +1,5 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import 'dotenv/config';
-import { LogLevel } from '@nestjs/common';
 import {
   DocumentBuilder,
   SwaggerCustomOptions,
@@ -11,18 +9,20 @@ import * as expressBasicAuth from 'express-basic-auth';
 import { AllExceptionFilter } from './common/exception/exception.filter';
 import { ValidationPipe } from './common/validation/validation.pipe';
 import { LoggingInterceptor } from './common/interceptor/logging.interceptor';
+import { ConfigService } from '@nestjs/config';
+import { AppConfig, ConfigName } from '@lib/core/config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    logger: process.env.LOG_LEVEL.split(',') as LogLevel[],
-  });
+  const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+  const appConfig = configService.get(ConfigName.APP) as AppConfig;
+  const { environment, port, isSwaggerShowed, swaggerUser, swaggerPassword } =
+    appConfig;
 
-  if (process.env.NODE_ENV === 'dev') {
+  if (environment === 'dev') {
     app.enableCors();
-  } else if (process.env.NODE_ENV === 'prod') {
-    app.enableCors({
-      origin: [process.env.ADMIN_SITE_URL, process.env.USER_SITE_URL],
-    });
+  } else if (environment === 'prod') {
+    app.enableCors();
   }
 
   const { httpAdapter } = app.get(HttpAdapterHost);
@@ -32,19 +32,19 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor());
 
   // Swagger
-  if (process.env.SWAGGER_IS_SHOW === 'true') {
+  if (isSwaggerShowed) {
     app.use(
       ['/swagger'],
       expressBasicAuth({
         challenge: true,
         users: {
-          [process.env.SWAGGER_USER]: process.env.SWAGGER_PASSWORD,
+          [swaggerUser]: swaggerPassword,
         },
       }),
     );
     const config = new DocumentBuilder()
-      .setTitle('Base NestJS')
-      .setDescription('The Base NestJS API description')
+      .setTitle('Starion Sync')
+      .setDescription('Starion Sync API description')
       .setVersion('1.0')
       .addBearerAuth()
       .build();
@@ -58,6 +58,6 @@ async function bootstrap() {
     SwaggerModule.setup('swagger', app, document, customOptions);
   }
 
-  await app.listen(process.env.PORT);
+  await app.listen(port);
 }
 bootstrap();

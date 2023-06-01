@@ -1,24 +1,23 @@
 version: "3.9"
 services:
-  # worker:
-  # depends_on:
-  # - mongodb
-  # build:
-  # context: .
-  # dockerfile: ./apps/worker/Dockerfile
-  # ports:
-  # - 9000:9000
-  # # volumes:
-  # # - ./apps/worker:/app
-  # # - /app/node_modules
-  # # env_file:
-  # # - ./apps/worker/.env
-  # environment:
-  # - LOG_LEVEL=log,error,warn,debug,verbose
-  # - NODE_ENV=dev
-  # - PORT=9000
-  # - DB_TYPE=mongodb
-  # - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion?directConnection=true&authSource=admin
+  worker:
+    depends_on:
+      - mongodb
+    build:
+      context: .
+      dockerfile: ./apps/worker/Dockerfile
+    ports:
+      - 9000:9000
+    # volumes:
+    # - ./apps/worker:/app
+    # - /app/node_modules
+    # env_file:
+    # - ./apps/worker/.env
+    environment:
+      - NODE_ENV=dev
+      - PORT=9000
+      - DB_TYPE=mongodb
+      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
   #--------------------------------- DATABASE ---------------------------------------#
   mysql:
     image: mysql:8.0
@@ -31,7 +30,7 @@ services:
     command: mysqld --default-authentication-plugin=mysql_native_password
     environment:
       - MYSQL_ROOT_PASSWORD=abc123456@
-      - MYSQL_DATABASE=starion
+      - MYSQL_DATABASE=starion-sync
       - MYSQL_ROOT_HOST=%
       - MYSQL_USER=mysqluser
       - MYSQL_PASSWORD=mysqlpwd
@@ -59,7 +58,7 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=abc123456
-      - MONGO_INITDB_DATABASE=base-nestjs
+      - MONGO_INITDB_DATABASE=starion-sync
   #--------------------------------- KAFKA ---------------------------------------#
   zookeeper:
     # restart: always
