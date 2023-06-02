@@ -3,6 +3,8 @@ services:
   worker:
     depends_on:
       - mongodb
+      - zookeeper
+      - kafka
     build:
       context: .
       dockerfile: ./apps/worker/Dockerfile

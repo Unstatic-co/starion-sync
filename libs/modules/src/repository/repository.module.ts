@@ -2,6 +2,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { DatabaseModule } from '../database';
 import * as MongoRepositories from './mongodb/repositories';
 import { DatabaseType } from '@lib/core/config';
+import { DATA_PROVIDER_REPOSITORY, DATA_SOURCE_REPOSITORY } from './classes';
 
 export interface RepositoryModuleOptions {
   databaseType: DatabaseType;
@@ -17,9 +18,27 @@ export class RepositoryModule {
 
     switch (databaseType) {
       case DatabaseType.MONGODB:
-        reporitories.push(MongoRepositories.DataSourceRepository);
+        reporitories.push(
+          {
+            provide: DATA_PROVIDER_REPOSITORY,
+            useClass: MongoRepositories.DataProviderRepository,
+          },
+          {
+            provide: DATA_SOURCE_REPOSITORY,
+            useClass: MongoRepositories.DataSourceRepository,
+          },
+        );
       default:
-        reporitories.push(MongoRepositories.DataSourceRepository);
+        reporitories.push(
+          {
+            provide: DATA_PROVIDER_REPOSITORY,
+            useClass: MongoRepositories.DataProviderRepository,
+          },
+          {
+            provide: DATA_SOURCE_REPOSITORY,
+            useClass: MongoRepositories.DataSourceRepository,
+          },
+        );
     }
 
     return {

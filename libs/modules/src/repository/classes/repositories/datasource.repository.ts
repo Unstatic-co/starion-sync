@@ -1,14 +1,15 @@
-import { DataSource } from '@lib/core';
+import { DataSource, DataSourceId, ProviderId } from '@lib/core';
 import { IRepository } from '../baseRepository';
+import { type } from 'os';
+
+export const DATA_SOURCE_REPOSITORY = 'DATA_SOURCE_REPOSITORY';
 
 export interface IDataSourceRepository extends IRepository {
-  getById(id: string): Promise<DataSource>;
+  getById(id: DataSourceId): Promise<DataSource>;
   create(): Promise<DataSource>;
-  // async getDataSourceById(id: string): Promise<IDataSource> {
-  // return {
-  // id: '1',
-  // name: 'test',
-  // provider: DataSourceProvider.GOOGLE_SHEETS,
-  // };
-  // }
+  delete(): Promise<void>;
 }
+
+export type CreateDataSourceArgs = {
+  providerId: ProviderId;
+};

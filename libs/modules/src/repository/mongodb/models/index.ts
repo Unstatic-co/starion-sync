@@ -1,1 +1,2 @@
-export * from './datasource.model';
+export * from './dataSource.model';
+export * from './dataProvider.model';

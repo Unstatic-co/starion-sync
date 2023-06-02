@@ -18,7 +18,11 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/apps/starion-sync/main",
+    "start:configurator:dev": "env-cmd -f ./apps/configurator/.env nest start @app/configurator --watch",
+    "start:configurator:prod": "node dist/apps/configurator/main",
+    "start:controller:dev": "env-cmd -f ./apps/controller/.env nest start @app/controller --watch",
+    "start:controller:prod": "node dist/apps/controller/main",
     "start:worker:dev": "env-cmd -f ./apps/worker/.env nest start @app/worker --watch",
     "start:worker:prod": "node dist/apps/worker/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
@@ -43,6 +47,11 @@
     "@nestjs/schedule": "^2.2.1",
     "@nestjs/swagger": "^6.3.0",
     "@nestjs/typeorm": "^9.0.1",
+    "@temporalio/activity": "^1.7.4",
+    "@temporalio/client": "^1.7.4",
+    "@temporalio/common": "^1.7.4",
+    "@temporalio/worker": "^1.7.4",
+    "@temporalio/workflow": "^1.7.4",
     "aws-sdk": "^2.1083.0",
     "axios": "^0.26.0",
     "bcrypt": "^5.1.0",
@@ -125,8 +134,7 @@
       "<rootDir>/libs/"
     ],
     "moduleNameMapper": {
-      "^@lib/database(|/.*)$": "<rootDir>/libs/database/src/$1",
-      "^@modules/modules(|/.*)$": "<rootDir>/libs/modules/src/$1",
+      "^@lib/modules(|/.*)$": "<rootDir>/libs/modules/src/$1",
       "^@lib/core(|/.*)$": "<rootDir>/libs/core/src/$1"
     }
   }

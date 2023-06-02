@@ -1,2 +1,3 @@
 export * from './dataSource.entity';
-export * from './dataSource.interface';
+export * from './dataProvider.entity';
+export * from './dataSourceConfig.entities';

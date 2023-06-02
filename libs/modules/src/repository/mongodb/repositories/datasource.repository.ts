@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import {
   DataSourceDocument,
   DataSourceModel,
-} from '../models/datasource.model';
+} from '../models/dataSource.model';
 import { Model } from 'mongoose';
 import { DataSource } from '@lib/core';
 
@@ -26,4 +26,6 @@ export class DataSourceRepository implements IDataSourceRepository {
     await dataSource.save();
     return dataSource as unknown as DataSource;
   }
+
+  public async delete(): Promise<void> {}
 }

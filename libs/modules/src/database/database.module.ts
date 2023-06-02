@@ -4,8 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   DataSourceModel,
   DataSourceSchema,
-} from '../repository/mongodb/models/datasource.model';
+} from '../repository/mongodb/models/dataSource.model';
 import { DatabaseType, databaseConfig as dbConfig } from '@lib/core/config';
+import { DataProviderModel, DataProviderSchema } from '../repository';
 
 @Module({})
 export class DatabaseModule {
@@ -36,6 +37,23 @@ export class DatabaseModule {
       case DatabaseType.MONGODB:
         return MongooseModule.forFeature([
           { name: DataSourceModel.name, schema: DataSourceSchema },
+          { name: DataProviderModel.name, schema: DataProviderSchema },
+        ]);
+      // case DatabaseType.MYSQL:
+      default:
+        return MongooseModule.forFeature([
+          { name: DataSourceModel.name, schema: DataSourceSchema },
+          { name: DataProviderModel.name, schema: DataProviderSchema },
+        ]);
+    }
+  }
+
+  static forFeature(): DynamicModule {
+    const databaseType = dbConfig.type;
+    switch (databaseType) {
+      case DatabaseType.MONGODB:
+        return MongooseModule.forFeature([
+          { name: DataSourceModel.name, schema: DataSourceSchema },
         ]);
       // case DatabaseType.MYSQL:
       default:
@@ -45,7 +63,7 @@ export class DatabaseModule {
     }
   }
 
-  static async getType(): Promise<DatabaseType> {
+  static getType(): DatabaseType {
     return dbConfig.type;
   }
 }

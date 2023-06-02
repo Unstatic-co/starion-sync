@@ -1,4 +1,6 @@
-type TemporalWorkflow = (...args: any[]) => any;
+export type TemporalWorkflow = (...args: any[]) => any;
+
+export type WorkflowId = String
 
 export enum WorkflowStatus {
   PENDING = 'PENDING',
@@ -9,12 +11,12 @@ export enum WorkflowStatus {
 }
 
 export class Workflow {
-  private id: string;
+  private id: WorkflowId;
   private name: string;
   private status: WorkflowStatus;
   private temporalWorflow: TemporalWorkflow;
 
-  public getId(): string {
+  public getId(): WorkflowId {
     return this.id;
   }
 

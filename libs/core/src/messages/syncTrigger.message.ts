@@ -1,6 +1,7 @@
+import { DataSourceId } from '../entities';
 import { BaseMessage } from './message.entity';
 
 export interface SyncTriggerMessage extends BaseMessage {
-  sourceId: string;
-  destinationId: string;
+  sourceId: DataSourceId;
+  destinationId: DataSourceId;
 }

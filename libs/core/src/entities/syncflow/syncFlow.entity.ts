@@ -1,5 +1,7 @@
 import { Workflow } from '../workflow/workFlow.entity';
 
+export type SyncflowId = String;
+
 export enum SyncflowStatus {
   PENDING = 'PENDING',
   RUNNING = 'RUNNING',
@@ -9,14 +11,14 @@ export enum SyncflowStatus {
 }
 
 export class Syncflow {
-  private id: string;
+  private id: SyncflowId;
   private name: string;
   private status: SyncflowStatus;
   private workFlow: Workflow;
   createdAt: Date;
   updatedAt: Date;
 
-  public getId(): string {
+  public getId(): SyncflowId {
     return this.id;
   }
 

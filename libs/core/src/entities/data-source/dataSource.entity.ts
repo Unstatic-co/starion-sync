@@ -1,24 +1,18 @@
 import { BaseEntity } from '../baseEntity';
-import { DataSourceInterface } from './dataSource.interface';
+import { ProviderId, ProviderType } from './dataProvider.entity';
 
-export enum DataSourceProvider {
-  GOOGLE_SHEETS = 'GOOGLE_SHEETS',
-  AIR_TABLE = 'AIR_TABLE',
-}
+export type DataSourceId = string;
 
-export class DataSource extends BaseEntity implements DataSourceInterface {
-  id: string;
+export class DataSource extends BaseEntity {
+  id: DataSourceId;
   name: string;
-  provider: DataSourceProvider;
+  provider: {
+    id: ProviderId;
+    type: ProviderType;
+  };
+  rowNumber: number;
+  metadata: object;
+
   createdAt: Date;
   updatedAt: Date;
-
-  public discover(): Promise<DataSourceCollection[]> {
-    throw new Error('Method not implemented.');
-  }
-}
-
-export class DataSourceCollection extends BaseEntity {
-  dataSourceId: string;
-  name: string;
 }

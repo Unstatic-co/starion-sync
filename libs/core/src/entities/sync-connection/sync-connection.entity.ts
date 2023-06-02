@@ -1,5 +1,9 @@
-import { DataSource } from '../data-source';
-import { SyncConfiguration } from './sync-configuration';
+import { DestinationId } from 'aws-sdk/clients/firehose';
+import { DataSourceId } from '../data-source';
+import { SyncflowId, SyncflowStatus } from '../syncflow/syncFlow.entity';
+import { SyncConnectionConfig } from './sync-configuration';
+
+export type SyncConnectionId = string;
 
 export enum SyncConnectionStatus {
   ACTIVE = 'ACTIVE',
@@ -7,19 +11,16 @@ export enum SyncConnectionStatus {
 }
 
 export class SyncConnection {
-  id: string;
+  id: SyncConnectionId;
   status: SyncConnectionStatus;
-  source: DataSource;
-  destination: DataSource;
-  config: SyncConfiguration;
+  currentSyncflow: {
+    id: SyncflowId;
+    status: SyncflowStatus;
+  };
+  sourceId: DataSourceId;
+  destinationId: DestinationId;
+  config: SyncConnectionConfig;
+
   createdAt: Date;
   updatedAt: Date;
-
-  public getId(): string {
-    return this.id;
-  }
-
-  public getStatus(): SyncConnectionStatus {
-    return this.status;
-  }
 }
