@@ -1,2 +1,2 @@
 export * from './baseEntity';
-export * from './dataSource.entity';
+export * from './data-source';

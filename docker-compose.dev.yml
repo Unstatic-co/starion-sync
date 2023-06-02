@@ -18,6 +18,11 @@ services:
       - PORT=9000
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - BROKER_TYPE=kafka
+      - BROKER_URIS=kafka:29092
+      - KAFKA_CLIENT_ID=worker
+      - KAFKA_CONSUMER_GROUP_ID=worker-consumer
+      - KAFKA_SSL_ENABLED=false
   #--------------------------------- DATABASE ---------------------------------------#
   mysql:
     image: mysql:8.0
