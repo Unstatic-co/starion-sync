@@ -13,6 +13,33 @@
   "monorepo": true,
   "root": "apps/starion-sync",
   "projects": {
+    "@lib/core": {
+      "type": "library",
+      "root": "libs/core",
+      "entryFile": "index",
+      "sourceRoot": "libs/core/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/core/tsconfig.lib.json"
+      }
+    },
+    "@lib/modules": {
+      "type": "library",
+      "root": "libs/modules",
+      "entryFile": "index",
+      "sourceRoot": "libs/modules/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/modules/tsconfig.lib.json"
+      }
+    },
+    "@lib/microservice": {
+      "type": "library",
+      "root": "libs/microservice",
+      "entryFile": "index",
+      "sourceRoot": "libs/microservice/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/microservice/tsconfig.lib.json"
+      }
+    },
     "@app/starion-sync": {
       "type": "application",
       "root": "apps/starion-sync",
@@ -29,24 +56,6 @@
       "sourceRoot": "apps/worker/src",
       "compilerOptions": {
         "tsConfigPath": "apps/worker/tsconfig.app.json"
-      }
-    },
-    "@lib/modules": {
-      "type": "library",
-      "root": "libs/modules",
-      "entryFile": "index",
-      "sourceRoot": "libs/modules/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/modules/tsconfig.lib.json"
-      }
-    },
-    "@lib/core": {
-      "type": "library",
-      "root": "libs/core",
-      "entryFile": "index",
-      "sourceRoot": "libs/core/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/core/tsconfig.lib.json"
       }
     },
     "@app/controller": {

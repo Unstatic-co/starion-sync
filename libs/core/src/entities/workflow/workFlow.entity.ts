@@ -1,6 +1,8 @@
+import { WorkflowAttributes } from './workflow.atrributes';
+
 export type TemporalWorkflow = (...args: any[]) => any;
 
-export type WorkflowId = String
+export type WorkflowId = string;
 
 export enum WorkflowStatus {
   PENDING = 'PENDING',
@@ -11,20 +13,7 @@ export enum WorkflowStatus {
 }
 
 export class Workflow {
-  private id: WorkflowId;
-  private name: string;
-  private status: WorkflowStatus;
-  private temporalWorflow: TemporalWorkflow;
-
-  public getId(): WorkflowId {
-    return this.id;
-  }
-
-  public getName(): string {
-    return this.name;
-  }
-
-  public getStatus(): WorkflowStatus {
-    return this.status;
-  }
+  id: WorkflowId;
+  name: string;
+  attributes: WorkflowAttributes;
 }

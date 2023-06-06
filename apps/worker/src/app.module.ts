@@ -12,7 +12,6 @@ import {
 import { DatabaseModule } from '@lib/modules';
 import { brokerConfigRegister } from '@lib/core/config/broker.config';
 import { BrokerModule } from './modules/broker/broker.module';
-import { TemporalModule } from 'nestjs-temporal';
 import {
   bundleWorkflowCode,
   NativeConnection,
@@ -37,32 +36,32 @@ import { GreetingActivity } from './temporal/activity';
     BrokerModule,
     ScheduleModule.forRoot(),
     CommonModule,
-    TemporalModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (config: ConfigService) => {
-        Runtime.install({});
-        const temporalHost = config.get(`${ConfigName.ORCHESTRATOR}.address`);
-        console.log('temporalHost', temporalHost);
-        const connection = await NativeConnection.connect({
-          address: temporalHost,
-        });
-        const workflowBundle = await bundleWorkflowCode({
-          workflowsPath: path.join(__dirname, './temporal/workflows'),
-        });
+    // TemporalModule.forRootAsync({
+    // imports: [ConfigModule],
+    // inject: [ConfigService],
+    // useFactory: async (config: ConfigService) => {
+    // Runtime.install({});
+    // const temporalHost = config.get(`${ConfigName.ORCHESTRATOR}.address`);
+    // console.log('temporalHost', temporalHost);
+    // const connection = await NativeConnection.connect({
+    // address: temporalHost,
+    // });
+    // const workflowBundle = await bundleWorkflowCode({
+    // workflowsPath: path.join(__dirname, './temporal/workflows'),
+    // });
 
-        return {
-          connection,
-          taskQueue: 'default',
-          workflowBundle,
-          activities: {
-            greeting: () => {
-              console.log('greetingActivity');
-            },
-          },
-        };
-      },
-    }),
+    // return {
+    // connection,
+    // taskQueue: 'default',
+    // workflowBundle,
+    // activities: {
+    // greeting: () => {
+    // console.log('greetingActivity');
+    // },
+    // },
+    // };
+    // },
+    // }),
   ],
   controllers: [AppController],
   providers: [AppService, GreetingActivity],

@@ -1,4 +1,4 @@
-import { HttpAdapterHost, NestFactory } from '@nestjs/core';
+import { ContextIdFactory, HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import {
   DocumentBuilder,
@@ -11,12 +11,9 @@ import { ValidationPipe } from './common/validation/validation.pipe';
 import { LoggingInterceptor } from './common/interceptor/logging.interceptor';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig, ConfigName } from '@lib/core/config';
-import {
-  BrokerConfig,
-  BrokerType,
-  TRANSPORT_MAP,
-} from '@lib/core/config/broker.config';
+import { BrokerConfig, TRANSPORT_MAP } from '@lib/core/config/broker.config';
 import { Logger } from '@nestjs/common';
+import { AggregateByDataProvidertTypeContextIdStrategy } from '@lib/microservice';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -75,5 +72,7 @@ async function bootstrap() {
     Logger.log(`Server is listening at http://localhost:${port}`);
     Logger.log(`Evironment: ${environment}`);
   });
+
+  ContextIdFactory.apply(new AggregateByDataProvidertTypeContextIdStrategy());
 }
 bootstrap();

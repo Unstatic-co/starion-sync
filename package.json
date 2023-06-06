@@ -134,8 +134,9 @@
       "<rootDir>/libs/"
     ],
     "moduleNameMapper": {
+      "^@lib/core(|/.*)$": "<rootDir>/libs/core/src/$1",
       "^@lib/modules(|/.*)$": "<rootDir>/libs/modules/src/$1",
-      "^@lib/core(|/.*)$": "<rootDir>/libs/core/src/$1"
+      "^@lib/microservice(|/.*)$": "<rootDir>/libs/microservice/src/$1"
     }
   }
 }

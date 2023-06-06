@@ -9,6 +9,7 @@ import { DatabaseModule } from '@lib/modules';
 import { brokerConfigRegister } from '@lib/core/config/broker.config';
 import { BrokerModule } from './modules/broker/broker.module';
 import { DataProviderModule } from './modules/data-provider/data-provider.module';
+import { DataSourceModule } from './modules/data-source/data-source.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -20,6 +21,7 @@ import { DataProviderModule } from './modules/data-provider/data-provider.module
     ScheduleModule.forRoot(),
     CommonModule,
     DataProviderModule,
+    DataSourceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

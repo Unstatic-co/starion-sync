@@ -1,29 +1,39 @@
+import { DataSourceId } from '../data-source';
+import {
+  SyncConnectionConfig,
+  SyncConnectionCursor,
+  SyncConnectionVersion,
+} from '../sync-connection';
 import { Workflow } from '../workflow/workFlow.entity';
 
-export type SyncflowId = String;
+export type SyncflowId = string;
 
 export enum SyncflowStatus {
-  PENDING = 'PENDING',
-  RUNNING = 'RUNNING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED',
+  PENDING = 'pending',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled',
 }
 
+export type SyncflowPayload = any;
+
 export class Syncflow {
-  private id: SyncflowId;
-  private name: string;
-  private status: SyncflowStatus;
-  private workFlow: Workflow;
+  id: SyncflowId;
+  version: SyncConnectionVersion;
+  cursor?: SyncConnectionCursor;
+  status: SyncflowStatus;
+  sourceId: DataSourceId;
+  destinationId: DataSourceId;
+  workflow: Workflow;
+  payload?: SyncflowPayload;
+  config: Partial<SyncConnectionConfig>;
+
   createdAt: Date;
   updatedAt: Date;
 
   public getId(): SyncflowId {
     return this.id;
-  }
-
-  public getName(): string {
-    return this.name;
   }
 
   public getStatus(): SyncflowStatus {

@@ -1,13 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Activities, Activity } from 'nestjs-temporal';
 import { ActivityInterface } from '@temporalio/activity';
 
 @Injectable()
-@Activities()
 export class GreetingActivity {
-  constructor() { }
+  constructor() {}
 
-  @Activity()
   async greeting(name: string): Promise<string> {
     return 'Hello ' + name;
   }

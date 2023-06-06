@@ -6,13 +6,25 @@ import { SyncConnectionConfig } from './sync-configuration';
 export type SyncConnectionId = string;
 
 export enum SyncConnectionStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
 }
+
+export enum SyncConnectionHeatthStatus {
+  HEALTHY = 'healthy',
+  UNHEALTHY = 'unhealthy',
+}
+
+export type SyncConnectionVersion = number;
+
+export type SyncConnectionCursor = string | number;
 
 export class SyncConnection {
   id: SyncConnectionId;
   status: SyncConnectionStatus;
+  healthStatus: SyncConnectionHeatthStatus;
+  currentVersion: SyncConnectionVersion;
+  currentCursor?: SyncConnectionCursor;
   currentSyncflow: {
     id: SyncflowId;
     status: SyncflowStatus;

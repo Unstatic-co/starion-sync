@@ -1,1 +1,1 @@
-export * from './syncFlow.entity'
+export * from './syncFlow.entity';

@@ -1,7 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Scope } from '@nestjs/common';
 import { CommonService } from './modules/common/common.service';
 
-@Injectable()
+@Injectable({
+  scope: Scope.REQUEST,
+  durable: true,
+})
 /**
  * App Service
  */

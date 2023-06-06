@@ -5,9 +5,14 @@ import {
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CreateDataProviderDto } from './dto/create-provider.dto';
 
+export abstract class DataProviderService {
+  abstract findOne(): Promise<any>;
+  abstract create(arg: any): Promise<any>;
+}
+
 @Injectable()
-export class DataProviderService {
-  private readonly logger = new Logger(DataProviderService.name);
+export class DefaultDataProviderService implements DataProviderService {
+  private readonly logger = new Logger(DefaultDataProviderService.name);
 
   constructor(
     @Inject(DATA_PROVIDER_REPOSITORY)

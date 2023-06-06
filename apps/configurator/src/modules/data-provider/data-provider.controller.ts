@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { DataProviderService } from './data-provider.service';
 import { CreateDataProviderDto } from './dto/create-provider.dto';
+import { DataProviderService } from './data-provider.service';
 
 @Controller('data-provider')
 export class DataProviderController {

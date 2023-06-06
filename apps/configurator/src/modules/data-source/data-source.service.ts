@@ -4,8 +4,8 @@ import { Injectable, Logger } from '@nestjs/common';
 /**
  * App Service
  */
-export class AppService {
-  private readonly logger = new Logger(AppService.name);
+export class DataSourceService {
+  private readonly logger = new Logger(DataSourceService.name);
 
   constructor() {}
   /**
