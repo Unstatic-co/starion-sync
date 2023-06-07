@@ -3,9 +3,9 @@ import { TRANSPORT_MAP } from '@lib/core/config/broker.config';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxyFactory } from '@nestjs/microservices';
 
-export const BROKER_PROVIDER_TOKEN = 'BROKER_PROVIDER';
+export const BROKER_PROVIDER = 'BROKER_PROVIDER';
 export const BrokerProvider = {
-  provide: BROKER_PROVIDER_TOKEN,
+  provide: BROKER_PROVIDER,
   useFactory: (configService: ConfigService) => {
     const brokerConfig = configService.get(ConfigName.BROKER);
     return ClientProxyFactory.create({

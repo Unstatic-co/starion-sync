@@ -1,4 +1,4 @@
-import { BROKER_PROVIDER_TOKEN } from '@lib/modules/broker/broker.provider';
+import { BROKER_PROVIDER } from '@lib/modules/broker/broker.provider';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 
@@ -7,7 +7,7 @@ export class BrokerService {
   private readonly logger = new Logger(BrokerService.name);
 
   constructor(
-    @Inject(BROKER_PROVIDER_TOKEN) private readonly brokerClient: ClientKafka,
+    @Inject(BROKER_PROVIDER) private readonly brokerClient: ClientKafka,
   ) {}
 
   async testSentEvent() {
