@@ -25,6 +25,7 @@ services:
       - KAFKA_CLIENT_ID=worker
       - KAFKA_CONSUMER_GROUP_ID=worker-consumer
       - KAFKA_SSL_ENABLED=false
+      - ORCHESTRATOR_ADDRESS=temporal:7233
   #--------------------------------- DATABASE ---------------------------------------#
   mysql:
     image: mysql:8.0
@@ -73,7 +74,7 @@ services:
     expose:
       - 2181
     ports:
-      - "2181:2181"
+      - 2181:2181
     volumes:
       - "zookeeper-data:/var/lib/zookeeper/data"
       - "zookeeper-log:/var/lib/zookeeper/log"
@@ -82,15 +83,17 @@ services:
       - ZOOKEEPER_CLIENT_PORT=2181
       - ZOOKEEPER_TICK_TIME=2000
   kafka:
+    depends_on:
+      - zookeeper
     # restart: always
     image: confluentinc/cp-kafka:7.4.0
     expose:
       - 9092
       - 29092
     ports:
-      - "9092:9092"
+      - 9092:9092
     volumes:
-      - "kafka:/var/lib/kafka/data "
+      - kafka:/var/lib/kafka/data
     environment:
       - KAFKA_BROKER_ID=1
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
@@ -99,8 +102,6 @@ services:
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
       - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
       - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
-    depends_on:
-      - zookeeper
   kafka-ui:
     depends_on:
       - kafka
@@ -108,10 +109,10 @@ services:
     image: provectuslabs/kafka-ui:latest
     ports:
       - 8080:8080
-    environment:
-      DYNAMIC_CONFIG_ENABLED: true
     volumes:
       - ./kui-config.yml:/etc/kafkaui/dynamic_config.yaml
+    environment:
+      DYNAMIC_CONFIG_ENABLED: true
   #--------------------------------- CONNECTOR ---------------------------------------#
   debezium:
     image: debezium/connect:2.3
@@ -125,6 +126,81 @@ services:
       - CONFIG_STORAGE_TOPIC=my_connect_configs
       - OFFSET_STORAGE_TOPIC=my_connect_offsets
       - STATUS_STORAGE_TOPIC=my_connect_statuses
+  #--------------------------------- ORCHESTRATOR (TEMPORAL) ---------------------------------------#
+  elasticsearch:
+    container_name: temporal-elasticsearch
+    image: elasticsearch:7.17.10
+    expose:
+      - 9200
+    ports:
+      - 9200:9200
+    volumes:
+      - elasticsearch:/var/lib/elasticsearch/data
+    environment:
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=512mb
+      - cluster.routing.allocation.disk.watermark.high=256mb
+      - cluster.routing.allocation.disk.watermark.flood_stage=128mb
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+      - xpack.security.enabled=false
+  postgresql:
+    container_name: temporal-postgresql
+    image: postgres:15.3-alpine3.18
+    expose:
+      - 5432
+    ports:
+      - 5432:5432
+    volumes:
+      - postgresql:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_USER: temporal
+  temporal:
+    depends_on:
+      - postgresql
+      - elasticsearch
+    container_name: temporal
+    image: temporalio/auto-setup:1.20.3.2
+    expose:
+      - 7233
+    ports:
+      - 7233:7233
+    labels:
+      kompose.volume.type: configMap
+    volumes:
+      - ./temporal-config.yml:/etc/temporal/config/dynamicconfig/development-sql.yaml
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+      - ENABLE_ES=true
+      - ES_SEEDS=elasticsearch
+      - ES_VERSION=v7
+  # temporal-admin-tools:
+    # container_name: temporal-admin-tools
+    # depends_on:
+      # - temporal
+    # environment:
+      # - TEMPORAL_CLI_ADDRESS=temporal:7233
+    # image: temporalio/admin-tools:${TEMPORAL_VERSION}
+    # networks:
+      # - temporal-network
+    # stdin_open: true
+    # tty: true
+  temporal-ui:
+    depends_on:
+      - temporal
+    container_name: temporal-ui
+    ports:
+      - 8233:8080
+    image: temporalio/ui:2.15.0
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
 volumes:
   mongo:
   mysql:
@@ -132,3 +208,5 @@ volumes:
   zookeeper-log:
   zookeeper-data:
   kafka:
+  elasticsearch:
+  postgresql:
