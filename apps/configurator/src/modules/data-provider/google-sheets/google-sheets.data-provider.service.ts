@@ -1,11 +1,9 @@
-import {
-  DATA_PROVIDER_REPOSITORY,
-  IDataProviderRepository,
-} from '@lib/modules/repository';
+import { IDataProviderRepository } from '@lib/modules/repository';
 import { Inject, Injectable, Logger, Scope } from '@nestjs/common';
 import { CreateDataProviderDto } from '../dto/create-provider.dto';
 import { DataProviderService } from '../data-provider.service';
 import { REQUEST } from '@nestjs/core';
+import { InjectTokens } from '@lib/modules';
 
 @Injectable()
 export class GoogleSheetsDataProviderService implements DataProviderService {
@@ -13,7 +11,7 @@ export class GoogleSheetsDataProviderService implements DataProviderService {
 
   constructor(
     @Inject(REQUEST) private readonly request: any,
-    @Inject(DATA_PROVIDER_REPOSITORY)
+    @Inject(InjectTokens.DATA_PROVIDER_REPOSITORY)
     private readonly dataProviderRepository: IDataProviderRepository,
   ) {}
 

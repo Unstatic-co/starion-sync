@@ -1,11 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { WORKFLOW_WORKER } from './workflow-worker.provider';
 import { Worker } from '@temporalio/worker';
+import { InjectTokens } from '../../common/inject-tokens';
 
 @Injectable()
 export class WorkflowWorkerService {
   constructor(
-    @Inject(WORKFLOW_WORKER) private readonly workflowWorker: Worker,
+    @Inject(InjectTokens.WORKFLOW_WORKER)
+    private readonly workflowWorker: Worker,
   ) {}
 
   async close() {

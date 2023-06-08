@@ -1,23 +1,89 @@
 version: "3.9"
 services:
-  worker:
+  configurator:
     depends_on:
       - mongodb
       - zookeeper
       - kafka
     build:
       context: .
-      dockerfile: ./apps/worker/Dockerfile
+      dockerfile: ./apps/configurator/Dockerfile
+    expose:
+      - 9000
     ports:
       - 9000:9000
-    # volumes:
-    # - ./apps/worker:/app
-    # - /app/node_modules
-    # env_file:
-    # - ./apps/worker/.env
     environment:
       - NODE_ENV=dev
       - PORT=9000
+      - DB_TYPE=mongodb
+      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - BROKER_TYPE=kafka
+      - BROKER_URIS=kafka:29092
+      - KAFKA_CLIENT_ID=configurator
+      - KAFKA_CONSUMER_GROUP_ID=configurator-consumer
+      - KAFKA_SSL_ENABLED=false
+  controller:
+    depends_on:
+      - mongodb
+      - zookeeper
+      - kafka
+    build:
+      context: .
+      dockerfile: ./apps/controller/Dockerfile
+    expose:
+      - 9001
+    ports:
+      - 9001:9001
+    environment:
+      - NODE_ENV=dev
+      - PORT=9001
+      - DB_TYPE=mongodb
+      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - BROKER_TYPE=kafka
+      - BROKER_URIS=kafka:29092
+      - KAFKA_CLIENT_ID=controller
+      - KAFKA_CONSUMER_GROUP_ID=controller-consumer
+      - KAFKA_SSL_ENABLED=false
+  executor:
+    depends_on:
+      - mongodb
+      - zookeeper
+      - kafka
+      - temporal
+    build:
+      context: .
+      dockerfile: ./apps/executor/Dockerfile
+    expose:
+      - 9002
+    ports:
+      - 9002:9002
+    environment:
+      - NODE_ENV=dev
+      - PORT=9002
+      - DB_TYPE=mongodb
+      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - BROKER_TYPE=kafka
+      - BROKER_URIS=kafka:29092
+      - KAFKA_CLIENT_ID=executor
+      - KAFKA_CONSUMER_GROUP_ID=executor-consumer
+      - KAFKA_SSL_ENABLED=false
+      - ORCHESTRATOR_ADDRESS=temporal:7233
+  worker:
+    depends_on:
+      - mongodb
+      - zookeeper
+      - kafka
+      - temporal
+    build:
+      context: .
+      dockerfile: ./apps/worker/Dockerfile
+    expose:
+      - 9003
+    ports:
+      - 9003:9003
+    environment:
+      - NODE_ENV=dev
+      - PORT=9003
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka

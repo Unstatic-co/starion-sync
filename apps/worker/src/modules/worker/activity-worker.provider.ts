@@ -3,11 +3,10 @@ import { CommonActivities } from '../../activities/common.activities';
 import { GoogleSheetsActivities } from '../../activities/google-sheets/googleSheet.activities';
 import { Logger } from '@nestjs/common';
 import { TestActivities } from '../../activities';
-
-export const ACTIVITY_WORKER = 'ACTIVITY_WORKER';
+import { InjectTokens } from '../../common/inject-tokens';
 
 export const ActivityWorkerProvider = {
-  provide: ACTIVITY_WORKER,
+  provide: InjectTokens.ACTIVITY_WORKER,
   inject: [CommonActivities, GoogleSheetsActivities],
   useFactory: async (
     commonActivityService: CommonActivities,

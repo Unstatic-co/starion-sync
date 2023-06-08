@@ -1,4 +1,4 @@
-import { ORCHESTRATOR_CLIENT } from '@lib/modules/orchestrator';
+import { InjectTokens } from '@lib/modules';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   Client,
@@ -9,7 +9,8 @@ import {
 @Injectable()
 export class WorkflowService {
   constructor(
-    @Inject(ORCHESTRATOR_CLIENT) private readonly orchestratorClient: Client,
+    @Inject(InjectTokens.ORCHESTRATOR_CLIENT)
+    private readonly orchestratorClient: Client,
   ) {}
 
   async executeWorkflow(workflowName: string, options: WorkflowStartOptions) {

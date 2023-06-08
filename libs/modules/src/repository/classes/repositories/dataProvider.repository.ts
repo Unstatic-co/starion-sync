@@ -6,8 +6,6 @@ import {
 } from '@lib/core';
 import { IRepository } from '../baseRepository';
 
-export const DATA_PROVIDER_REPOSITORY = 'DATA_PROVIDER_REPOSITORY';
-
 export interface IDataProviderRepository extends IRepository {
   getById(id: ProviderId): Promise<DataProvider>;
   create(arg: CreateDataProviderArgs): Promise<DataProvider>;

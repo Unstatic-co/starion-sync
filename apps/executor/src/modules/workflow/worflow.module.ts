@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { WorkflowController } from './worklow.controller';
 import { WorkflowService } from './workflow.service';
-import { OrchestratorProviders } from '@lib/modules/orchestrator';
+import orchestratorProviders from '@lib/modules/orchestrator/orchestrator.provider';
 
 @Module({
   imports: [],
   controllers: [WorkflowController],
-  providers: [...OrchestratorProviders, WorkflowService],
-  exports: [...OrchestratorProviders, WorkflowService],
+  providers: [...orchestratorProviders, WorkflowService],
+  exports: [...orchestratorProviders, WorkflowService],
 })
 export class WorkflowModule {}

@@ -2,7 +2,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { DatabaseModule } from '../database';
 import * as MongoRepositories from './mongodb/repositories';
 import { DatabaseType } from '@lib/core/config';
-import { DATA_PROVIDER_REPOSITORY, DATA_SOURCE_REPOSITORY } from './classes';
+import { InjectTokens } from '../inject-tokens';
 
 export interface RepositoryModuleOptions {
   databaseType: DatabaseType;
@@ -20,25 +20,17 @@ export class RepositoryModule {
       case DatabaseType.MONGODB:
         reporitories.push(
           {
-            provide: DATA_PROVIDER_REPOSITORY,
+            provide: InjectTokens.DATA_PROVIDER_REPOSITORY,
             useClass: MongoRepositories.DataProviderRepository,
           },
           {
-            provide: DATA_SOURCE_REPOSITORY,
+            provide: InjectTokens.DATA_SOURCE_REPOSITORY,
             useClass: MongoRepositories.DataSourceRepository,
           },
         );
+        break;
       default:
-        reporitories.push(
-          {
-            provide: DATA_PROVIDER_REPOSITORY,
-            useClass: MongoRepositories.DataProviderRepository,
-          },
-          {
-            provide: DATA_SOURCE_REPOSITORY,
-            useClass: MongoRepositories.DataSourceRepository,
-          },
-        );
+        throw new Error(`Database type ${databaseType} is not supported`);
     }
 
     return {

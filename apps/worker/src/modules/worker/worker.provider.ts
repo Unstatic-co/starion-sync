@@ -3,14 +3,13 @@ import { CommonActivities } from '../../activities/common.activities';
 import { GoogleSheetsActivities } from '../../activities/google-sheets/googleSheet.activities';
 import { Logger } from '@nestjs/common';
 import { TestActivities } from '../../activities';
-import { ORCHESTRATOR_NATIVE_CONNECTION } from '@lib/modules/orchestrator';
-
-export const ORCHESTRATOR_WORKER = 'ORCHESTRATOR_WORKER';
+import { InjectTokens } from '@lib/modules';
+import { InjectTokens as AppInjectTokens } from '../../common/inject-tokens';
 
 export const WorkerProvider = {
-  provide: ORCHESTRATOR_WORKER,
+  provide: AppInjectTokens.ORCHESTRATOR_WORKER,
   inject: [
-    ORCHESTRATOR_NATIVE_CONNECTION,
+    InjectTokens.ORCHESTRATOR_NATIVE_CONNECTION,
     CommonActivities,
     TestActivities,
     GoogleSheetsActivities,

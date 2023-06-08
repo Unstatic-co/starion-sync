@@ -1,10 +1,9 @@
 import { Worker } from '@temporalio/worker';
 import { Logger } from '@nestjs/common';
-
-export const WORKFLOW_WORKER = 'WORKFLOW_WORKER';
+import { InjectTokens } from '../../common/inject-tokens';
 
 export const WorkflowWorkerProvider = {
-  provide: WORKFLOW_WORKER,
+  provide: InjectTokens.ORCHESTRATOR_WORKER,
   useFactory: async () => {
     const worker = await Worker.create({
       workflowsPath: require.resolve('../../workflows'),

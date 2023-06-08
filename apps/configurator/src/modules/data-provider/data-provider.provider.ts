@@ -1,8 +1,5 @@
 import { REQUEST } from '@nestjs/core';
-import {
-  DATA_PROVIDER_REPOSITORY,
-  IDataProviderRepository,
-} from '@lib/modules/repository';
+import { IDataProviderRepository } from '@lib/modules/repository';
 import { GoogleSheetsDataProviderService } from './google-sheets';
 import {
   DataProviderService,
@@ -10,10 +7,11 @@ import {
 } from './data-provider.service';
 import { ProviderType } from '@lib/core';
 import { Scope } from '@nestjs/common';
+import { InjectTokens } from '@lib/modules';
 
 export const DataProviderServiceProvider = {
   provide: DataProviderService,
-  inject: [REQUEST, DATA_PROVIDER_REPOSITORY],
+  inject: [REQUEST, InjectTokens.DATA_PROVIDER_REPOSITORY],
   useFactory: (
     request: any,
     dataProviderRepository: IDataProviderRepository,
