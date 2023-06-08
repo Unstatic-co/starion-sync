@@ -1,2 +1,2 @@
 export * from './workFlow.entity';
-export * from './workflow.atrributes';
+export * from './workflowExecution.entity';

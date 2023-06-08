@@ -1,42 +1,39 @@
-import { DataSourceId } from '../data-source';
+import { Trigger } from '../trigger';
 import {
-  SyncConnectionConfig,
-  SyncConnectionCursor,
-  SyncConnectionVersion,
-} from '../sync-connection';
-import { Workflow } from '../workflow/workFlow.entity';
+  Workflow,
+  WorkflowId,
+  WorkflowName,
+  WorkflowStatus,
+} from '../workflow/workFlow.entity';
+import { SyncflowAttributes } from './syncflow.attributes';
+import { SyncflowConfig } from './syncflow.config';
 
-export type SyncflowId = string;
+export type SyncflowId = WorkflowId;
 
-export enum SyncflowStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled',
-}
+export type SyncflowName = WorkflowName;
+
+export type SyncflowStatus = WorkflowStatus;
 
 export type SyncflowPayload = any;
 
-export class Syncflow {
-  id: SyncflowId;
-  version: SyncConnectionVersion;
-  cursor?: SyncConnectionCursor;
+export type SyncflowVersion = number;
+
+export type SyncflowCursor = any;
+
+export type SyncflowState = {
   status: SyncflowStatus;
-  sourceId: DataSourceId;
-  destinationId: DataSourceId;
-  workflow: Workflow;
-  payload?: SyncflowPayload;
-  config: Partial<SyncConnectionConfig>;
+  version: SyncflowVersion;
+  cursor?: SyncflowCursor;
+};
+
+export class Syncflow extends Workflow {
+  id: SyncflowId;
+  name: SyncflowName;
+  state: SyncflowState;
+  attributes: SyncflowAttributes;
+  config: SyncflowConfig;
+  trigger: Partial<Trigger>;
 
   createdAt: Date;
   updatedAt: Date;
-
-  public getId(): SyncflowId {
-    return this.id;
-  }
-
-  public getStatus(): SyncflowStatus {
-    return this.status;
-  }
 }

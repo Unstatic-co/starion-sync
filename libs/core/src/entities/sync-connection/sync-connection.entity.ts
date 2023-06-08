@@ -1,6 +1,4 @@
-import { DestinationId } from 'aws-sdk/clients/firehose';
-import { DataSourceId } from '../data-source';
-import { SyncflowId, SyncflowStatus } from '../syncflow/syncFlow.entity';
+import { Syncflow } from '../syncflow/syncflow.entity';
 import { SyncConnectionConfig } from './sync-configuration';
 
 export type SyncConnectionId = string;
@@ -10,28 +8,22 @@ export enum SyncConnectionStatus {
   INACTIVE = 'inactive',
 }
 
-export enum SyncConnectionHeatthStatus {
+export enum SyncConnectionHealthStatus {
   HEALTHY = 'healthy',
   UNHEALTHY = 'unhealthy',
 }
 
-export type SyncConnectionVersion = number;
-
-export type SyncConnectionCursor = string | number;
+export type SyncConnectionState = {
+  status: SyncConnectionStatus;
+  healthStatus: SyncConnectionHealthStatus;
+  currentSyncflows: Array<Partial<Syncflow>>;
+};
 
 export class SyncConnection {
   id: SyncConnectionId;
-  status: SyncConnectionStatus;
-  healthStatus: SyncConnectionHeatthStatus;
-  currentVersion: SyncConnectionVersion;
-  currentCursor?: SyncConnectionCursor;
-  currentSyncflow: {
-    id: SyncflowId;
-    status: SyncflowStatus;
-  };
-  sourceId: DataSourceId;
-  destinationId: DestinationId;
+  state: SyncConnectionState;
   config: SyncConnectionConfig;
+  syncflows: Array<Partial<Syncflow>>;
 
   createdAt: Date;
   updatedAt: Date;

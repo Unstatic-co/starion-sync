@@ -97,6 +97,7 @@ services:
       - mongodb
       - zookeeper
       - kafka
+      - temporal
     build:
       context: .
       dockerfile: ./apps/post-processor/Dockerfile
@@ -116,32 +117,32 @@ services:
       - KAFKA_SSL_ENABLED=false
       - ORCHESTRATOR_ADDRESS=temporal:7233
   #--------------------------------- DATABASE ---------------------------------------#
-  mysql:
-    image: mysql:8.0
-    expose:
-      - 3306
-    ports:
-      - 3306:3306
-    volumes:
-      - mysql:/var/lib/mysql
-    command: mysqld --default-authentication-plugin=mysql_native_password
-    environment:
-      - MYSQL_ROOT_PASSWORD=abc123456@
-      - MYSQL_DATABASE=starion-sync
-      - MYSQL_ROOT_HOST=%
-      - MYSQL_USER=mysqluser
-      - MYSQL_PASSWORD=mysqlpwd
-    cap_add:
-      - CAP_SYS_NICE
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    platform: linux/amd64
-    ports:
-      - 5000:80
-    environment:
-      - PMA_HOST=mysql
-      - PMA_PORT=3306
-      - PMA_ARBITRARY=1
+  # mysql:
+    # image: mysql:8.0
+    # expose:
+      # - 3306
+    # ports:
+      # - 3306:3306
+    # volumes:
+      # - mysql:/var/lib/mysql
+    # command: mysqld --default-authentication-plugin=mysql_native_password
+    # environment:
+      # - MYSQL_ROOT_PASSWORD=abc123456@
+      # - MYSQL_DATABASE=starion-sync
+      # - MYSQL_ROOT_HOST=%
+      # - MYSQL_USER=mysqluser
+      # - MYSQL_PASSWORD=mysqlpwd
+    # cap_add:
+      # - CAP_SYS_NICE
+  # phpmyadmin:
+    # image: phpmyadmin/phpmyadmin
+    # platform: linux/amd64
+    # ports:
+      # - 5000:80
+    # environment:
+      # - PMA_HOST=mysql
+      # - PMA_PORT=3306
+      # - PMA_ARBITRARY=1
   mongodb:
     image: mongo:5.0
     expose:

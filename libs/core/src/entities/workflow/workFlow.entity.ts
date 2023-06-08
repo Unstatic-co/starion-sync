@@ -1,19 +1,29 @@
-import { WorkflowAttributes } from './workflow.atrributes';
+import { Trigger } from '../trigger';
 
 export type TemporalWorkflow = (...args: any[]) => any;
 
 export type WorkflowId = string;
 
+export type WorkflowName = string;
+
 export enum WorkflowStatus {
-  PENDING = 'PENDING',
+  IDLING = 'IDLING',
   RUNNING = 'RUNNING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED',
 }
+
+export type WorkflowPayload = any;
+
+export type WorkflowConfig = any;
 
 export class Workflow {
   id: WorkflowId;
-  name: string;
-  attributes: WorkflowAttributes;
+  name: WorkflowName;
+  status: WorkflowStatus;
+  payload?: WorkflowPayload;
+  config?: WorkflowConfig;
+  trigger: Partial<Trigger>;
+
+  createdAt: Date;
+  updatedAt: Date;
+  endedAt?: Date;
 }
