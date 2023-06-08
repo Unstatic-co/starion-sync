@@ -92,6 +92,29 @@ services:
       - KAFKA_CONSUMER_GROUP_ID=worker-consumer
       - KAFKA_SSL_ENABLED=false
       - ORCHESTRATOR_ADDRESS=temporal:7233
+  post-processor:
+    depends_on:
+      - mongodb
+      - zookeeper
+      - kafka
+    build:
+      context: .
+      dockerfile: ./apps/post-processor/Dockerfile
+    expose:
+      - 9004
+    ports:
+      - 9004:9004
+    environment:
+      - NODE_ENV=dev
+      - PORT=9004
+      - DB_TYPE=mongodb
+      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - BROKER_TYPE=kafka
+      - BROKER_URIS=kafka:29092
+      - KAFKA_CLIENT_ID=post-processor
+      - KAFKA_CONSUMER_GROUP_ID=post-processor-consumer
+      - KAFKA_SSL_ENABLED=false
+      - ORCHESTRATOR_ADDRESS=temporal:7233
   #--------------------------------- DATABASE ---------------------------------------#
   mysql:
     image: mysql:8.0

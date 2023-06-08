@@ -84,6 +84,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/worker/tsconfig.app.json"
       }
+    },
+    "@app/post-processor": {
+      "type": "application",
+      "root": "apps/post-processor",
+      "entryFile": "main",
+      "sourceRoot": "apps/post-processor/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/post-processor/tsconfig.app.json"
+      }
     }
   }
 }
