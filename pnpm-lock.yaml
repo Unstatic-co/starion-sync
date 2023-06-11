@@ -242,6 +242,10 @@ importers:
 
   apps/controller: {}
 
+  apps/executor: {}
+
+  apps/post-processor: {}
+
   apps/starion-sync: {}
 
   apps/worker: {}

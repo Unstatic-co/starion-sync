@@ -4,11 +4,15 @@ import { AppService } from './app.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
 import { CommonModule } from './modules/common/common.module';
-import { appConfigRegister, databaseConfigRegister } from '@lib/core/config';
+import {
+  appConfigRegister,
+  brokerConfigRegister,
+  databaseConfigRegister,
+  destinationDatabaseConfigRegister,
+  orchestratorConfigRegister,
+} from '@lib/core/config';
 import { DatabaseModule } from '@lib/modules';
-import { brokerConfigRegister } from '@lib/core/config/broker.config';
 import { BrokerModule } from './modules/broker/broker.module';
-import { orchestratorConfigRegister } from '@lib/core/config/orchestrator.config';
 import { ActivitiesModule } from './activities/activities.module';
 import { WorkflowModule } from './modules/workflow/worflow.module';
 import { WorkerModule } from './modules/worker/worker.module';
@@ -20,6 +24,7 @@ import { WorkerModule } from './modules/worker/worker.module';
       load: [
         appConfigRegister,
         databaseConfigRegister,
+        destinationDatabaseConfigRegister,
         brokerConfigRegister,
         orchestratorConfigRegister,
       ],
