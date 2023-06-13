@@ -24,10 +24,6 @@ export class GoogleSheetsDataProviderService implements DataProviderService {
     const { type, config, metadata } = dto;
     this.logger.log('request', this.request);
     this.logger.log('google sheets create');
-    return await this.dataProviderRepository.create({
-      type,
-      config,
-      metadata,
-    });
+    return {} as any;
   }
 }

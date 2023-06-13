@@ -67,7 +67,7 @@ async function bootstrap() {
     SwaggerModule.setup('swagger', app, document, customOptions);
   }
 
-  await app.startAllMicroservices();
+  app.startAllMicroservices();
   await app.listen(port, () => {
     Logger.log(`Server is listening at http://localhost:${port}`);
     Logger.log(`Evironment: ${environment}`);

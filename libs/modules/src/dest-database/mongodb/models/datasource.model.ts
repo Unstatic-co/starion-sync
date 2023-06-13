@@ -6,7 +6,7 @@ export type DataSourceDocument = DataSourceModel & Document;
 
 @Schema({
   timestamps: true,
-  collection: 'datasources',
+  collection: 'datasourcesList',
 })
 export class DataSourceModel extends DataSource {
   @Prop()

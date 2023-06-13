@@ -1,3 +1,4 @@
 export * from './dataSource.entity';
 export * from './dataProvider.entity';
-export * from './dataSourceConfig.entities';
+export * from './dataSourceConfig.interface';
+export * from './microsoft-excel';

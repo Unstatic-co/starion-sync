@@ -10,12 +10,12 @@ export type DataProviderDocument = DataProviderModel & Document;
 })
 export class DataProviderModel extends DataProvider {
   @Prop()
-  id: string;
+  externalId: string;
 
   @Prop()
   type: ProviderType;
 
-  @Prop()
+  @Prop({ type: Object })
   config: ProviderConfig;
 
   @Prop({
@@ -26,3 +26,11 @@ export class DataProviderModel extends DataProvider {
 
 export const DataProviderSchema =
   SchemaFactory.createForClass(DataProviderModel);
+
+DataProviderSchema.virtual('id').get(function () {
+  return this._id.toHexString(); // eslint-disable-line
+});
+
+DataProviderSchema.set('toJSON', {
+  virtuals: true,
+});

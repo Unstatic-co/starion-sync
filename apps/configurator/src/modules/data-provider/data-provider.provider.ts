@@ -8,13 +8,19 @@ import {
 import { ProviderType } from '@lib/core';
 import { Scope } from '@nestjs/common';
 import { InjectTokens } from '@lib/modules';
+import { DataDiscovererService } from '../discoverer/discoverer.service';
 
 export const DataProviderServiceProvider = {
   provide: DataProviderService,
-  inject: [REQUEST, InjectTokens.DATA_PROVIDER_REPOSITORY],
+  inject: [
+    REQUEST,
+    InjectTokens.DATA_PROVIDER_REPOSITORY,
+    DataDiscovererService,
+  ],
   useFactory: (
     request: any,
     dataProviderRepository: IDataProviderRepository,
+    dataDiscovererService: DataDiscovererService,
   ) => {
     const { dataProviderType } = request;
     switch (dataProviderType) {
@@ -24,7 +30,10 @@ export const DataProviderServiceProvider = {
           dataProviderRepository,
         );
       default:
-        return new DefaultDataProviderService(dataProviderRepository);
+        return new DefaultDataProviderService(
+          dataProviderRepository,
+          dataDiscovererService,
+        );
     }
   },
   scope: Scope.REQUEST,

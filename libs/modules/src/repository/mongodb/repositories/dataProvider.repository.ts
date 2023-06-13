@@ -15,8 +15,18 @@ export class DataProviderRepository implements IDataProviderRepository {
     private dataProviderModel: Model<DataProviderDocument>,
   ) {}
 
-  public async getById(id: string): Promise<DataProvider> {
-    return {} as any;
+  public async getById(id: string) {
+    const dataProvider = await this.dataProviderModel.findOne({ id: id });
+    if (!dataProvider) return null;
+    return dataProvider;
+  }
+
+  public async getByExternalId(id: string) {
+    const dataProvider = await this.dataProviderModel.findOne({
+      externalId: id,
+    });
+    if (!dataProvider) return null;
+    return dataProvider;
   }
 
   public async create(arg: CreateDataProviderArgs): Promise<DataProvider> {
