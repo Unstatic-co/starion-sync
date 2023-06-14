@@ -1,4 +1,5 @@
 export interface DiscoveredDataSource {
+  id: string;
   name?: string;
   // providerType: ProviderType;
 }

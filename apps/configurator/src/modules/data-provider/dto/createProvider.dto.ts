@@ -1,20 +1,31 @@
-import { ProviderType } from '@lib/core';
+import { Metadata, ProviderType } from '@lib/core';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsOptional, ValidateNested } from 'class-validator';
-class ProviderAuthConfigDto {
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+export class ProviderAuthConfigDto {
   @IsOptional()
+  @IsString()
   refreshToken: string;
 }
 
-class ProviderConfigDto {
+export class ProviderConfigDto {
   @IsOptional()
+  @IsString()
   sheetId: string;
 
   @IsOptional()
+  @IsString()
   sheetName: string;
 
   @IsOptional()
-  worksheetId: string;
+  @IsString()
+  workbookId: string;
 
   @IsNotEmpty()
   @ValidateNested({ each: true })
@@ -24,6 +35,7 @@ class ProviderConfigDto {
 
 export class CreateDataProviderDto {
   @IsNotEmpty()
+  @IsEnum(ProviderType)
   type: ProviderType;
 
   @IsNotEmpty()
@@ -32,5 +44,6 @@ export class CreateDataProviderDto {
   config: ProviderConfigDto;
 
   @IsOptional()
-  metadata: object;
+  @IsObject()
+  metadata: Metadata;
 }

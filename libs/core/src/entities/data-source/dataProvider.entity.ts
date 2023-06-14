@@ -1,3 +1,4 @@
+import { Metadata } from '@lib/core/data-type';
 import { ProviderAuthConfig } from './dataSourceConfig.interface';
 
 export type ProviderId = string;
@@ -22,7 +23,7 @@ export class DataProvider {
   externalId: string;
   type: ProviderType;
   config: ProviderConfig;
-  metadata: object;
+  metadata: Metadata;
 
   createdAt: Date;
   updatedAt: Date;

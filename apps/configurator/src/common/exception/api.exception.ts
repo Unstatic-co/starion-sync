@@ -4,7 +4,7 @@ import { ErrorCode } from '../constants';
 export class ApiError extends HttpException {
   code: string;
 
-  constructor(code: string | number, message: any) {
+  constructor(code: string | number, message: any, payload?: any) {
     let statusCode: number;
     if (typeof code === 'number') {
       statusCode = code;
@@ -19,12 +19,15 @@ export class ApiError extends HttpException {
         case ErrorCode.HEALTH_CHECK_FAILED:
           statusCode = HttpStatus.BAD_REQUEST;
           break;
+        case ErrorCode.ALREADY_EXISTS:
+          statusCode = HttpStatus.CONFLICT;
+          break;
         default:
           statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
           break;
       }
     }
-    super(message, statusCode);
+    super({ content: message, payload }, statusCode);
     this.code = code as string;
   }
 }

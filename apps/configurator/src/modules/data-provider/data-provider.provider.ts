@@ -1,6 +1,5 @@
 import { REQUEST } from '@nestjs/core';
 import { IDataProviderRepository } from '@lib/modules/repository';
-import { GoogleSheetsDataProviderService } from './google-sheets';
 import {
   DataProviderService,
   DefaultDataProviderService,
@@ -25,9 +24,9 @@ export const DataProviderServiceProvider = {
     const { dataProviderType } = request;
     switch (dataProviderType) {
       case ProviderType.GOOGLE_SHEETS:
-        return new GoogleSheetsDataProviderService(
-          request,
+        return new DefaultDataProviderService(
           dataProviderRepository,
+          dataDiscovererService,
         );
       default:
         return new DefaultDataProviderService(

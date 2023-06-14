@@ -144,15 +144,20 @@ services:
       # - PMA_PORT=3306
       # - PMA_ARBITRARY=1
   mongodb:
-    image: mongo:5.0
+    restart: on-failure
+    build:
+      context: .
+      dockerfile: ./mongodb.Dockerfile
     expose:
       - 27017
     ports:
       - 27017:27017
-    command: mongod --auth
     volumes:
       - mongo:/data/db
-      - ./init-mongo.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test: test $$(echo 'rs.initiate({_id':' "rs0", members':' [{_id':' 1, "host"':' "localhost':'27017"}]}) || rs.status().ok' | mongosh -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --quiet) -eq 1
+      interval: 10s
+      start_period: 30s
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=abc123456

@@ -1,17 +1,24 @@
+import { Metadata } from '@lib/core/data-type';
 import { BaseEntity } from '../baseEntity';
 import { ProviderId, ProviderType } from './dataProvider.entity';
 
 export type DataSourceId = string;
 
+export interface DataSourceStatistic {
+  rowsNumber: number;
+}
+
 export class DataSource extends BaseEntity {
   id: DataSourceId;
-  name: string;
+  externalId: string;
+  externalLocalId: string;
+  name?: string;
   provider: {
     id: ProviderId;
     type: ProviderType;
   };
-  rowNumber: number;
-  metadata: object;
+  statistic: DataSourceStatistic;
+  metadata: Metadata;
 
   createdAt: Date;
   updatedAt: Date;

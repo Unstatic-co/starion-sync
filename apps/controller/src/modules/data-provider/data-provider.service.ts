@@ -23,6 +23,7 @@ export class DataProviderService {
     return await this.dataProviderRepository.create({
       type,
       config,
+      externalId: '1',
       metadata,
     });
   }

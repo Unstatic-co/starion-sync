@@ -4,6 +4,9 @@ import { ProviderAuthConfig } from '../dataSourceConfig.interface';
 export interface ExcelProviderConfig extends ProviderConfig {
   workbookId: string;
 }
+export interface ExcelDataSourceConfig extends ExcelProviderConfig {
+  worksheetId: string;
+}
 
 export interface ExcelAuthConfig extends ProviderAuthConfig {
   refreshToken: string;

@@ -10,7 +10,7 @@ export type DataSourceDocument = DataSourceModel & Document;
 })
 export class DataSourceModel extends DataSource {
   @Prop()
-  id: string;
+  externalId: string;
 }
 
 export const DataSourceSchema = SchemaFactory.createForClass(DataSourceModel);

@@ -8,6 +8,7 @@ export const ErrorCode = {
   NO_DATA_EXISTS: 'E1',
   ALREADY_COMPLETED: 'E2',
   HEALTH_CHECK_FAILED: 'E3',
+  ALREADY_EXISTS: 'E4',
 };
 
 export const QUEUE = {

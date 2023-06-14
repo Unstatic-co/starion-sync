@@ -1,4 +1,9 @@
-import { DataProvider, ProviderConfig, ProviderType } from '@lib/core';
+import {
+  DataProvider,
+  Metadata,
+  ProviderConfig,
+  ProviderType,
+} from '@lib/core';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
@@ -21,7 +26,7 @@ export class DataProviderModel extends DataProvider {
   @Prop({
     type: Object,
   })
-  metadata: object;
+  metadata: Metadata;
 }
 
 export const DataProviderSchema =
