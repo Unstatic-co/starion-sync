@@ -14,6 +14,7 @@ import { brokerConfigRegister } from '@lib/core/config/broker.config';
 import { BrokerModule } from './modules/broker/broker.module';
 import { DataProviderModule } from './modules/data-provider/data-provider.module';
 import { DataSourceModule } from './modules/data-source/data-source.module';
+import { SyncConnectionModule } from './modules/sync-connection/syncConnection.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -31,6 +32,7 @@ import { DataSourceModule } from './modules/data-source/data-source.module';
     CommonModule,
     DataProviderModule,
     DataSourceModule,
+    SyncConnectionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

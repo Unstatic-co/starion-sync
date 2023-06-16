@@ -12,6 +12,14 @@ export type DataProviderDocument = DataProviderModel & Document;
 @Schema({
   timestamps: true,
   collection: 'dataproviders',
+  versionKey: false,
+  toJSON: {
+    virtuals: true,
+    transform: function (doc, ret) {
+      delete ret._id; // eslint-disable-line
+      return ret;
+    },
+  },
 })
 export class DataProviderModel extends DataProvider {
   @Prop()
@@ -34,8 +42,4 @@ export const DataProviderSchema =
 
 DataProviderSchema.virtual('id').get(function () {
   return this._id.toHexString(); // eslint-disable-line
-});
-
-DataProviderSchema.set('toJSON', {
-  virtuals: true,
 });

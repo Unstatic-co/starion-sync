@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DataProviderService } from '../data-provider/data-provider.service';
 import {
+  DataSource,
   DataSourceId,
   ExcelDataSourceConfig,
   ProviderConfig,
@@ -20,6 +21,7 @@ import {
 import { ApiError } from '../../common/exception/api.exception';
 import { ErrorCode } from '../../common/constants';
 import { ProviderConfigDto } from '../data-provider/dto/createProvider.dto';
+import { CreationResult } from '../../common/type';
 
 @Injectable()
 /**
@@ -59,7 +61,8 @@ export class DataSourceService {
     return dataSource;
   }
 
-  async create(dto: CreateDataSourceDto) {
+  async create(dto: CreateDataSourceDto): Promise<CreationResult<DataSource>> {
+    let isAlreadyCreated = false;
     const { type, config, metadata } = dto;
     const { externalId, externalLocalId } =
       this.getOrGenerateDataSourceExternalId(type, config);
@@ -67,10 +70,11 @@ export class DataSourceService {
       externalId,
     );
     if (existingDataSource) {
-      throw new ApiError(
-        ErrorCode.ALREADY_EXISTS,
-        'Data source already exists',
-      );
+      isAlreadyCreated = true;
+      return {
+        data: existingDataSource,
+        isAlreadyCreated,
+      };
     }
     const dataProviderExternalId =
       this.dataProviderService.getOrGenerateProviderExternalId(
@@ -81,11 +85,13 @@ export class DataSourceService {
       dataProviderExternalId,
     );
     if (!dataProvider) {
-      dataProvider = await this.dataProviderService.create({
-        type,
-        config,
-        metadata,
-      });
+      dataProvider = (
+        await this.dataProviderService.create({
+          type,
+          config,
+          metadata,
+        })
+      ).data;
     }
     if (
       !(await this.isDataSourceInProvider(
@@ -101,11 +107,15 @@ export class DataSourceService {
     }
     const dataSource = await this.dataSourceRepository.create({
       externalId,
+      externalLocalId,
       providerId: dataProvider.id,
       providerType: type,
       metadata,
     });
-    return dataSource;
+    return {
+      data: dataSource,
+      isAlreadyCreated,
+    };
   }
 
   public async update(id: ProviderId, data: UpdateDataSourceData) {

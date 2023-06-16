@@ -1,6 +1,6 @@
 import { ProviderType } from '../data-source';
 
-type SyncflowDataSourceProvider = ProviderType;
+export type SyncflowDataSourceProvider = ProviderType;
 
 export enum SyncflowDirection {
   FORWARD = 'forward',
@@ -40,3 +40,50 @@ export type SyncflowAttributes = {
   syncTarget: SyncflowSyncTarget;
   syncType: SyncflowSyncType;
 };
+
+export class SyncflowAttributesBuilder {
+  private attributes: SyncflowAttributes | Record<string, unknown>;
+
+  constructor() {
+    this.attributes = {};
+  }
+
+  reset() {
+    this.attributes = {};
+    return this;
+  }
+
+  setDirection(direction: SyncflowDirection) {
+    this.attributes.direction = direction;
+    return this;
+  }
+
+  setSyncMode(syncMode: SyncflowMode) {
+    this.attributes.syncMode = syncMode;
+    return this;
+  }
+
+  setProviderType(providerType: SyncflowDataSourceProvider) {
+    this.attributes.providerType = providerType;
+    return this;
+  }
+
+  setSyncMethod(syncMethod: SyncflowSyncMethod) {
+    this.attributes.syncMethod = syncMethod;
+    return this;
+  }
+
+  setSyncTarget(syncTarget: SyncflowSyncTarget) {
+    this.attributes.syncTarget = syncTarget;
+    return this;
+  }
+
+  setSyncType(syncType: SyncflowSyncType) {
+    this.attributes.syncType = syncType;
+    return this;
+  }
+
+  build(): SyncflowAttributes {
+    return this.attributes as SyncflowAttributes;
+  }
+}

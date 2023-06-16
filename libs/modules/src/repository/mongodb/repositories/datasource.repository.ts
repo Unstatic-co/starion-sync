@@ -10,7 +10,7 @@ import {
   DataSourceModel,
 } from '../models/dataSource.model';
 import { Model } from 'mongoose';
-import { DataSource } from '@lib/core';
+import { DataSource, defaultDataSourceStatistics } from '@lib/core';
 import { Utils } from 'apps/configurator/src/common/utils';
 import { QueryOptions } from '../../classes';
 import mongoose from 'mongoose';
@@ -29,7 +29,7 @@ export class DataSourceRepository implements IDataSourceRepository {
       _id: Utils.toObjectId(id),
     });
     if (!dataProvider) return null;
-    return dataProvider;
+    return dataProvider.toJSON();
   }
 
   public async getByExternalId(externalId: string) {
@@ -37,19 +37,20 @@ export class DataSourceRepository implements IDataSourceRepository {
       externalId,
     });
     if (!dataProvider) return null;
-    return dataProvider;
+    return dataProvider.toJSON();
   }
 
   public async create(data: CreateDataSourceData): Promise<DataSource> {
-    const dataProvider = new this.dataSourceModel({
+    const dataSource = new this.dataSourceModel({
       ...data,
       provider: {
-        id: data.providerId,
+        id: Utils.toObjectId(data.providerId),
         type: data.providerType,
       },
+      statistic: defaultDataSourceStatistics,
     });
-    await dataProvider.save();
-    return dataProvider as unknown as DataSource;
+    await dataSource.save();
+    return dataSource.toJSON() as DataSource;
   }
 
   public async update(data: UpdateDataSourceData, options?: QueryOptions) {
@@ -76,11 +77,13 @@ export class DataSourceRepository implements IDataSourceRepository {
         })
         .session(session);
       if (options?.new) {
-        result = await this.dataSourceModel
-          .findOne({
-            _id: Utils.toObjectId(data.id),
-          })
-          .session(session);
+        result = (
+          await this.dataSourceModel
+            .findOne({
+              _id: Utils.toObjectId(data.id),
+            })
+            .session(session)
+        ).toJSON();
       }
     });
     if (options?.new) {

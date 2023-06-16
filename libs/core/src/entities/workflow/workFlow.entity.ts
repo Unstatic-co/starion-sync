@@ -1,4 +1,5 @@
 import { Trigger } from '../trigger';
+import { WorkflowType } from './workflow.type';
 
 export type TemporalWorkflow = (...args: any[]) => any;
 
@@ -17,6 +18,7 @@ export type WorkflowConfig = any;
 
 export class Workflow {
   id: WorkflowId;
+  type: WorkflowType;
   name: WorkflowName;
   status: WorkflowStatus;
   payload?: WorkflowPayload;

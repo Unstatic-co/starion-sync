@@ -1,3 +1,4 @@
+import { DataSourceId } from '../data-source';
 import { Trigger } from '../trigger';
 import {
   Workflow,
@@ -28,12 +29,18 @@ export type SyncflowState = {
 
 export class Syncflow extends Workflow {
   id: SyncflowId;
-  name: SyncflowName;
+  name: SyncflowName; // type
+  attributes: SyncflowAttributes; // type
+  sourceId: DataSourceId;
   state: SyncflowState;
-  attributes: SyncflowAttributes;
   config: SyncflowConfig;
   trigger: Partial<Trigger>;
 
   createdAt: Date;
   updatedAt: Date;
 }
+
+export const defaultSyncflowState: SyncflowState = {
+  status: WorkflowStatus.IDLING,
+  version: 0,
+};

@@ -1,5 +1,9 @@
-import { WorkflowId } from '../workflow';
+import { WorkflowId, WorkflowName } from '../workflow';
 import { TriggerConfig } from './trigger.config';
+
+export type TriggerId = string;
+
+export type TriggerName = string;
 
 export enum TriggerType {
   MANUAL = 'MANUAL',
@@ -8,7 +12,14 @@ export enum TriggerType {
 }
 
 export class Trigger {
-  workflowId: WorkflowId;
+  id: TriggerId;
+  name: TriggerName; // type
   type: TriggerType;
-  config: TriggerConfig;
+  workflow: {
+    id: WorkflowId;
+    name: WorkflowName;
+  };
+  config?: TriggerConfig;
 }
+
+export class SyncTrigger extends Trigger {}

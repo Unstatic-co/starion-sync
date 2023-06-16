@@ -1,18 +1,25 @@
 import {
   DataSource,
-  DataSourceStatistic,
+  DataSourceStatistics,
   Metadata,
   ProviderType,
 } from '@lib/core';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { DataProviderSchema } from './dataProvider.model';
 
 export type DataSourceDocument = DataSourceModel & Document;
 
 @Schema({
   timestamps: true,
   collection: 'datasources',
+  versionKey: false,
+  toJSON: {
+    virtuals: true,
+    transform: function (doc, ret) {
+      delete ret._id; // eslint-disable-line
+      return ret;
+    },
+  },
 })
 export class DataSourceModel extends DataSource {
   @Prop()
@@ -31,7 +38,7 @@ export class DataSourceModel extends DataSource {
   };
 
   @Prop({ type: Object })
-  statistic: DataSourceStatistic;
+  statistic: DataSourceStatistics;
 
   @Prop({
     type: Object,
@@ -43,8 +50,4 @@ export const DataSourceSchema = SchemaFactory.createForClass(DataSourceModel);
 
 DataSourceSchema.virtual('id').get(function () {
   return this._id.toHexString(); // eslint-disable-line
-});
-
-DataProviderSchema.set('toJSON', {
-  virtuals: true,
 });

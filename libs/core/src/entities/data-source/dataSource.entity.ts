@@ -4,10 +4,9 @@ import { ProviderId, ProviderType } from './dataProvider.entity';
 
 export type DataSourceId = string;
 
-export interface DataSourceStatistic {
+export interface DataSourceStatistics {
   rowsNumber: number;
 }
-
 export class DataSource extends BaseEntity {
   id: DataSourceId;
   externalId: string;
@@ -17,9 +16,13 @@ export class DataSource extends BaseEntity {
     id: ProviderId;
     type: ProviderType;
   };
-  statistic: DataSourceStatistic;
+  statistic: DataSourceStatistics;
   metadata: Metadata;
 
   createdAt: Date;
   updatedAt: Date;
 }
+
+export const defaultDataSourceStatistics: DataSourceStatistics = {
+  rowsNumber: 0,
+};

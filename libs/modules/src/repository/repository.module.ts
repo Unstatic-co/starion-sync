@@ -27,6 +27,10 @@ export class RepositoryModule {
             provide: InjectTokens.DATA_SOURCE_REPOSITORY,
             useClass: MongoRepositories.DataSourceRepository,
           },
+          {
+            provide: InjectTokens.SYNC_CONNECTION_REPOSITORY,
+            useClass: MongoRepositories.SyncConnectionRepository,
+          },
         );
         break;
       default:

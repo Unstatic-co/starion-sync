@@ -17,9 +17,10 @@ import { ApiError } from '../../common/exception/api.exception';
 import { ErrorCode } from '../../common/constants';
 import { DiscoveredDataSource } from '../discoverer/discoverer.interface';
 import { UpdateDataProviderDto } from './dto/updateProvider.dto';
+import { CreationResult } from '../../common/type';
 
 export abstract class DataProviderService {
-  abstract create(arg: any): Promise<DataProvider>;
+  abstract create(arg: any): Promise<CreationResult<DataProvider>>;
   abstract getById(id: ProviderId): Promise<DataProvider | null>;
   abstract getByExternalId(id: string): Promise<DataProvider | null>;
   abstract getOrGenerateProviderExternalId(
@@ -62,14 +63,17 @@ export class DefaultDataProviderService implements DataProviderService {
   }
 
   public async create(dto: CreateDataProviderDto) {
+    let isAlreadyCreated = false;
     const { type, config, metadata } = dto;
     const externalId = this.getOrGenerateProviderExternalId(type, config);
     const existingDataProvider =
       await this.dataProviderRepository.getByExternalId(externalId);
     if (existingDataProvider) {
-      throw new ApiError(ErrorCode.ALREADY_EXISTS, 'Provider already exists', {
-        providerId: existingDataProvider.id,
-      });
+      isAlreadyCreated = true;
+      return {
+        data: existingDataProvider,
+        isAlreadyCreated,
+      };
     }
     try {
       await this.dataDiscovererService.check(type, config);
@@ -79,12 +83,15 @@ export class DefaultDataProviderService implements DataProviderService {
         `Failed to check provider: ${error.message}`,
       );
     }
-    return await this.dataProviderRepository.create({
-      type,
-      externalId,
-      config: config as unknown as ProviderConfig,
-      metadata,
-    });
+    return {
+      data: await this.dataProviderRepository.create({
+        type,
+        externalId,
+        config: config as unknown as ProviderConfig,
+        metadata,
+      }),
+      isAlreadyCreated,
+    };
   }
 
   public async update(id: ProviderId, data: UpdateDataProviderDto) {

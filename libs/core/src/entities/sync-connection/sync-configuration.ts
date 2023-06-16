@@ -1,11 +1,10 @@
-import { DataSourceId, ProviderAuthConfig } from '../data-source';
+import { ProviderAuthConfig } from '../data-source';
+import { TriggerConfig } from '../trigger/trigger.config';
 
 export type SyncConnectionAuthConfig = ProviderAuthConfig | any;
-export type SyncConnectionTriggerConfig = any;
+export type SyncConnectionTriggerConfig = TriggerConfig;
 
 export interface SyncConnectionConfig {
-  sourceId: DataSourceId;
-  destinationId?: DataSourceId;
-  auth: SyncConnectionAuthConfig;
-  trigger: SyncConnectionTriggerConfig;
+  auth?: SyncConnectionAuthConfig;
+  trigger?: SyncConnectionTriggerConfig;
 }

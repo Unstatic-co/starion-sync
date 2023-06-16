@@ -26,7 +26,7 @@ export class DataProviderRepository implements IDataProviderRepository {
       _id: Utils.toObjectId(id),
     });
     if (!dataProvider) return null;
-    return dataProvider;
+    return dataProvider.toJSON();
   }
 
   public async getByExternalId(externalId: string) {
@@ -34,7 +34,7 @@ export class DataProviderRepository implements IDataProviderRepository {
       externalId,
     });
     if (!dataProvider) return null;
-    return dataProvider;
+    return dataProvider.toJSON();
   }
 
   public async create(arg: CreateDataProviderData): Promise<DataProvider> {
@@ -42,7 +42,7 @@ export class DataProviderRepository implements IDataProviderRepository {
       ...arg,
     });
     await dataProvider.save();
-    return dataProvider as unknown as DataProvider;
+    return dataProvider.toJSON() as DataProvider;
   }
 
   public async update(data: UpdateDataProviderData, options?: QueryOptions) {
@@ -70,11 +70,13 @@ export class DataProviderRepository implements IDataProviderRepository {
         })
         .session(session);
       if (options?.new) {
-        result = await this.dataProviderModel
-          .findOne({
-            _id: Utils.toObjectId(data.id),
-          })
-          .session(session);
+        result = (
+          await this.dataProviderModel
+            .findOne({
+              _id: Utils.toObjectId(data.id),
+            })
+            .session(session)
+        ).toJSON();
       }
     });
     if (options?.new) {

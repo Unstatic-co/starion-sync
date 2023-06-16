@@ -23,6 +23,7 @@ export type CreateDataSourceData = {
   providerType: ProviderType;
   providerId: ProviderId;
   externalId: string;
+  externalLocalId: string;
   name?: string;
   metadata: Metadata;
 };

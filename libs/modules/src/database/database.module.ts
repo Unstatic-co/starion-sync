@@ -6,7 +6,20 @@ import {
   DataSourceSchema,
 } from '../repository/mongodb/models/dataSource.model';
 import { DatabaseType, databaseConfig as dbConfig } from '@lib/core/config';
-import { DataProviderModel, DataProviderSchema } from '../repository';
+import {
+  DataProviderModel,
+  DataProviderSchema,
+  SyncConnectionModel,
+  SyncConnectionSchema,
+} from '../repository';
+import {
+  SyncflowModel,
+  SyncflowSchema,
+} from '../repository/mongodb/models/syncflow.model';
+import {
+  TriggerModel,
+  TriggerSchema,
+} from '../repository/mongodb/models/trigger.model';
 
 @Module({})
 export class DatabaseModule {
@@ -38,13 +51,13 @@ export class DatabaseModule {
         return MongooseModule.forFeature([
           { name: DataSourceModel.name, schema: DataSourceSchema },
           { name: DataProviderModel.name, schema: DataProviderSchema },
+          { name: SyncConnectionModel.name, schema: SyncConnectionSchema },
+          { name: SyncflowModel.name, schema: SyncflowSchema },
+          { name: TriggerModel.name, schema: TriggerSchema },
         ]);
       // case DatabaseType.MYSQL:
       default:
-        return MongooseModule.forFeature([
-          { name: DataSourceModel.name, schema: DataSourceSchema },
-          { name: DataProviderModel.name, schema: DataProviderSchema },
-        ]);
+        throw new Error(`Database type ${databaseType} is not supported`);
     }
   }
 
@@ -54,12 +67,14 @@ export class DatabaseModule {
       case DatabaseType.MONGODB:
         return MongooseModule.forFeature([
           { name: DataSourceModel.name, schema: DataSourceSchema },
+          { name: DataProviderModel.name, schema: DataProviderSchema },
+          { name: SyncConnectionModel.name, schema: SyncConnectionSchema },
+          { name: SyncflowModel.name, schema: SyncflowSchema },
+          { name: TriggerModel.name, schema: TriggerSchema },
         ]);
       // case DatabaseType.MYSQL:
       default:
-        return MongooseModule.forFeature([
-          { name: DataSourceModel.name, schema: DataSourceSchema },
-        ]);
+        throw new Error(`Database type ${databaseType} is not supported`);
     }
   }
 

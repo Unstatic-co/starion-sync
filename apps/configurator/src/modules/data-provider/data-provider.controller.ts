@@ -3,8 +3,10 @@ import { CreateDataProviderDto } from './dto/createProvider.dto';
 import { DataProviderService } from './data-provider.service';
 import { DataDiscovererService } from '../discoverer/discoverer.service';
 import { UpdateDataProviderDto } from './dto/updateProvider.dto';
+import { ApiError } from '../../common/exception/api.exception';
+import { ErrorCode } from '../../common/constants';
 
-@Controller('data-provider')
+@Controller('dataproviders')
 export class DataProviderController {
   constructor(
     private readonly dataProviderService: DataProviderService,
@@ -22,8 +24,14 @@ export class DataProviderController {
   }
 
   @Post()
-  create(@Body() createDataProviderDto: CreateDataProviderDto) {
-    return this.dataProviderService.create(createDataProviderDto);
+  async create(@Body() createDataProviderDto: CreateDataProviderDto) {
+    const result = await this.dataProviderService.create(createDataProviderDto);
+    if (result.isAlreadyCreated) {
+      throw new ApiError(ErrorCode.ALREADY_EXISTS, 'Provider already exists', {
+        providerId: result.data.id,
+      });
+    }
+    return result.data;
   }
 
   @Put(':provider_id')
