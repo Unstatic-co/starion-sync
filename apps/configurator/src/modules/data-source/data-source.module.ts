@@ -4,10 +4,12 @@ import { DataSourceController } from './data-source.controller';
 import { DataSourceService } from './data-source.service';
 import { DataProviderModule } from '../data-provider/data-provider.module';
 import { SyncConnectionModule } from '../sync-connection/syncConnection.module';
+import { WorkflowModule } from '../workflow/worflow.module';
 
 @Module({
   imports: [
     RepositoryModule.registerAsync(),
+    WorkflowModule,
     DataProviderModule,
     forwardRef(() => SyncConnectionModule),
   ],

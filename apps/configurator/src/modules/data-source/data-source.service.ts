@@ -147,9 +147,15 @@ export class DataSourceService {
     let externalLocalId: string;
     switch (type) {
       case ProviderType.MICROSOFT_EXCEL:
-        const excelConfig = config as ExcelDataSourceConfig;
-        externalId = `${excelConfig.workbookId}-${excelConfig.worksheetId}`;
-        externalLocalId = `${excelConfig.worksheetId}`;
+        const { workbookId, worksheetId, driveId } =
+          config as ExcelDataSourceConfig;
+        if (!driveId) {
+          externalId = `${workbookId}`;
+          externalLocalId = `${worksheetId}`;
+        } else {
+          externalId = `${driveId}-${workbookId}`;
+          externalLocalId = `${worksheetId}`;
+        }
         break;
       default:
         throw new Error(`Unknown provider type ${type}`);

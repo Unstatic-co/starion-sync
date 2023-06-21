@@ -5,12 +5,15 @@ import { CreateDataSourceDto } from './dto/createDataSource.dto';
 import { UpdateDataSourceData } from '@lib/modules';
 import { ApiError } from '../../common/exception/api.exception';
 import { ErrorCode } from '../../common/constants';
-import { SyncConnectionService } from '../sync-connection/syncConection.service';
 import { CreateSyncConnectionFromDataSourceDto } from './dto/createSyncConnection.dto';
+import { SyncConnectionService } from '../sync-connection/syncConection.service';
+import { WorkflowService } from '../workflow/workflow.service';
+import { createSyncConnectionWf } from '../../workflows';
 
 @Controller('datasources')
 export class DataSourceController {
   constructor(
+    private readonly workflowService: WorkflowService,
     private readonly dataSourceService: DataSourceService,
     private readonly syncConnectionService: SyncConnectionService,
   ) {}
@@ -36,10 +39,14 @@ export class DataSourceController {
     @Param('id') id: string,
     data: CreateSyncConnectionFromDataSourceDto,
   ) {
-    const result = await this.syncConnectionService.create({
-      sourceId: id,
-      ...data,
-    });
+    const result = await this.workflowService.executeWorkflow(
+      createSyncConnectionWf,
+      {
+        workflowId: `${id}`,
+        args: [{ ...data, sourceId: id }],
+        workflowExecutionTimeout: 5000,
+      },
+    );
     if (result.isAlreadyCreated) {
       throw new ApiError(
         ErrorCode.ALREADY_EXISTS,

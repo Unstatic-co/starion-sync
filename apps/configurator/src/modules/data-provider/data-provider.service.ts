@@ -19,7 +19,7 @@ import { DiscoveredDataSource } from '../discoverer/discoverer.interface';
 import { UpdateDataProviderDto } from './dto/updateProvider.dto';
 import { CreationResult } from '../../common/type';
 
-export abstract class DataProviderService {
+export abstract class IDataProviderService {
   abstract create(arg: any): Promise<CreationResult<DataProvider>>;
   abstract getById(id: ProviderId): Promise<DataProvider | null>;
   abstract getByExternalId(id: string): Promise<DataProvider | null>;
@@ -36,8 +36,8 @@ export abstract class DataProviderService {
 }
 
 @Injectable()
-export class DefaultDataProviderService implements DataProviderService {
-  private readonly logger = new Logger(DefaultDataProviderService.name);
+export class DataProviderService implements IDataProviderService {
+  private readonly logger = new Logger(DataProviderService.name);
 
   constructor(
     @Inject(InjectTokens.DATA_PROVIDER_REPOSITORY)
@@ -120,7 +120,7 @@ export class DefaultDataProviderService implements DataProviderService {
     return this.dataDiscovererService.discover(providerId);
   }
 
-  public async discoverByConfig(type: ProviderType, config: ProviderConfigDto) {
+  public async discoverByConfig(type: ProviderType, config: ProviderConfig) {
     return this.dataDiscovererService.discoverByConfig(type, config);
   }
 
@@ -130,7 +130,12 @@ export class DefaultDataProviderService implements DataProviderService {
   ) {
     switch (type) {
       case ProviderType.MICROSOFT_EXCEL:
-        return (config as ExcelProviderConfig).workbookId;
+        const { workbookId, driveId } = config as ExcelProviderConfig;
+        if (!driveId) {
+          return workbookId;
+        } else {
+          return `${driveId}-${workbookId}`;
+        }
       default:
         throw new Error(`Unknown provider type ${type}`);
     }

@@ -8,7 +8,8 @@ import { DiscovererModule } from '../discoverer';
 @Module({
   imports: [RepositoryModule.registerAsync(), DiscovererModule],
   controllers: [DataProviderController],
-  providers: [DataProviderServiceProvider],
+  // providers: [DataProviderServiceProvider],
+  providers: [DataProviderService],
   exports: [DataProviderService],
 })
 export class DataProviderModule {}

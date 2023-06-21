@@ -14,9 +14,9 @@ export class UpdateDataProviderDto {
   @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => ProviderAuthConfigDto)
-  auth: ProviderAuthConfigDto;
+  auth?: ProviderAuthConfigDto;
 
   @IsOptional()
   @IsObject()
-  metadata: Metadata;
+  metadata?: Metadata;
 }

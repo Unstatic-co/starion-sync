@@ -17,15 +17,19 @@ export class ProviderAuthConfigDto {
 export class ProviderConfigDto {
   @IsOptional()
   @IsString()
-  sheetId: string;
+  sheetId?: string;
 
   @IsOptional()
   @IsString()
-  sheetName: string;
+  sheetName?: string;
 
   @IsOptional()
   @IsString()
-  workbookId: string;
+  workbookId?: string;
+
+  @IsOptional()
+  @IsString()
+  driveId?: string;
 
   @IsNotEmpty()
   @ValidateNested({ each: true })
@@ -45,5 +49,5 @@ export class CreateDataProviderDto {
 
   @IsOptional()
   @IsObject()
-  metadata: Metadata;
+  metadata?: Metadata;
 }

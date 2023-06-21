@@ -1,14 +1,22 @@
 import { ProviderClientConfig, ProviderConfig } from '../dataProvider.entity';
-import { ProviderAuthConfig } from '../dataSourceConfig.interface';
+import {
+  DataSourceAuthConfig,
+  ProviderAuthConfig,
+} from '../dataSourceConfig.interface';
 
 export interface ExcelProviderConfig extends ProviderConfig {
   workbookId: string;
+  driveId: string;
 }
 export interface ExcelDataSourceConfig extends ExcelProviderConfig {
   worksheetId: string;
 }
 
-export interface ExcelAuthConfig extends ProviderAuthConfig {
+export interface ExcelProviderAuthConfig extends ProviderAuthConfig {
+  refreshToken: string;
+}
+
+export interface ExcelDataSourceAuthConfig extends DataSourceAuthConfig {
   refreshToken: string;
 }
 

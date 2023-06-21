@@ -13,7 +13,7 @@ import { Metadata, ProviderType } from '@lib/core';
 export class DataSourceConfigDto extends ProviderConfigDto {
   @IsOptional()
   @IsString()
-  worksheetId: string;
+  worksheetId?: string;
 }
 
 export class CreateDataSourceDto {
@@ -28,5 +28,5 @@ export class CreateDataSourceDto {
 
   @IsOptional()
   @IsObject()
-  metadata: Metadata;
+  metadata?: Metadata;
 }

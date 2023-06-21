@@ -22,12 +22,9 @@ export class WorkflowController {
 
   @Post('/test')
   test() {
-    return this.workflowService.executeWorkflow(
-      'GoogleSheetsFullSyncWorkflow',
-      {
-        taskQueue: 'default',
-        workflowId: 'id-1',
-      },
-    );
+    return this.workflowService.executeWorkflow('connection.created', {
+      taskQueue: 'default',
+      workflowId: 'id-1',
+    });
   }
 }
