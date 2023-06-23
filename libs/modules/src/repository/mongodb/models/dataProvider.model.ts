@@ -35,6 +35,12 @@ export class DataProviderModel extends DataProvider {
     type: Object,
   })
   metadata: Metadata;
+
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  isDeleted: boolean;
 }
 
 export const DataProviderSchema =

@@ -40,6 +40,12 @@ export class TriggerModel extends Trigger {
     type: Object,
   })
   config: TriggerConfig;
+
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  isDeleted: boolean;
 }
 
 export const TriggerSchema = SchemaFactory.createForClass(TriggerModel);

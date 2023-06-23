@@ -5,6 +5,7 @@ import { DataProviderModule } from '../data-provider/data-provider.module';
 import { SyncConnectionController } from './syncConnection.controller';
 import { SyncConnectionService } from './syncConection.service';
 import { WorkflowModule } from '../workflow/worflow.module';
+import { TriggerModule } from '../trigger/trigger.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { WorkflowModule } from '../workflow/worflow.module';
     WorkflowModule,
     DataProviderModule,
     forwardRef(() => DataSourceModule),
+    TriggerModule,
   ],
   controllers: [SyncConnectionController],
   providers: [SyncConnectionService],

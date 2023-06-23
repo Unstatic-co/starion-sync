@@ -1,10 +1,11 @@
 export type EventName = string;
-export type EventPayload = any;
+export interface EventPayload {
+  [key: string]: any;
+}
 
-export class Event {
+export class BaseEvent {
   name: EventName;
   payload: EventPayload;
 
-  createdAt: Date;
-  updatedAt: Date;
+  time?: Date;
 }

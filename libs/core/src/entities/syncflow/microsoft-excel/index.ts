@@ -47,7 +47,7 @@ const MicrosoftExcelSyncflowDefinitions: Array<{
       .build(),
     trigger: {
       name: TriggerNames.MIRCROSOFT_EXCEL_CRON,
-      type: TriggerType.SCHEDULE,
+      type: TriggerType.CRON,
     },
   },
 ];

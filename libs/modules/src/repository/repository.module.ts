@@ -31,6 +31,14 @@ export class RepositoryModule {
             provide: InjectTokens.SYNC_CONNECTION_REPOSITORY,
             useClass: MongoRepositories.SyncConnectionRepository,
           },
+          {
+            provide: InjectTokens.SYNCFLOW_REPOSITORY,
+            useClass: MongoRepositories.SyncflowRepository,
+          },
+          {
+            provide: InjectTokens.TRIGGER_REPOSITORY,
+            useClass: MongoRepositories.TriggerRepository,
+          },
         );
         break;
       default:

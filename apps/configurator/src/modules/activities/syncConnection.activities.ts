@@ -1,6 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { SyncConnectionService } from '../sync-connection/syncConection.service';
-import { CommonService } from '../common/common.service';
+import { TriggerService } from '../trigger/trigger.service';
 
 @Injectable()
 export class SyncConnectionActivities {
@@ -8,5 +8,9 @@ export class SyncConnectionActivities {
 
   async createSyncConnection(arg: any) {
     return this.syncConnectionService.create(arg);
+  }
+
+  async deleteSyncConnection(arg: any) {
+    return this.syncConnectionService.delete(arg);
   }
 }

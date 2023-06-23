@@ -93,6 +93,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/post-processor/tsconfig.app.json"
       }
+    },
+    "@app/trigger/cron": {
+      "type": "application",
+      "root": "apps/triggers/cron",
+      "entryFile": "main",
+      "sourceRoot": "apps/triggers/cron/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/triggers/cron/tsconfig.app.json"
+      }
     }
   }
 }

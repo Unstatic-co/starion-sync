@@ -14,14 +14,26 @@ import { TriggerName } from '@lib/core/entities/trigger';
 import { TriggerConfig } from '@lib/core/entities/trigger/trigger.config';
 
 export interface ISyncConnectionRepository extends IRepository {
-  getById(id: SyncConnectionId): Promise<SyncConnection | null>;
-  getByDataSourceId(id: DataSourceId): Promise<SyncConnection | null>;
-  create(data: CreateSyncConnectionData): Promise<SyncConnection>;
+  getById(
+    id: SyncConnectionId,
+    options?: QueryOptions,
+  ): Promise<SyncConnection | null>;
+  getByDataSourceId(
+    id: DataSourceId,
+    options?: QueryOptions,
+  ): Promise<SyncConnection | null>;
+  create(
+    data: CreateSyncConnectionData,
+    options?: QueryOptions,
+  ): Promise<SyncConnection>;
   update(
     data: UpdateSyncConnectionData,
     options?: QueryOptions,
   ): Promise<SyncConnection | void>;
-  delete(): Promise<void>;
+  delete(
+    id: SyncConnectionId,
+    options?: QueryOptions,
+  ): Promise<SyncConnection | void>;
 }
 
 export type CreateSyncConnectionData = {

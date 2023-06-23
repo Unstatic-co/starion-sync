@@ -24,23 +24,44 @@ export class DataSourceRepository implements IDataSourceRepository {
     private dataSourceModel: Model<DataSourceDocument>,
   ) {}
 
-  public async getById(id: string) {
-    const dataProvider = await this.dataSourceModel.findOne({
+  public async getById(id: string, options?: QueryOptions) {
+    const conditions = {
       _id: Utils.toObjectId(id),
-    });
-    if (!dataProvider) return null;
-    return dataProvider.toJSON();
+      isDeleted: false,
+    };
+    if (options?.includeDeleted) {
+      Object.assign(conditions, { isDeleted: true });
+    }
+    let query = this.dataSourceModel.findOne(conditions);
+    if (options?.session) {
+      query = query.session(options.session);
+    }
+    const result = await query;
+    if (!result) return null;
+    return result.toJSON();
   }
 
-  public async getByExternalId(externalId: string) {
-    const dataProvider = await this.dataSourceModel.findOne({
+  public async getByExternalId(externalId: string, options?: QueryOptions) {
+    const conditions = {
       externalId,
-    });
-    if (!dataProvider) return null;
-    return dataProvider.toJSON();
+      isDeleted: false,
+    };
+    if (options?.includeDeleted) {
+      Object.assign(conditions, { isDeleted: true });
+    }
+    let query = this.dataSourceModel.findOne(conditions);
+    if (options?.session) {
+      query = query.session(options.session);
+    }
+    const result = await query;
+    if (!result) return null;
+    return result.toJSON();
   }
 
-  public async create(data: CreateDataSourceData): Promise<DataSource> {
+  public async create(
+    data: CreateDataSourceData,
+    options?: QueryOptions,
+  ): Promise<DataSource> {
     const dataSource = new this.dataSourceModel({
       ...data,
       provider: {
@@ -49,14 +70,20 @@ export class DataSourceRepository implements IDataSourceRepository {
       },
       statistic: defaultDataSourceStatistics,
     });
-    await dataSource.save();
+    const query = options?.session
+      ? dataSource.save({ session: options.session })
+      : dataSource.save();
+    await query;
     return dataSource.toJSON() as DataSource;
   }
 
   public async update(data: UpdateDataSourceData, options?: QueryOptions) {
     let result;
-    const session = await this.connection.startSession();
-    await session.withTransaction(async () => {
+    const session = options?.session
+      ? options.session
+      : await this.connection.startSession();
+
+    const processFunc = async () => {
       const dataSource = await this.dataSourceModel
         .findOne({
           _id: Utils.toObjectId(data.id),
@@ -85,11 +112,46 @@ export class DataSourceRepository implements IDataSourceRepository {
             .session(session)
         ).toJSON();
       }
-    });
+    };
+
+    if (options?.session) {
+      await processFunc();
+    } else {
+      await session.withTransaction(processFunc);
+    }
     if (options?.new) {
       return result;
     }
   }
 
-  public async delete(): Promise<void> {}
+  public async delete(id: string, options?: QueryOptions): Promise<void> {
+    const session = options?.session
+      ? options.session
+      : await this.connection.startSession();
+
+    const processFunc = async () => {
+      const dataSource = await this.dataSourceModel
+        .findOne({
+          _id: Utils.toObjectId(id),
+          isDeleted: false,
+        })
+        .session(session);
+      if (!dataSource) {
+        throw new Error('DataSource not found');
+      }
+      await dataSource
+        .updateOne({
+          $set: {
+            isDeleted: true,
+          },
+        })
+        .session(session);
+    };
+
+    if (options?.session) {
+      await processFunc();
+    } else {
+      await session.withTransaction(processFunc);
+    }
+  }
 }

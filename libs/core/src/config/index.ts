@@ -5,3 +5,4 @@ export * from './destinationDatabase.config';
 export * from './broker.config';
 export * from './orchestrator.config';
 export * from './microsoft.config';
+export * from './redis.config';

@@ -44,6 +44,12 @@ export class DataSourceModel extends DataSource {
     type: Object,
   })
   metadata: Metadata;
+
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  isDeleted: boolean;
 }
 
 export const DataSourceSchema = SchemaFactory.createForClass(DataSourceModel);

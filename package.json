@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "workspaces": {
     "packages": [
-      "./apps/*",
+      "./apps/**",
       "./libs/*"
     ]
   },
@@ -27,6 +27,8 @@
     "start:executor:prod": "node dist/apps/executor/main",
     "start:worker:dev": "env-cmd -f ./apps/worker/.env nest start @app/worker --watch",
     "start:worker:prod": "node dist/apps/worker/main",
+    "start:cron-trigger:dev": "env-cmd -f ./apps/triggers/cron/.env nest start @app/trigger/cron --watch",
+    "start:cron-trigger:prod": "node dist/apps/triggers/cron/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -37,6 +39,7 @@
   "dependencies": {
     "@azure/msal-node": "^1.17.3",
     "@microsoft/microsoft-graph-client": "^3.0.5",
+    "@nestjs/bull": "^10.0.0",
     "@nestjs/cache-manager": "^1.0.0",
     "@nestjs/common": "^9.4.0",
     "@nestjs/config": "^2.3.1",
@@ -60,6 +63,7 @@
     "axios": "^0.26.0",
     "bcrypt": "^5.1.0",
     "bson-objectid": "^2.0.2",
+    "bull": "^4.10.4",
     "cache-manager": "^5.2.0",
     "cache-manager-redis-store": "^2.0.0",
     "class-transformer": "^0.5.1",
@@ -85,7 +89,8 @@
     "request": "^2.88.2",
     "rxjs": "^7.2.0",
     "swagger-ui-express": "^4.3.0",
-    "typeorm": "^0.3.15"
+    "typeorm": "^0.3.15",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.4.0",

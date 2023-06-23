@@ -4,5 +4,7 @@ export enum ConfigName {
   DESTINATION_DATABASE = 'destination-database',
   BROKER = 'broker',
   ORCHESTRATOR = 'orchestrator',
+  REDIS = 'redis',
+  SERVICES = 'services',
   MICROSOFT = 'microsoft',
 }

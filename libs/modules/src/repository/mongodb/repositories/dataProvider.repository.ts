@@ -7,7 +7,12 @@ import {
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { DataProvider } from '@lib/core';
-import { DataProviderDocument, DataProviderModel } from '../models';
+import {
+  DataProviderDocument,
+  DataProviderModel,
+  DataSourceDocument,
+  DataSourceModel,
+} from '../models';
 import { Utils } from 'apps/configurator/src/common/utils';
 import mongoose from 'mongoose';
 import { QueryOptions } from '../../classes/common';
@@ -19,36 +24,64 @@ export class DataProviderRepository implements IDataProviderRepository {
     @InjectConnection() private readonly connection: mongoose.Connection,
     @InjectModel(DataProviderModel.name)
     private readonly dataProviderModel: Model<DataProviderDocument>,
+    @InjectModel(DataSourceModel.name)
+    private readonly dataSourceModel: Model<DataSourceDocument>,
   ) {}
 
-  public async getById(id: string) {
-    const dataProvider = await this.dataProviderModel.findOne({
+  public async getById(id: string, options?: QueryOptions) {
+    const conditions = {
       _id: Utils.toObjectId(id),
-    });
-    if (!dataProvider) return null;
-    return dataProvider.toJSON();
+      isDeleted: false,
+    };
+    if (options?.includeDeleted) {
+      Object.assign(conditions, { isDeleted: true });
+    }
+    let query = this.dataProviderModel.findOne(conditions);
+    if (options?.session) {
+      query = query.session(options.session);
+    }
+    const result = await query;
+    if (!result) return null;
+    return result.toJSON();
   }
 
-  public async getByExternalId(externalId: string) {
-    const dataProvider = await this.dataProviderModel.findOne({
+  public async getByExternalId(externalId: string, options?: QueryOptions) {
+    const conditions = {
       externalId,
-    });
-    if (!dataProvider) return null;
-    return dataProvider.toJSON();
+      isDeleted: false,
+    };
+    if (options?.includeDeleted) {
+      Object.assign(conditions, { isDeleted: true });
+    }
+    let query = this.dataProviderModel.findOne(conditions);
+    if (options?.session) {
+      query = query.session(options.session);
+    }
+    const result = await query;
+    if (!result) return null;
+    return result.toJSON();
   }
 
-  public async create(arg: CreateDataProviderData): Promise<DataProvider> {
+  public async create(
+    arg: CreateDataProviderData,
+    options?: QueryOptions,
+  ): Promise<DataProvider> {
     const dataProvider = new this.dataProviderModel({
       ...arg,
     });
-    await dataProvider.save();
+    const query = options?.session
+      ? dataProvider.save({ session: options.session })
+      : dataProvider.save();
     return dataProvider.toJSON() as DataProvider;
   }
 
   public async update(data: UpdateDataProviderData, options?: QueryOptions) {
     let result;
-    const session = await this.connection.startSession();
-    await session.withTransaction(async () => {
+    const session = options?.session
+      ? options.session
+      : await this.connection.startSession();
+
+    const processFunc = async () => {
       const dataProvider = await this.dataProviderModel
         .findOne({
           _id: Utils.toObjectId(data.id),
@@ -78,11 +111,62 @@ export class DataProviderRepository implements IDataProviderRepository {
             .session(session)
         ).toJSON();
       }
-    });
+    };
+
+    if (options?.session) {
+      await processFunc();
+    } else {
+      await session.withTransaction(processFunc);
+    }
     if (options?.new) {
       return result;
     }
   }
 
-  public async delete(id: string): Promise<void> {}
+  public async delete(id: string, options?: QueryOptions): Promise<void> {
+    const session = options?.session
+      ? options.session
+      : await this.connection.startSession();
+
+    const processFunc = async () => {
+      const dataProvider = await this.dataProviderModel
+        .findOne({
+          _id: Utils.toObjectId(id),
+          isDeleted: false,
+        })
+        .session(session);
+      if (!dataProvider) {
+        throw new Error('Data Provider not found');
+      }
+      await dataProvider.updateOne(
+        {
+          $set: {
+            isDeleted: true,
+          },
+        },
+        {
+          session,
+        },
+      );
+      await this.dataSourceModel.updateMany(
+        {
+          'provider.id': Utils.toObjectId(id),
+        },
+        {
+          $set: {
+            isDeleted: true,
+          },
+        },
+        {
+          session,
+        },
+      );
+    };
+
+    if (options?.session) {
+      await processFunc();
+    } else {
+      await session.withTransaction(processFunc);
+    }
+  }
 }

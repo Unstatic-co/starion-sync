@@ -8,6 +8,7 @@ import {
   SyncflowState,
 } from '@lib/core';
 import { TriggerName, TriggerType } from '@lib/core/entities/trigger';
+import mongoose from 'mongoose';
 
 export type SyncflowDocument = SyncflowModel & Document;
 
@@ -32,7 +33,9 @@ export class SyncflowModel extends Syncflow {
   })
   attributes: SyncflowAttributes;
 
-  @Prop()
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+  })
   sourceId: DataSourceId;
 
   @Prop({
@@ -52,6 +55,12 @@ export class SyncflowModel extends Syncflow {
     name: TriggerName;
     type: TriggerType;
   };
+
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  isDeleted: boolean;
 }
 
 export const SyncflowSchema = SchemaFactory.createForClass(SyncflowModel);

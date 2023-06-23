@@ -37,6 +37,12 @@ export class SyncConnectionModel extends SyncConnection {
     type: Array,
   })
   syncflows: Array<Partial<Syncflow>>;
+
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  isDeleted: boolean;
 }
 
 export const SyncConnectionSchema =

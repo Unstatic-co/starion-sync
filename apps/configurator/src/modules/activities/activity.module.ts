@@ -10,6 +10,8 @@ import { BrokerModule } from '../broker/broker.module';
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import { SyncConnectionActivities } from './syncConnection.activities';
 import { CommonModule } from '../common/common.module';
+import { TriggerModule } from '../trigger/trigger.module';
+import { TriggerActivities } from './trigger.activities';
 
 @Module({
   imports: [
@@ -21,9 +23,20 @@ import { CommonModule } from '../common/common.module';
     DataProviderModule,
     DataSourceModule,
     SyncConnectionModule,
+    TriggerModule,
     CommonModule,
   ],
-  providers: [BrokerActivities, CommonActivities, SyncConnectionActivities],
-  exports: [BrokerActivities, CommonActivities, SyncConnectionActivities],
+  providers: [
+    BrokerActivities,
+    CommonActivities,
+    SyncConnectionActivities,
+    TriggerActivities,
+  ],
+  exports: [
+    BrokerActivities,
+    CommonActivities,
+    SyncConnectionActivities,
+    TriggerActivities,
+  ],
 })
 export class ActivityModule {}

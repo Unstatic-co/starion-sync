@@ -7,6 +7,7 @@ import { CommonActivities } from '../activities/common.activities';
 import { SyncConnectionActivities } from '../activities/syncConnection.activities';
 import { ConfigService } from '@nestjs/config';
 import { ConfigName } from '@lib/core/config';
+import { TriggerActivities } from '../activities/trigger.activities';
 
 export const OrchestratorWorkerProvider = {
   provide: AppInjectTokens.ORCHESTRATOR_WORKER,
@@ -14,20 +15,26 @@ export const OrchestratorWorkerProvider = {
     ConfigService,
     InjectTokens.ORCHESTRATOR_NATIVE_CONNECTION,
     BrokerActivities,
-    CommonActivities,
     SyncConnectionActivities,
+    TriggerActivities,
   ],
   useFactory: async (
     configService: ConfigService,
     orchestratorConnection: NativeConnection,
     brokerActivities: BrokerActivities,
     syncConnectionActivities: SyncConnectionActivities,
+    triggerActivities: TriggerActivities,
   ) => {
     const activities = {
       emitEvent: brokerActivities.emitEvent.bind(brokerActivities),
       createSyncConnection: syncConnectionActivities.createSyncConnection.bind(
         syncConnectionActivities,
       ),
+      deleteSyncConnection: syncConnectionActivities.deleteSyncConnection.bind(
+        syncConnectionActivities,
+      ),
+      unregisterTrigger:
+        triggerActivities.unregisterTrigger.bind(triggerActivities),
     };
 
     const taskQueue = configService.get<string>(

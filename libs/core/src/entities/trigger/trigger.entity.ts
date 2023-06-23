@@ -8,6 +8,7 @@ export type TriggerName = string;
 export enum TriggerType {
   MANUAL = 'MANUAL',
   SCHEDULE = 'SCHEDULE',
+  CRON = 'CRON',
   EVENT = 'EVENT',
 }
 
