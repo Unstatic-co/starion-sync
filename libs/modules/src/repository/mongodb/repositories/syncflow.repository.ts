@@ -10,6 +10,7 @@ import {
   UpdateSyncflowData,
 } from '../../classes/repositories/syncflow.repository';
 import { SyncflowDocument, SyncflowModel } from '../models';
+import { WorkflowStatus } from '@lib/core';
 
 @Injectable()
 export class SyncflowRepository implements ISyncflowRepository {
@@ -22,6 +23,23 @@ export class SyncflowRepository implements ISyncflowRepository {
   public async getById(id: string, options?: QueryOptions) {
     const conditions = {
       _id: Utils.toObjectId(id),
+      isDeleted: false,
+    };
+    if (options?.includeDeleted) {
+      Object.assign(conditions, { isDeleted: true });
+    }
+    let query = this.syncflowModel.findOne(conditions);
+    if (options?.session) {
+      query = query.session(options.session);
+    }
+    const result = await query;
+    if (!result) return null;
+    return result.toJSON();
+  }
+
+  public async getByTriggerId(id: string, options?: QueryOptions) {
+    const conditions = {
+      'trigger.id': Utils.toObjectId(id),
       isDeleted: false,
     };
     if (options?.includeDeleted) {
@@ -49,6 +67,27 @@ export class SyncflowRepository implements ISyncflowRepository {
     await session.withTransaction(async () => {});
     if (options?.new) {
       return result;
+    }
+  }
+
+  public async updateStatus(
+    id: string,
+    status: WorkflowStatus,
+    options?: QueryOptions,
+  ) {
+    await this.syncflowModel.updateOne(
+      {
+        _id: Utils.toObjectId(id),
+        isDeleted: false,
+      },
+      {
+        $set: {
+          'state.status': status,
+        },
+      },
+    );
+    if (options?.new) {
+      return this.getById(id);
     }
   }
 

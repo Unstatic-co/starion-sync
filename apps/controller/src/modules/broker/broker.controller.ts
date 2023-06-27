@@ -1,18 +1,35 @@
 import { Controller, Logger, Post } from '@nestjs/common';
 import { EventPattern } from '@nestjs/microservices';
 import { BrokerService } from './broker.service';
+import { EventNames, WorkflowTriggeredPayload } from '@lib/core';
+import { WorkflowService } from '../workflow/workflow.service';
+import { OrchestratorService } from '@lib/modules';
+import { handleWorkflowTriggeredWf } from '../../workflows';
 
 @Controller('broker')
 export class BrokerController {
   private readonly logger = new Logger(BrokerController.name);
-  constructor(private readonly brokerService: BrokerService) {}
+  constructor(
+    private readonly brokerService: BrokerService,
+    private readonly orchestratorService: OrchestratorService,
+  ) {}
 
-  @EventPattern('test-event-to-worker')
-  async testEvent(message: any) {
-    this.logger.debug('test-event-to-worker', message);
+  @EventPattern(EventNames.WORKFLOW_TRIGGERED)
+  async handleWorkflowTriggeredEvent(payload: WorkflowTriggeredPayload) {
+    this.logger.debug('handleWorkflowTriggeredEvent', payload);
+    return this.orchestratorService.executeWorkflow(handleWorkflowTriggeredWf, {
+      workflowId: `${payload.id}`,
+      args: [payload],
+      workflowExecutionTimeout: 5000,
+    });
   }
 
-  @Post('test-sent')
+  @EventPattern('test-event-to-controller')
+  async testEvent(message: any) {
+    this.logger.debug('test-event-to-controller', message);
+  }
+
+  @Post('test-sent-from-controller')
   async testSent() {
     await this.brokerService.testSentEvent();
   }

@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import orchestratorProviders from './orchestrator.provider';
+import { OrchestratorService } from './orchestrator.service';
 
 @Module({
   imports: [],
-  providers: [...orchestratorProviders],
-  exports: [...orchestratorProviders],
+  providers: [...orchestratorProviders, OrchestratorService],
+  exports: [...orchestratorProviders, OrchestratorService],
 })
 export class OrchestratorModule {}

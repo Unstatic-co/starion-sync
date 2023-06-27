@@ -25,6 +25,7 @@ import { TriggerDocument, TriggerModel } from '../models/trigger.model';
 import { SyncflowDocument, SyncflowModel } from '../models/syncflow.model';
 import { InjectTokens } from '@lib/modules/inject-tokens';
 import { ISyncflowRepository } from '../../classes/repositories/syncflow.repository';
+import { WorkflowType } from '@lib/core/entities/workflow/workflow.type';
 
 @Injectable()
 export class SyncConnectionRepository implements ISyncConnectionRepository {
@@ -116,6 +117,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
             workflow: {
               id: Utils.toObjectId(syncflow.id),
               name: syncflow.name,
+              type: WorkflowType.SYNCFLOW,
             },
             config: syncflowData.trigger.config,
           });

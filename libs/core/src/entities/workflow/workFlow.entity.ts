@@ -9,6 +9,7 @@ export type WorkflowName = string;
 
 export enum WorkflowStatus {
   IDLING = 'IDLING',
+  SCHEDULED = 'SCHEDULED',
   RUNNING = 'RUNNING',
 }
 

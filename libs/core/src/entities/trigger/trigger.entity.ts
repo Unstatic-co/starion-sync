@@ -1,4 +1,5 @@
 import { WorkflowId, WorkflowName } from '../workflow';
+import { WorkflowType } from '../workflow/workflow.type';
 import { TriggerConfig } from './trigger.config';
 
 export type TriggerId = string;
@@ -19,6 +20,7 @@ export class Trigger {
   workflow: {
     id: WorkflowId;
     name: WorkflowName;
+    type: WorkflowType;
   };
   config?: TriggerConfig;
 }

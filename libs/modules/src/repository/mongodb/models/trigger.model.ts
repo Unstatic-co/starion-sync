@@ -5,7 +5,7 @@ import {
   TriggerConfig,
   TriggerType,
 } from '@lib/core/entities/trigger';
-import { WorkflowId, WorkflowName } from '@lib/core';
+import { WorkflowId, WorkflowName, WorkflowType } from '@lib/core';
 
 export type TriggerDocument = TriggerModel & Document;
 
@@ -31,6 +31,7 @@ export class TriggerModel extends Trigger {
   workflow: {
     id: WorkflowId;
     name: WorkflowName;
+    type: WorkflowType;
   };
 
   @Prop()
