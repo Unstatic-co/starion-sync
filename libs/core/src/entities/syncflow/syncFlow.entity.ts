@@ -4,6 +4,7 @@ import {
   Workflow,
   WorkflowId,
   WorkflowName,
+  WorkflowState,
   WorkflowStatus,
 } from '../workflow/workFlow.entity';
 import { SyncflowAttributes } from './syncflow.attributes';
@@ -21,7 +22,7 @@ export type SyncflowVersion = number;
 
 export type SyncflowCursor = any;
 
-export type SyncflowState = {
+export type SyncflowState = WorkflowState & {
   status: SyncflowStatus;
   version: SyncflowVersion;
   cursor?: SyncflowCursor;

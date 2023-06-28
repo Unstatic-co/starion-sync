@@ -1,7 +1,8 @@
 import {
   EventNames,
-  WorkflowScheduledPayload,
+  SyncflowScheduledPayload,
   WorkflowTriggeredPayload,
+  WorkflowType,
 } from '@lib/core';
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import { proxyActivities, proxyLocalActivities } from '@temporalio/workflow';
@@ -23,9 +24,11 @@ export async function handleWorkflowTriggeredWf(
   return await workflowWrapper(async () => {
     await checkWorkflowAlreadyScheduled(data);
     const result = await handleWorkflowTriggered(data);
-    await emitEvent(EventNames.WORFKFLOW_SCHEDULED, {
-      payload: result as WorkflowScheduledPayload,
-    });
+    if (data.workflow.type === WorkflowType.SYNCFLOW) {
+      await emitEvent(EventNames.SYNCFLOW_SCHEDULED, {
+        payload: result as SyncflowScheduledPayload,
+      });
+    }
     return result;
   });
 }

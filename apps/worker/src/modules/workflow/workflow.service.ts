@@ -1,37 +1,43 @@
-import { InjectTokens } from '@lib/modules';
-import { Inject, Injectable } from '@nestjs/common';
-import {
-  Client,
-  WorkflowExecutionAlreadyStartedError,
-  WorkflowStartOptions,
-} from '@temporalio/client';
+import { Syncflow, SyncflowId, WorkflowStatus } from '@lib/core';
+import { ISyncflowRepository, InjectTokens } from '@lib/modules';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { UnacceptableActivityError } from '../../common/exception';
 
 @Injectable()
 export class WorkflowService {
+  private readonly logger = new Logger(WorkflowService.name);
+
   constructor(
-    @Inject(InjectTokens.ORCHESTRATOR_CLIENT)
-    private readonly orchestratorClient: Client,
+    @Inject(InjectTokens.SYNCFLOW_REPOSITORY)
+    private readonly syncFlowRepository: ISyncflowRepository,
   ) {}
 
-  async executeWorkflow(workflowName: string, options: WorkflowStartOptions) {
-    let handle;
-    try {
-      handle = await this.orchestratorClient.workflow.start(
-        workflowName,
-        options,
+  async checkAndUpdateStatusBeforeStartSyncflow(id: SyncflowId) {
+    this.logger.debug('checkAndUpdateStatusBeforeStartSyncflow', id);
+    const syncflow = await this.syncFlowRepository.getById(id);
+    if (!syncflow) {
+      throw new UnacceptableActivityError(
+        `Syncflow not found: ${syncflow.id}`,
+        {
+          shouldWorkflowFail: false,
+        },
       );
-      console.log('Started new gg sheet workflow');
-    } catch (err) {
-      if (err instanceof WorkflowExecutionAlreadyStartedError) {
-        console.log('Reusing existing exchange rates workflow');
-        handle = await this.orchestratorClient.workflow.getHandle(
-          'GoogleSheetsFullSyncWorkflow',
+    }
+    if (syncflow.state.status !== WorkflowStatus.SCHEDULED) {
+      if (syncflow.state.status === WorkflowStatus.RUNNING) {
+        throw new UnacceptableActivityError(
+          `Syncflow already started: ${syncflow.id}`,
+          {
+            shouldWorkflowFail: false,
+          },
         );
-      } else {
-        throw err;
       }
     }
-
-    return handle;
+    const syncflowAfterUpdated = await this.syncFlowRepository.updateStatus(
+      id,
+      WorkflowStatus.RUNNING,
+      { new: true },
+    );
+    return syncflowAfterUpdated;
   }
 }

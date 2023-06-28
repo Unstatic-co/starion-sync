@@ -21,13 +21,11 @@ import { DataSourceActivities } from './datasource.activities';
   ],
   providers: [
     BrokerActivities,
-    BrokerActivities,
     WorkflowActivities,
     CommonActivities,
     DataSourceActivities,
   ],
   exports: [
-    BrokerActivities,
     BrokerActivities,
     WorkflowActivities,
     CommonActivities,

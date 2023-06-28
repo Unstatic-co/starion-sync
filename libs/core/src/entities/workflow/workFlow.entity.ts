@@ -13,6 +13,10 @@ export enum WorkflowStatus {
   RUNNING = 'RUNNING',
 }
 
+export type WorkflowState = {
+  status: WorkflowStatus;
+};
+
 export type WorkflowPayload = any;
 
 export type WorkflowConfig = any;
@@ -21,7 +25,7 @@ export class Workflow {
   id: WorkflowId;
   type: WorkflowType;
   name: WorkflowName;
-  status: WorkflowStatus;
+  state: WorkflowState;
   payload?: WorkflowPayload;
   config?: WorkflowConfig;
   trigger: Partial<Trigger>;

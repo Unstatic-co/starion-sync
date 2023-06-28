@@ -6,7 +6,6 @@ import { OrchestratorModule } from '@lib/modules/orchestrator/orchestrator.modul
 
 @Module({
   imports: [OrchestratorModule, ActivitiesModule],
-  controllers: [],
   providers: [WorkerProvider, WorkerService],
 })
 export class WorkerModule {}

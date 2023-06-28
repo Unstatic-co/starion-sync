@@ -1,3 +1,3 @@
 export const SyncflowNames = {
-  EXCEL_FULL: 'microsoft-excel-full',
+  EXCEL_FULL: 'excelFullSync',
 };

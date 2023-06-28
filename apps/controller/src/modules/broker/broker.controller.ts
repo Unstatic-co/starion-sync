@@ -2,7 +2,6 @@ import { Controller, Logger, Post } from '@nestjs/common';
 import { EventPattern } from '@nestjs/microservices';
 import { BrokerService } from './broker.service';
 import { EventNames, WorkflowTriggeredPayload } from '@lib/core';
-import { WorkflowService } from '../workflow/workflow.service';
 import { OrchestratorService } from '@lib/modules';
 import { handleWorkflowTriggeredWf } from '../../workflows';
 
