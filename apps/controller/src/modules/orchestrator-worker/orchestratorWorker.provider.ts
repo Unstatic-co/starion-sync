@@ -6,6 +6,7 @@ import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import { ConfigService } from '@nestjs/config';
 import { ConfigName } from '@lib/core/config';
 import { WorkflowActivities } from '../activities/workflow.activities';
+import { DataSourceActivities } from '../activities/datasource.activities';
 
 export const OrchestratorWorkerProvider = {
   provide: AppInjectTokens.ORCHESTRATOR_WORKER,
@@ -14,19 +15,27 @@ export const OrchestratorWorkerProvider = {
     InjectTokens.ORCHESTRATOR_NATIVE_CONNECTION,
     BrokerActivities,
     WorkflowActivities,
+    DataSourceActivities,
   ],
   useFactory: async (
     configService: ConfigService,
     orchestratorConnection: NativeConnection,
     brokerActivities: BrokerActivities,
     workflowActivities: WorkflowActivities,
+    dataSourceActivities: DataSourceActivities,
   ) => {
     const activities = {
       emitEvent: brokerActivities.emitEvent.bind(brokerActivities),
       handleWorkflowTriggered:
         workflowActivities.handleWorkflowTriggered.bind(workflowActivities),
-      isWorkflowScheduled:
-        workflowActivities.isWorkflowScheduled.bind(workflowActivities),
+      checkWorkflowAlreadyScheduled:
+        workflowActivities.checkWorkflowAlreadyScheduled.bind(
+          workflowActivities,
+        ),
+      checkDataSourceLimitation:
+        dataSourceActivities.checkDataSourceLimitation.bind(
+          dataSourceActivities,
+        ),
     };
 
     const taskQueue = configService.get<string>(

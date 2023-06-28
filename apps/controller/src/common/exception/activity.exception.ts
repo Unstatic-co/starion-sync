@@ -1,30 +1,44 @@
-export interface AcceptableErrorData {
+export interface AcitivityErrorData {
   [key: string]: any;
+}
+
+export interface AcceptableActivityErrorData extends AcitivityErrorData {
   isAlreadySucceeded?: boolean;
 }
-
-export class UnacceptableError extends Error {
-  constructor(message) {
-    super(message);
-  }
+const defaultAcceptableActivityErrorData: AcceptableActivityErrorData = {};
+export interface UnacceptableActivityErrorData extends AcitivityErrorData {
+  shouldActivityRetry?: boolean;
+  shouldWorkflowFail?: boolean;
 }
+const defaultUnacceptableActivityErrorData: UnacceptableActivityErrorData = {
+  shouldActivityRetry: false,
+  shouldWorkflowFail: true,
+};
 
-export class AcceptableError extends Error {
-  data?: AcceptableErrorData;
-  constructor(message, data?: AcceptableErrorData) {
+export class ActivityError extends Error {
+  data?: AcitivityErrorData;
+
+  constructor(message, data?: AcitivityErrorData) {
     super(message);
     this.data = data;
   }
+}
+export class UnacceptableActivityError extends ActivityError {
+  data?: UnacceptableActivityErrorData;
+  constructor(message, data?: UnacceptableActivityErrorData) {
+    if (!data) {
+      data = defaultUnacceptableActivityErrorData;
+    }
+    super(message, data);
+  }
+}
 
-  // public getMetadata() {
-  // return this.metadata;
-  // }
-
-  // public getReason() {
-  // return this.metadata?.reason;
-  // }
-
-  public getData() {
-    return this.data;
+export class AcceptableActivityError extends ActivityError {
+  data?: AcceptableActivityErrorData;
+  constructor(message, data?: AcceptableActivityErrorData) {
+    if (!data) {
+      data = defaultAcceptableActivityErrorData;
+    }
+    super(message, data);
   }
 }

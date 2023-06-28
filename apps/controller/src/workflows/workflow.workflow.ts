@@ -6,12 +6,13 @@ import {
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import { proxyActivities, proxyLocalActivities } from '@temporalio/workflow';
 import { WorkflowActivities } from '../modules/activities/workflow.activities';
+import { workflowWrapper } from './wrapper';
 
 const { emitEvent } = proxyLocalActivities<BrokerActivities>({
   startToCloseTimeout: '10 second',
 });
 
-const { handleWorkflowTriggered, isWorkflowScheduled } =
+const { handleWorkflowTriggered, checkWorkflowAlreadyScheduled } =
   proxyActivities<WorkflowActivities>({
     startToCloseTimeout: '10 second',
   });
@@ -19,12 +20,12 @@ const { handleWorkflowTriggered, isWorkflowScheduled } =
 export async function handleWorkflowTriggeredWf(
   data: WorkflowTriggeredPayload,
 ) {
-  const isScheduled = await isWorkflowScheduled(data);
-  if (isScheduled) {
-    return;
-  }
-  const result = await handleWorkflowTriggered(data);
-  await emitEvent(EventNames.WORFKFLOW_SCHEDULED, {
-    payload: result as WorkflowScheduledPayload,
+  return await workflowWrapper(async () => {
+    await checkWorkflowAlreadyScheduled(data);
+    const result = await handleWorkflowTriggered(data);
+    await emitEvent(EventNames.WORFKFLOW_SCHEDULED, {
+      payload: result as WorkflowScheduledPayload,
+    });
+    return result;
   });
 }

@@ -38,7 +38,7 @@ export class DataSourceModel extends DataSource {
   };
 
   @Prop({ type: Object })
-  statistic: DataSourceStatistics;
+  statistics: DataSourceStatistics;
 
   @Prop({
     type: Object,

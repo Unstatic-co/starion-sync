@@ -6,6 +6,17 @@ export type DataSourceId = string;
 
 export interface DataSourceStatistics {
   rowsNumber: number;
+  storageUsage: number;
+}
+
+type LimitationValue = {
+  soft: number;
+  hard: number;
+};
+
+export interface DataSourceLimitation {
+  rowsNumber: LimitationValue;
+  storageUsage: LimitationValue;
 }
 export class DataSource extends BaseEntity {
   id: DataSourceId;
@@ -16,7 +27,8 @@ export class DataSource extends BaseEntity {
     id: ProviderId;
     type: ProviderType;
   };
-  statistic: DataSourceStatistics;
+  statistics: DataSourceStatistics;
+  limits: DataSourceLimitation;
   metadata: Metadata;
 
   createdAt: Date;
@@ -25,4 +37,5 @@ export class DataSource extends BaseEntity {
 
 export const defaultDataSourceStatistics: DataSourceStatistics = {
   rowsNumber: 0,
+  storageUsage: 0,
 };

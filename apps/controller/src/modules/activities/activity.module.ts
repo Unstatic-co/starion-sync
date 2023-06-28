@@ -7,6 +7,8 @@ import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import { CommonModule } from '../common/common.module';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { WorkflowActivities } from './workflow.activities';
+import { DataSourceModule } from '../datasource/datasource.module';
+import { DataSourceActivities } from './datasource.activities';
 
 @Module({
   imports: [
@@ -15,18 +17,21 @@ import { WorkflowActivities } from './workflow.activities';
     BrokerModule,
     WorkflowModule,
     CommonModule,
+    DataSourceModule,
   ],
   providers: [
     BrokerActivities,
     BrokerActivities,
     WorkflowActivities,
     CommonActivities,
+    DataSourceActivities,
   ],
   exports: [
     BrokerActivities,
     BrokerActivities,
     WorkflowActivities,
     CommonActivities,
+    DataSourceActivities,
   ],
 })
 export class ActivityModule {}

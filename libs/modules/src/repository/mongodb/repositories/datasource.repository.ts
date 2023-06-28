@@ -68,7 +68,7 @@ export class DataSourceRepository implements IDataSourceRepository {
         id: Utils.toObjectId(data.providerId),
         type: data.providerType,
       },
-      statistic: defaultDataSourceStatistics,
+      statistics: defaultDataSourceStatistics,
     });
     const query = options?.session
       ? dataSource.save({ session: options.session })

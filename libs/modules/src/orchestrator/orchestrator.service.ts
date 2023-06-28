@@ -41,6 +41,9 @@ export class OrchestratorService {
         ...options,
         taskQueue,
       } as WorkflowStartOptions);
+      this.logger.debug(
+        `Started workflow: ${workflowName}, firstExecId = ${handle.firstExecutionRunId}}`,
+      );
       result = await handle.result();
     } catch (err) {
       if (err instanceof WorkflowExecutionAlreadyStartedError) {
