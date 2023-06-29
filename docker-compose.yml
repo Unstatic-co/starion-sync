@@ -209,7 +209,7 @@ services:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
     ports:
-      - 8080:8080
+      - 8000:8080
     volumes:
       - ./kui-config.yml:/etc/kafkaui/dynamic_config.yaml
     environment:
@@ -307,11 +307,26 @@ services:
       - temporal
     container_name: temporal-ui
     ports:
-      - 8233:8080
+      - 8001:8080
     image: temporalio/ui:2.15.0
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+  #--------------------------------- MINIO ---------------------------------------#
+  minio:
+    container_name: minio
+    image: minio/minio
+    expose:
+      - 9000
+    ports:
+      - 9006:9000
+      - 8002:9001
+    command: server --console-address ":9001" /data
+    volumes:
+      - minio:/data
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: abc123456
 volumes:
   mongo:
   mysql:
@@ -321,3 +336,4 @@ volumes:
   kafka:
   elasticsearch:
   postgresql:
+  minio:
