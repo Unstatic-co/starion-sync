@@ -2,9 +2,7 @@ package excel
 
 import (
 	"context"
-	"os"
 	"os/exec"
-	"path"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -12,13 +10,13 @@ import (
 
 type MicrosoftExcelServiceInitParams struct {
 	// info
-	driveId       string `json:"driveId"`
-	workbookId    string `json:"workbookId"`
-	worksheetId   string `json:"worksheetId"`
-	worksheetName string `json:"worksheetName"`
+	DriveId       string `json:"driveId"`
+	WorkbookId    string `json:"workbookId"`
+	WorksheetId   string `json:"worksheetId"`
+	WorksheetName string `json:"worksheetName"`
 
 	// auth
-	accessToken string `json:"accessToken"`
+	AccessToken string `json:"accessToken"`
 }
 
 type MicrosoftExcelService struct {
@@ -42,15 +40,15 @@ func New(params MicrosoftExcelServiceInitParams) *MicrosoftExcelService {
 	logger := log.New()
 	logger.SetLevel(log.DebugLevel)
 	loggerEntry := logger.WithFields(log.Fields{
-		"workbookId":  params.workbookId,
-		"worksheetId": params.worksheetId,
+		"workbookId":  params.WorkbookId,
+		"worksheetId": params.WorksheetId,
 	})
 	return &MicrosoftExcelService{
-		driveId:       params.driveId,
-		workbookId:    params.workbookId,
-		worksheetId:   params.worksheetId,
-		worksheetName: params.worksheetName,
-		accessToken:   params.accessToken,
+		driveId:       params.DriveId,
+		workbookId:    params.WorkbookId,
+		worksheetId:   params.WorksheetId,
+		worksheetName: params.WorksheetName,
+		accessToken:   params.AccessToken,
 		logger:        loggerEntry,
 	}
 }
@@ -60,18 +58,24 @@ func (source *MicrosoftExcelService) GetWorkbookInfo(ctx context.Context) error 
 }
 
 func (source *MicrosoftExcelService) Download(ctx context.Context) error {
-	execPath, _ := os.Executable()
-	ctx, _ = context.WithTimeout(ctx, 15*time.Minute)
+	timeoutCtx, _ := context.WithTimeout(ctx, 15*time.Minute)
 	cmd := exec.CommandContext(
-		ctx,
+		timeoutCtx,
 		"bash",
-		path.Join(path.Dir(execPath), "scripts", "download-excel.sh"),
+		"./scripts/download-excel.sh",
+		"--driveId", source.driveId,
+		"--workbookId", source.workbookId,
+		"--worksheetId", source.worksheetId,
+		"--worksheetName", source.worksheetName,
+		"--accessToken", source.accessToken,
 	)
 
 	outputWriter := source.logger.WriterLevel(log.InfoLevel)
 	errorWriter := source.logger.WriterLevel(log.ErrorLevel)
 	defer outputWriter.Close()
 	defer errorWriter.Close()
+	cmd.Stdout = outputWriter
+	cmd.Stderr = errorWriter
 
 	if err := cmd.Run(); err != nil {
 		return err

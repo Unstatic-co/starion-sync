@@ -18,6 +18,10 @@ func InitRouter() *gin.Engine {
 	apiV1 := r.Group("/api/v1")
 
 	apiV1.GET("/", v1.HelloWorld)
+	apiV1.GET("/test", v1.Test)
+
+	apiV1Excel := apiV1.Group("/excel")
+	apiV1Excel.POST("/download", v1.DownloadExcel)
 
 	return r
 }
