@@ -7,7 +7,9 @@ COPY go.sum ./
 RUN go mod download
 
 COPY . .
-RUN go build -o ./binary-scripts/get-csv-header ./scripts/get-csv-header.go
+RUN go build -o ./binary-scripts/get-csv-header ./scripts/get-csv-header/main.go
+RUN go build -o ./binary-scripts/get-and-normalize-date-column ./scripts/get-and-normalize-date-column/main.go
+RUN go build -o ./binary-scripts/generate-id ./scripts/generate-id/main.go
 RUN go build -tags=jsoniter -o downloader .
 
 FROM alpine:3.17.0 AS pkgs
