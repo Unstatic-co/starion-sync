@@ -324,6 +324,14 @@ else
         <("$QSV" select "!${ID_COL_NAME}" "$table_missing_id_rows") \
         <(./scripts/generate-id --columnName "$ID_COL_NAME" --n "$missing_counts") |
         "$QSV" select "${ID_COL_NAME},${ROW_NUMBER_COL_NAME}" --output "$table_id_for_missing_rows"
+    
+    ./scripts/update-id-column \
+        --driveId "$drive_id" \
+        --workbookId "$workbook_id" \
+        --worksheetId "$worksheet_id" \
+        --accessToken "$access_token" \
+        --idColIndex "$id_col_colnum" \
+        --idsFile "$table_id_for_missing_rows"
 
     appended_id_file="$TEMP_DIR/appended_id.csv"
 
