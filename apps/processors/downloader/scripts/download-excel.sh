@@ -61,6 +61,10 @@ function parse-arguments() {
                 access_token="$2"
                 shift
                 ;;
+            --sesionId)
+                session_id="$2"
+                shift
+                ;;
             --debug)
                 DEBUG="$2"
                 shift
@@ -89,6 +93,84 @@ ID_COL_NAME="__StarionId"
 readonly ID_COL_NAME
 ROW_NUMBER_COL_NAME="__StarionRowNum"
 readonly ROW_NUMBER_COL_NAME
+
+###### FUNCTIONS #######
+
+function get-excel-session() {
+    info-log "Creating excel session..."
+    if [[ -z "$drive_id" ]]; then
+        local url="https://graph.microsoft.com/v1.0/me/drive/items/$workbook_id//workbook/createSession"
+    else
+        local url="https://graph.microsoft.com/v1.0/drives/$drive_id/items/$workbook_id/workbook/createSession"
+    fi
+    local response_file="$TEMP_DIR/get_session_response.json"
+    status_code=$(
+        curl \
+            -s \
+            -X "POST" \
+            -H "Authorization: Bearer $access_token" \
+            -H "Content-Length: 0" \
+            -H "Content-Type: application/json" \
+            --data "{\"id\":\"$workbook_id\",\"persistChanges\":true}" \
+            -o "$response_file" \
+            --write-out "%{http_code}" \
+            "$url"
+    )
+    if test "$status_code" -ne 201; then
+        error-log "Failed to create session. Status code: $status_code"
+        exit 1
+    fi
+    session_id=$(cat "$response_file" | grep -o '"id":"[^"]*' | grep -o '[^"]*$')
+}
+
+function download-excel-file() {
+    local outfile=$1
+    if [[ -z "$drive_id" ]]; then
+        download_url="https://graph.microsoft.com/v1.0/me/drive/items/$workbook_id/content"
+    else
+        download_url="https://graph.microsoft.com/v1.0/drives/$drive_id/items/$workbook_id/content"
+    fi
+    info-log "Downloading file..."
+    status_code=$(
+        curl \
+            -sL \
+            -H "Authorization: Bearer $access_token" \
+            -H "workbook-session-id: $session_id" \
+            -o "$outfile" \
+            --write-out "%{http_code}" \
+            "$download_url"
+    )
+    if test "$status_code" -ne 200; then
+        error-log "Failed to download file. Status code: $status_code"
+        exit 1
+    fi
+}
+
+function close-excel-session() {
+    info-log "Closing excel session..."
+    if [[ -z "$drive_id" ]]; then
+        local url="https://graph.microsoft.com/v1.0/me/drive/items/$workbook_id//workbook/closeSession"
+    else
+        local url="https://graph.microsoft.com/v1.0/drives/$drive_id/items/$workbook_id/workbook/closeSession"
+    fi
+    local response_file="$TEMP_DIR/close_session_response.json"
+    status_code=$(
+        curl \
+            -s \
+            -X "POST" \
+            -H "Authorization: Bearer $access_token" \
+            -H "workbook-session-id: $session_id" \
+            -H "Content-Length: 0" \
+            -o "$response_file" \
+            --write-out "%{http_code}" \
+            "$url"
+    )
+    if test "$status_code" -ne 204; then
+        error-log "Failed to close session. Status code: $status_code"
+        exit 1
+    fi
+    session_id=$(cat "$response_file" | grep -o '"id":"[^"]*' | grep -o '[^"]*$')
+}
 
 ######### MAIN #########
 
@@ -137,25 +219,12 @@ fi
 
 ### Download
 
+if [[ -z "$session_id" ]]; then
+    get-excel-session
+fi
+
 original_file=$TEMP_DIR/original.xlsx
-if [[ -z "$drive_id" ]]; then
-    download_url="https://graph.microsoft.com/v1.0/me/drive/items/$workbook_id/content"
-else
-    download_url="https://graph.microsoft.com/v1.0/drives/$drive_id/items/$workbook_id/content"
-fi
-info-log "Downloading file..."
-status_code=$(
-    curl \
-        -sL \
-        -H "Authorization: Bearer $access_token" \
-        -o "$original_file" \
-        --write-out "%{http_code}" \
-        "$download_url"
-)
-if test "$status_code" -ne 200; then
-    error-log "Failed to download file. Status code: $status_code"
-    exit 1
-fi
+download-excel-file "$original_file"
 
 ### Convert
 info-log "Converting file to csv..."
@@ -173,6 +242,7 @@ info-log "Preprocessing csv file..."
 preprocess_file=$TEMP_DIR/preprocess.csv
 
 "$QSV" input "$original_csv_file" -o "$preprocess_file"
+input_file="$preprocess_file"
 
 rows_number="$("$QSV" count "$original_csv_file")"
 
@@ -218,6 +288,7 @@ info-log "Adjust date format for columns [$joined_date_header_strs], with index 
 
 normalized_date_file="$TEMP_DIR/normalized_date.csv"
 if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
+    info-log "Normalizing date columns..."
     temp_updated_dates_file=$TEMP_DIR/updated_dates.csv
     cat <(echo "$joined_date_header_strs") <(
         "./scripts/get-and-normalize-date-column" \
@@ -225,6 +296,7 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
             --workbookId "$workbook_id" \
             --worksheetId "$worksheet_id" \
             --accessToken "$access_token" \
+            --sessionId "$session_id" \
             --colIndexes "$date_col_idxs" \
             --rowNumber "$rows_number" \
             --replaceEmpty "$EMPTY_VALUE_TOKEN"
@@ -233,22 +305,23 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
     "$QSV" cat columns -p <("$QSV" select "!${date_col_idxs}" "$dedup_header_file") "$temp_updated_dates_file" |
         "$QSV" select "$placeholder_headers" -o "$normalized_date_file"
     
-    # "$SED" -i "s/$EMPTY_VALUE_TOKEN~//g" $normalized_date_file # remove empty value token
+    "$SED" -i "s/$EMPTY_VALUE_TOKEN//g" $normalized_date_file # remove empty value token
 
     "$QSV" cat rows -n <(echo "$original_headers") <("$QSV" behead "$normalized_date_file") -o "$normalized_date_file"
+    input_file="$normalized_date_file"
 fi
 ## End ##
 
 ## Preprocess: Get primary key column index
 declare -a initial_headers
-IFS= readarray -t -d '' initial_headers < <("./scripts/get-csv-header" -file "$normalized_date_file" -print0 -replaceEmpty "$EMPTY_HEADER_TOKEN")
+IFS= readarray -t -d '' initial_headers < <("./scripts/get-csv-header" -file "$input_file" -print0 -replaceEmpty "$EMPTY_HEADER_TOKEN")
 
 export id_col_colnum=-1
 export missing_id_col=true
 for col in "${!initial_headers[@]}"; do
     if [[ ${initial_headers[$col]} == "$ID_COL_NAME" ]]; then
         id_col_colnum=$((col + 1))
-        missing_id_col=true
+        missing_id_col=false
         break
     fi
 done
@@ -273,12 +346,12 @@ SELECTING_COLS_STR="$(
 debug-log "Selected columns: $SELECTING_COLS_STR"
 
 removed_empty_header_file="$TEMP_DIR/removed_empty_header.csv"
-"$QSV" select "$SELECTING_COLS_STR" "$normalized_date_file" -o "$removed_empty_header_file"
+"$QSV" select "$SELECTING_COLS_STR" "$input_file" -o "$removed_empty_header_file"
+input_file="$removed_empty_header_file"
 ## End ##
 
 ## Preprocess: Normalize headers
 # Must get header again to account for removed rows
-input_file="$removed_empty_header_file"
 declare -a normalized_headers
 IFS= readarray -t -d '' normalized_headers < <("./scripts/get-csv-header" -file "$input_file" -print0 -dedupe)
 normalized_header_file=$TEMP_DIR/normalized_header.csv
@@ -286,24 +359,28 @@ cat <(
     IFS=,
     echo "${normalized_headers[*]}"
 ) <("$QSV" behead "$input_file") >"$normalized_header_file"
+input_file="$normalized_header_file"
+normalized_header_file_2=$TEMP_DIR/normalized_header_2.csv
 
 if ((id_col_colnum == -1)); then
+    # add header for id column
     # Using table with row number to add id column, keeping input table intact
-    "$QSV" cat columns --pad "$input_file" <(echo "$ID_COL_NAME") -o "$normalized_header_file"
+    "$QSV" cat columns --pad "$input_file" <(echo "$ID_COL_NAME") -o "$normalized_header_file_2"
     id_col_colnum=$((${#initial_headers[@]} + 1))
     normalized_headers+=("$ID_COL_NAME")
-    debug-log "New id column index: ${id_col_colnum}"
+    info-log "New id column index: ${id_col_colnum}"
 else
     # If has id column => move to end to accurately join using "$QSV"
-    "$QSV" cat columns <("$QSV" select "!$ID_COL_NAME" "$input_file") <("$QSV" select "$ID_COL_NAME" "$input_file") -o "$normalized_header_file"
+    "$QSV" cat columns <("$QSV" select "!$ID_COL_NAME" "$input_file") <("$QSV" select "$ID_COL_NAME" "$input_file") -o "$normalized_header_file_2"
 fi
-input_file="$normalized_header_file"
+input_file="$normalized_header_file_2"
 ## End ##
 
 ## Preprocess: Add missing primary key
 # Append row number
 table_with_row_number="$TEMP_DIR/with_row_number.csv"
 record_counts=$("$QSV" count "$input_file")
+debug-log "Creating table with row number..."
 "$QSV" cat columns "$input_file" <(
     echo "$ROW_NUMBER_COL_NAME"
     seq 2 $((record_counts + 1))
@@ -313,7 +390,7 @@ record_counts=$("$QSV" count "$input_file")
 table_missing_id_rows="$TEMP_DIR/with_missing_id_rows.csv"
 "$QSV" search -s "$ID_COL_NAME" '^$' "$table_with_row_number" -o "$table_missing_id_rows" || true # Suppress exit code 1 when no match found
 missing_counts="$("$QSV" count "$table_missing_id_rows")"
-debug-log "Number of rows missing primary keys: $missing_counts"
+info-log "Number of rows missing primary keys: $missing_counts"
 
 if ((missing_counts == 0)); then
     appended_id_file="$input_file"
@@ -325,13 +402,16 @@ else
         <(./scripts/generate-id --columnName "$ID_COL_NAME" --n "$missing_counts") |
         "$QSV" select "${ID_COL_NAME},${ROW_NUMBER_COL_NAME}" --output "$table_id_for_missing_rows"
     
+    info-log "Adding missing primary keys..."
     ./scripts/update-id-column \
         --driveId "$drive_id" \
         --workbookId "$workbook_id" \
         --worksheetId "$worksheet_id" \
         --accessToken "$access_token" \
+        --sessionId "$session_id" \
         --idColIndex "$id_col_colnum" \
-        --idsFile "$table_id_for_missing_rows"
+        --idsFile "$table_id_for_missing_rows" \
+        --includeHeader "$missing_id_col"
 
     appended_id_file="$TEMP_DIR/appended_id.csv"
 
@@ -341,3 +421,25 @@ else
             "$QSV" select "!${ID_COL_NAME}[0],${ROW_NUMBER_COL_NAME},${ROW_NUMBER_COL_NAME}[1]") --output "$appended_id_file"
 fi
 ## End ##
+
+## Preprocess: Encode header
+# encode header to `_${hex}` (underscore + hexadecimal encoding of col name) format to easily querying in DB
+info-log "Encoding header..."
+header_encoded_file="$TEMP_DIR/header-endcoded.csv"
+new_headers="$("./scripts/get-csv-header" -file "$appended_id_file" -encode -sep ,)"
+echo "$new_headers" >"$header_encoded_file"
+"$QSV" behead "$appended_id_file" >>"$header_encoded_file"
+## End ##
+
+### Schema
+info-log "Inferring schema..."
+detected_schema_file="$TEMP_DIR/schema.json"
+"$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$appended_id_file" >"$detected_schema_file"
+
+### Convert JSON
+
+info-log "Converting json..."
+json_file="$TEMP_DIR/data.json"
+"$QSV" tojsonl "$header_encoded_file" --output "$json_file"
+
+close-excel-session || true

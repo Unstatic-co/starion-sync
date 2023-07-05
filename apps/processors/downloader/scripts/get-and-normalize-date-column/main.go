@@ -79,6 +79,7 @@ type MicrosoftExcelService struct {
 	WorkbookId  string `json:"workbookId"`
 	WorksheetId string `json:"worksheetId"`
 	AccessToken string `json:"accessToken"`
+	SessionId   string `json:"sessionId"`
 }
 type GetValueOfExcelColumnResponse struct {
 	Values []interface{} `json:"values"`
@@ -94,6 +95,7 @@ func (s *MicrosoftExcelService) GetValuesOfExcelColumn(columnIndex int) ([]float
 	client := &http.Client{}
 	request, _ := http.NewRequest("GET", url, nil)
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.AccessToken))
+	request.Header.Set("workbook-session-id", s.SessionId)
 	response, err := client.Do(request)
 	if err != nil {
 		log.Fatalln("Error fetching values of date columns")
@@ -149,6 +151,7 @@ func main() {
 	workbookId := flag.String("workbookId", "", "Workbook Id")
 	worksheetId := flag.String("worksheetId", "", "Worksheet Id")
 	accessToken := flag.String("accessToken", "", "Microsoft graph api Access Token")
+	sessionId := flag.String("sessionId", "", "Workbook session Id")
 	columnIndexs := flag.String("colIndexes", "", "Number index of datetime columns, start at 1")
 	numberOfRows := flag.Int("rowNumber", 0, "Number of row")
 	replaceEmpty := flag.String("replaceEmpty", defaultReplaceEmpty, "Number of row")
@@ -174,6 +177,7 @@ func main() {
 		WorkbookId:  *workbookId,
 		WorksheetId: *worksheetId,
 		AccessToken: *accessToken,
+		SessionId:   *sessionId,
 	}
 
 	columnIndexesList := strings.Split(*columnIndexs, ",")

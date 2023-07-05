@@ -22,9 +22,16 @@ RUN apk add --no-cache bash unzip curl \
     && curl -Lo qsv.zip "https://github.com/jqnatividad/qsv/releases/latest/download/qsv-${QSV_VERSION}-x86_64-unknown-linux-musl.zip" \
     && unzip qsv.zip -d /app/qsv
 
-FROM golang:1.20.5-alpine3.18
+# FROM golang:1.20.5-alpine3.18
+FROM golang:1.20.5-bullseye
 WORKDIR /app
-RUN apk add --no-cache bash curl parallel xxd sed jq tzdata
+# RUN apk add --no-cache bash curl parallel xxd sed jq tzdata
+RUN apt-get update \
+    && apt-get install -y \
+    curl \
+    sed \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
 COPY ./scripts/*.sh ./scripts/
 COPY --from=pkgs /app/qsv /usr/local/bin
 COPY --from=binary_builder /app/binary-scripts/ /app/scripts
