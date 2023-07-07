@@ -17,6 +17,10 @@ type MicrosoftExcelServiceInitParams struct {
 
 	// auth
 	AccessToken string `json:"accessToken"`
+	SessionId   string `json:"sessionId"`
+
+	DataSourceId string `json:"dataSourceId"`
+	SyncVersion  string `json:"syncVersion"`
 }
 
 type MicrosoftExcelService struct {
@@ -29,6 +33,11 @@ type MicrosoftExcelService struct {
 
 	// auth
 	accessToken string
+	sessionId   string
+
+	// data
+	dataSourceId string
+	syncVersion  string
 
 	driveInfo interface{}
 
@@ -49,6 +58,9 @@ func New(params MicrosoftExcelServiceInitParams) *MicrosoftExcelService {
 		worksheetId:   params.WorksheetId,
 		worksheetName: params.WorksheetName,
 		accessToken:   params.AccessToken,
+		sessionId:     params.SessionId,
+		dataSourceId:  params.DataSourceId,
+		syncVersion:   params.SyncVersion,
 		logger:        loggerEntry,
 	}
 }
@@ -68,6 +80,9 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 		"--worksheetId", source.worksheetId,
 		"--worksheetName", source.worksheetName,
 		"--accessToken", source.accessToken,
+		"--sessionId", source.sessionId,
+		"--dataSourceId", source.dataSourceId,
+		"--syncVersion", source.syncVersion,
 	)
 
 	outputWriter := source.logger.WriterLevel(log.InfoLevel)

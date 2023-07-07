@@ -1,19 +1,12 @@
-FROM golang:1.20.5-alpine3.18 AS binary_builder
+FROM golang:1.20.5-bullseye AS binary_builder
 WORKDIR /app
-
 COPY go.mod ./
 COPY go.sum ./
-
 RUN go mod download
-
 COPY . .
-RUN go build -o ./binary-scripts/get-csv-header ./scripts/get-csv-header/main.go
-RUN go build -o ./binary-scripts/get-and-normalize-date-column ./scripts/get-and-normalize-date-column/main.go
-RUN go build -o ./binary-scripts/generate-id ./scripts/generate-id/main.go
-RUN go build -o ./binary-scripts/update-id-column ./scripts/update-id-column/main.go
-RUN go build -tags=jsoniter -o downloader .
+RUN chmod +x ./build.sh && ./build.sh --scriptDir scripts --outDir /dist
 
-FROM alpine:3.17.0 AS pkgs
+FROM alpine:3.17.0 AS qsv_builder
 ## QSV_VER MUST be a specific version
 WORKDIR /app
 RUN apk add --no-cache bash unzip curl \
@@ -21,6 +14,10 @@ RUN apk add --no-cache bash unzip curl \
     && echo "Current QSV version: ${QSV_VERSION}" \
     && curl -Lo qsv.zip "https://github.com/jqnatividad/qsv/releases/latest/download/qsv-${QSV_VERSION}-x86_64-unknown-linux-musl.zip" \
     && unzip qsv.zip -d /app/qsv
+
+FROM golang:1.20.5-bullseye AS clickhouse_builder
+WORKDIR /app
+RUN curl https://clickhouse.com/ | sh
 
 # FROM golang:1.20.5-alpine3.18
 FROM golang:1.20.5-bullseye
@@ -32,8 +29,8 @@ RUN apt-get update \
     sed \
     jq \
     && rm -rf /var/lib/apt/lists/*
-COPY ./scripts/*.sh ./scripts/
-COPY --from=pkgs /app/qsv /usr/local/bin
-COPY --from=binary_builder /app/binary-scripts/ /app/scripts
-COPY --from=binary_builder /app/downloader /app/downloader
+COPY --from=qsv_builder /app/qsv /usr/local/bin
+COPY --from=clickhouse_builder /app/clickhouse /usr/local/bin
+COPY --from=binary_builder /dist/ /app/
+RUN clickhouse local -q "select 1" >/dev/null
 ENTRYPOINT ["./downloader"]

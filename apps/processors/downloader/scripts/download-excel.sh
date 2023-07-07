@@ -65,6 +65,26 @@ function parse-arguments() {
                 session_id="$2"
                 shift
                 ;;
+            --dataSourceId)
+                data_source_id="$2"
+                shift
+                ;;
+            --syncVersion)
+                sync_version="$2"
+                shift
+                ;;
+            --s3Path)
+                s3_path="$2"
+                shift
+                ;;
+            --s3AccessKey)
+                s3_access_key="$2"
+                shift
+                ;;
+            --s3SecretKey)
+                s3_secret_key="$2"
+                shift
+                ;;
             --debug)
                 DEBUG="$2"
                 shift
@@ -262,7 +282,7 @@ readarray -t -d $'\n' date_headers < <(
 debug-log "Detected date headers: ${date_headers[*]}"
 
 declare -a safe_header_maps
-IFS= readarray -t -d '' safe_header_maps < <("./scripts/get-csv-header" -file "$dedup_header_file" -print0 -replaceEmpty "$EMPTY_HEADER_TOKEN")
+IFS= readarray -t -d '' safe_header_maps < <("./get-csv-header" -file "$dedup_header_file" -print0 -replaceEmpty "$EMPTY_HEADER_TOKEN")
 debug-log "Safe header maps: ${safe_header_maps[*]}"
 declare -a date_header_idx
 declare -a date_header_str
@@ -291,7 +311,7 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
     info-log "Normalizing date columns..."
     temp_updated_dates_file=$TEMP_DIR/updated_dates.csv
     cat <(echo "$joined_date_header_strs") <(
-        "./scripts/get-and-normalize-date-column" \
+        "./excel/get-and-normalize-date-column" \
             --driveId "$drive_id" \
             --workbookId "$workbook_id" \
             --worksheetId "$worksheet_id" \
@@ -314,7 +334,7 @@ fi
 
 ## Preprocess: Get primary key column index
 declare -a initial_headers
-IFS= readarray -t -d '' initial_headers < <("./scripts/get-csv-header" -file "$input_file" -print0 -replaceEmpty "$EMPTY_HEADER_TOKEN")
+IFS= readarray -t -d '' initial_headers < <("./get-csv-header" -file "$input_file" -print0 -replaceEmpty "$EMPTY_HEADER_TOKEN")
 
 export id_col_colnum=-1
 export missing_id_col=true
@@ -353,7 +373,7 @@ input_file="$removed_empty_header_file"
 ## Preprocess: Normalize headers
 # Must get header again to account for removed rows
 declare -a normalized_headers
-IFS= readarray -t -d '' normalized_headers < <("./scripts/get-csv-header" -file "$input_file" -print0 -dedupe)
+IFS= readarray -t -d '' normalized_headers < <("./get-csv-header" -file "$input_file" -print0 -dedupe)
 normalized_header_file=$TEMP_DIR/normalized_header.csv
 cat <(
     IFS=,
@@ -399,11 +419,11 @@ else
     table_id_for_missing_rows="$TEMP_DIR/id_for_missing_rows.csv"
     "$QSV" cat columns \
         <("$QSV" select "!${ID_COL_NAME}" "$table_missing_id_rows") \
-        <(./scripts/generate-id --columnName "$ID_COL_NAME" --n "$missing_counts") |
+        <(./generate-id --columnName "$ID_COL_NAME" --n "$missing_counts") |
         "$QSV" select "${ID_COL_NAME},${ROW_NUMBER_COL_NAME}" --output "$table_id_for_missing_rows"
     
     info-log "Adding missing primary keys..."
-    ./scripts/update-id-column \
+    ./excel/update-id-column \
         --driveId "$drive_id" \
         --workbookId "$workbook_id" \
         --worksheetId "$worksheet_id" \
@@ -426,7 +446,7 @@ fi
 # encode header to `_${hex}` (underscore + hexadecimal encoding of col name) format to easily querying in DB
 info-log "Encoding header..."
 header_encoded_file="$TEMP_DIR/header-endcoded.csv"
-new_headers="$("./scripts/get-csv-header" -file "$appended_id_file" -encode -sep ,)"
+new_headers="$("./get-csv-header" -file "$appended_id_file" -encode -sep ,)"
 echo "$new_headers" >"$header_encoded_file"
 "$QSV" behead "$appended_id_file" >>"$header_encoded_file"
 ## End ##
@@ -437,9 +457,24 @@ detected_schema_file="$TEMP_DIR/schema.json"
 "$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$appended_id_file" >"$detected_schema_file"
 
 ### Convert JSON
-
 info-log "Converting json..."
 json_file="$TEMP_DIR/data.json"
 "$QSV" tojsonl "$header_encoded_file" --output "$json_file"
+
+### Convert parquet
+info-log "Converting parquet..."
+s3_location="$s3_path/$data_source_id.parquet"
+debug-log "S3 location: $s3_location"
+clickhouse local -q "
+    SET s3_truncate_on_insert = 1;
+    INSERT INTO FUNCTION
+        s3(
+            '$s3_location',
+            '$s3_access_key',
+            '$s3_secret_key',
+            'Parquet'
+        )
+    SELECT * FROM file('$json_file', 'JSONEachRow')
+"
 
 close-excel-session || true
