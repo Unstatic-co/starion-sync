@@ -73,8 +73,16 @@ function parse-arguments() {
                 sync_version="$2"
                 shift
                 ;;
-            --s3Path)
-                s3_path="$2"
+            --s3Url)
+                s3_url="$2"
+                shift
+                ;;
+            --s3Region)
+                s3_region="$2"
+                shift
+                ;;
+            --s3Bucket)
+                s3_bucket="$2"
                 shift
                 ;;
             --s3AccessKey)
@@ -455,6 +463,16 @@ echo "$new_headers" >"$header_encoded_file"
 info-log "Inferring schema..."
 detected_schema_file="$TEMP_DIR/schema.json"
 "$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$appended_id_file" >"$detected_schema_file"
+# upload
+info-log "Uploading schema..."
+./excel/get-and-upload-schema \
+    --schemaFile "$detected_schema_file" \
+    --s3Url "$s3_url" \
+    --s3Region "$s3_region" \
+    --s3Bucket "$s3_bucket" \
+    --s3AccessKey "$s3_access_key" \
+    --s3SecretKey "$s3_secret_key" \
+    --dataSourceId "$data_source_id"
 
 ### Convert JSON
 info-log "Converting json..."
@@ -463,7 +481,7 @@ json_file="$TEMP_DIR/data.json"
 
 ### Convert parquet
 info-log "Converting parquet..."
-s3_location="$s3_path/$data_source_id.parquet"
+s3_location="$s3_url/$s3_bucket/excel/data/$data_source_id.parquet"
 debug-log "S3 location: $s3_location"
 clickhouse local -q "
     SET s3_truncate_on_insert = 1;

@@ -4,13 +4,16 @@ go 1.18
 
 require (
 	github.com/astaxie/beego v1.12.3
+	github.com/aws/aws-sdk-go v1.44.297
 	github.com/caarlos0/env/v9 v9.0.0
 	github.com/gin-gonic/gin v1.9.1
+	github.com/hiyali/logli v0.0.0-20190425151209-5f4624646a54
 	github.com/joho/godotenv v1.5.1
 	github.com/json-iterator/go v1.1.12
 	github.com/jszwec/csvutil v1.8.0
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/samber/lo v1.38.1
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/sirupsen/logrus v1.9.3
 )
 
@@ -24,6 +27,7 @@ require (
 	github.com/go-playground/validator/v10 v10.14.1 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect

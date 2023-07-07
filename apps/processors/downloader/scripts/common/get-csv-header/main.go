@@ -1,6 +1,7 @@
 package main
 
 import (
+	"downloader/util"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -9,17 +10,9 @@ import (
 	"regexp"
 	"strings"
 
-	"crypto/md5"
-	"encoding/hex"
-
 	"github.com/jszwec/csvutil"
 	"github.com/samber/lo"
 )
-
-func GetMD5Hash(text string) string {
-	hash := md5.Sum([]byte(text))
-	return hex.EncodeToString(hash[:])
-}
 
 func main() {
 	filePath := flag.String("file", "", "File")
@@ -68,7 +61,7 @@ func main() {
 				name = *replaceEmpty
 			}
 			if *encode {
-				name = GetMD5Hash(name)
+				name = util.GetMD5Hash(name)
 			}
 			return name
 		},
