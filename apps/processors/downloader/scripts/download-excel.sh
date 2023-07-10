@@ -472,7 +472,8 @@ info-log "Uploading schema..."
     --s3Bucket "$s3_bucket" \
     --s3AccessKey "$s3_access_key" \
     --s3SecretKey "$s3_secret_key" \
-    --dataSourceId "$data_source_id"
+    --dataSourceId "$data_source_id" \
+    --syncVersion "$sync_version"
 
 ### Convert JSON
 info-log "Converting json..."
@@ -481,7 +482,7 @@ json_file="$TEMP_DIR/data.json"
 
 ### Convert parquet
 info-log "Converting parquet..."
-s3_location="$s3_url/$s3_bucket/excel/data/$data_source_id.parquet"
+s3_location="$s3_url/$s3_bucket/excel/data/$data_source_id-$sync_version.parquet"
 debug-log "S3 location: $s3_location"
 clickhouse local -q "
     SET s3_truncate_on_insert = 1;

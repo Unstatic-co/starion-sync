@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"downloader/pkg/e"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // BindAndValid binds and validates data
@@ -19,6 +21,7 @@ func BindAndValid(c *gin.Context, form interface{}) (int, int) {
 	valid := validation.Validation{}
 	check, err := valid.Valid(form)
 	if err != nil {
+		log.Error("Error validating: ", err)
 		return http.StatusInternalServerError, e.ERROR
 	}
 	if !check {

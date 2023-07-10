@@ -116,7 +116,7 @@ func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 	return tableSchema
 }
 
-func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string) error {
+func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string) error {
 	schemaJson, err := jsoniter.Marshal(schema)
 	if err != nil {
 		log.Fatalf("Error when marshalling schema: %+v\n", err)
@@ -126,7 +126,7 @@ func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSo
 		log.Fatalf("Error when initializing s3 handler: %+v\n", err)
 	}
 	log.Println("Uploading schema to s3...")
-	schemaFileKey := fmt.Sprintf("excel/schema/%s.json", dataSourceId)
+	schemaFileKey := fmt.Sprintf("excel/schema/%s-%s.json", dataSourceId, syncVersion)
 	return handler.UploadFileWithBytes(schemaFileKey, schemaJson)
 }
 
@@ -138,7 +138,7 @@ func main() {
 	s3AccessKey := flag.String("s3AccessKey", "", "s3 access key")
 	s3SecretKey := flag.String("s3SecretKey", "", "s3 secret key")
 	dataSourceId := flag.String("dataSourceId", "", "data source id")
-	// syncVersion := flag.String("syncVersion", "", "sync version")
+	syncVersion := flag.String("syncVersion", "", "sync version")
 
 	flag.Parse()
 
@@ -153,6 +153,7 @@ func main() {
 			SecretKey: *s3SecretKey,
 		},
 		*dataSourceId,
+		*syncVersion,
 	)
 	if err != nil {
 		log.Fatalf("Error when uploading schema: %+v\n", err)

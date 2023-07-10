@@ -2,8 +2,10 @@ package excel
 
 import (
 	"context"
+	"downloader/pkg/config"
+	"fmt"
+	"os"
 	"os/exec"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -20,7 +22,7 @@ type MicrosoftExcelServiceInitParams struct {
 	SessionId   string `json:"sessionId"`
 
 	DataSourceId string `json:"dataSourceId"`
-	SyncVersion  string `json:"syncVersion"`
+	SyncVersion  int    `json:"syncVersion"`
 }
 
 type MicrosoftExcelService struct {
@@ -37,7 +39,7 @@ type MicrosoftExcelService struct {
 
 	// data
 	dataSourceId string
-	syncVersion  string
+	syncVersion  int
 
 	driveInfo interface{}
 
@@ -47,6 +49,8 @@ type MicrosoftExcelService struct {
 
 func New(params MicrosoftExcelServiceInitParams) *MicrosoftExcelService {
 	logger := log.New()
+	logger.SetOutput(os.Stdout)
+	logger.SetFormatter(&log.JSONFormatter{})
 	logger.SetLevel(log.DebugLevel)
 	loggerEntry := logger.WithFields(log.Fields{
 		"workbookId":  params.WorkbookId,
@@ -70,11 +74,17 @@ func (source *MicrosoftExcelService) GetWorkbookInfo(ctx context.Context) error 
 }
 
 func (source *MicrosoftExcelService) Download(ctx context.Context) error {
-	timeoutCtx, _ := context.WithTimeout(ctx, 15*time.Minute)
+	var debugParam string
+	if config.AppConfig.IsProduction {
+		debugParam = "off"
+	} else {
+		debugParam = "on"
+	}
+	// timeoutCtx, _ := context.WithTimeout(ctx, 15*time.Minute)
 	cmd := exec.CommandContext(
-		timeoutCtx,
+		ctx,
 		"bash",
-		"./scripts/download-excel.sh",
+		"./download-excel.sh",
 		"--driveId", source.driveId,
 		"--workbookId", source.workbookId,
 		"--worksheetId", source.worksheetId,
@@ -82,7 +92,13 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 		"--accessToken", source.accessToken,
 		"--sessionId", source.sessionId,
 		"--dataSourceId", source.dataSourceId,
-		"--syncVersion", source.syncVersion,
+		"--syncVersion", fmt.Sprintf("%d", source.syncVersion),
+		"--s3Url", config.AppConfig.S3Url,
+		"--s3Region", config.AppConfig.S3Region,
+		"--s3Bucket", config.AppConfig.S3DiffDataBucket,
+		"--s3AccessKey", config.AppConfig.S3AccessKey,
+		"--s3SecretKey", config.AppConfig.S3SecretKey,
+		"--debug", debugParam,
 	)
 
 	outputWriter := source.logger.WriterLevel(log.InfoLevel)
