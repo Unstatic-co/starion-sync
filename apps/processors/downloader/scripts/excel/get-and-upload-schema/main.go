@@ -41,7 +41,7 @@ func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 		// If field is primary key
 		if hashedFieldName == schema.HashedPrimaryField {
 			fieldSchema = schema.FieldSchema{
-				Name:         fieldName,
+				Name:         schema.PrimaryFieldName,
 				Type:         schema.String,
 				OriginalType: string(exceltype.String),
 				Nullable:     false,
@@ -126,7 +126,7 @@ func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSo
 		log.Fatalf("Error when initializing s3 handler: %+v\n", err)
 	}
 	log.Println("Uploading schema to s3...")
-	schemaFileKey := fmt.Sprintf("excel/schema/%s-%s.json", dataSourceId, syncVersion)
+	schemaFileKey := fmt.Sprintf("schema/%s-%s.json", dataSourceId, syncVersion)
 	return handler.UploadFileWithBytes(schemaFileKey, schemaJson)
 }
 

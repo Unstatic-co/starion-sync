@@ -41,30 +41,6 @@ function parse-arguments() {
     while [[ $# > 0 ]]
     do
         case "$1" in
-            --driveId)
-                drive_id="$2"
-                shift
-                ;;
-            --workbookId)
-                workbook_id="$2"
-                shift
-                ;;
-            --worksheetId)
-                worksheet_id="$2"
-                shift
-                ;;
-            --worksheetName)
-                worksheet_name="$2"
-                shift
-                ;;
-            --accessToken)
-                access_token="$2"
-                shift
-                ;;
-            --sesionId)
-                session_id="$2"
-                shift
-                ;;
             --dataSourceId)
                 data_source_id="$2"
                 shift
@@ -98,17 +74,14 @@ function parse-arguments() {
                 shift
                 ;;
             --help|*)
-                # echo "Usage:"
-                # echo "    --source-file \"value\""
-                # echo "    --dest-file \"value\""
-                # echo "    --help"
-                # exit 1
-                # ;;
+                exit 1
+                ;;
         esac
         shift
     done
 }
-# debug-log "Arguments: ${*}"
+
+debug-log "Arguments: ${*}"
 parse-arguments "$@"
 
 ###### CONSTANTS #######
@@ -124,81 +97,7 @@ readonly ROW_NUMBER_COL_NAME
 
 ###### FUNCTIONS #######
 
-function get-excel-session() {
-    info-log "Creating excel session..."
-    if [[ -z "$drive_id" ]]; then
-        local url="https://graph.microsoft.com/v1.0/me/drive/items/$workbook_id//workbook/createSession"
-    else
-        local url="https://graph.microsoft.com/v1.0/drives/$drive_id/items/$workbook_id/workbook/createSession"
-    fi
-    local response_file="$TEMP_DIR/get_session_response.json"
-    status_code=$(
-        curl \
-            -s \
-            -X "POST" \
-            -H "Authorization: Bearer $access_token" \
-            -H "Content-Length: 0" \
-            -H "Content-Type: application/json" \
-            --data "{\"id\":\"$workbook_id\",\"persistChanges\":true}" \
-            -o "$response_file" \
-            --write-out "%{http_code}" \
-            "$url"
-    )
-    if test "$status_code" -ne 201; then
-        error-log "Failed to create session. Status code: $status_code"
-        exit 1
-    fi
-    session_id=$(cat "$response_file" | grep -o '"id":"[^"]*' | grep -o '[^"]*$')
-}
 
-function download-excel-file() {
-    local outfile=$1
-    if [[ -z "$drive_id" ]]; then
-        download_url="https://graph.microsoft.com/v1.0/me/drive/items/$workbook_id/content"
-    else
-        download_url="https://graph.microsoft.com/v1.0/drives/$drive_id/items/$workbook_id/content"
-    fi
-    info-log "Downloading file..."
-    status_code=$(
-        curl \
-            -sL \
-            -H "Authorization: Bearer $access_token" \
-            -H "workbook-session-id: $session_id" \
-            -o "$outfile" \
-            --write-out "%{http_code}" \
-            "$download_url"
-    )
-    if test "$status_code" -ne 200; then
-        error-log "Failed to download file. Status code: $status_code"
-        exit 1
-    fi
-}
-
-function close-excel-session() {
-    info-log "Closing excel session..."
-    if [[ -z "$drive_id" ]]; then
-        local url="https://graph.microsoft.com/v1.0/me/drive/items/$workbook_id//workbook/closeSession"
-    else
-        local url="https://graph.microsoft.com/v1.0/drives/$drive_id/items/$workbook_id/workbook/closeSession"
-    fi
-    local response_file="$TEMP_DIR/close_session_response.json"
-    status_code=$(
-        curl \
-            -s \
-            -X "POST" \
-            -H "Authorization: Bearer $access_token" \
-            -H "workbook-session-id: $session_id" \
-            -H "Content-Length: 0" \
-            -o "$response_file" \
-            --write-out "%{http_code}" \
-            "$url"
-    )
-    if test "$status_code" -ne 204; then
-        error-log "Failed to close session. Status code: $status_code"
-        exit 1
-    fi
-    session_id=$(cat "$response_file" | grep -o '"id":"[^"]*' | grep -o '[^"]*$')
-}
 
 ######### MAIN #########
 
@@ -482,7 +381,7 @@ json_file="$TEMP_DIR/data.json"
 
 ### Convert parquet
 info-log "Converting parquet..."
-s3_location="$s3_url/$s3_bucket/data/$data_source_id-$sync_version.parquet"
+s3_location="$s3_url/$s3_bucket/excel/data/$data_source_id-$sync_version.parquet"
 debug-log "S3 location: $s3_location"
 clickhouse local -q "
     SET s3_truncate_on_insert = 1;
