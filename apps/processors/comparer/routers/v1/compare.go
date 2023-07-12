@@ -40,7 +40,7 @@ func Compare(c *gin.Context) {
 	err := compareService.Run(requestContext)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error running compare for ds %s: ", body.DataSourceId), err)
-		appG.Response(e.ERROR, e.DOWNLOAD_ERROR, nil)
+		appG.Response(e.ERROR, e.COMPARE_ERROR, nil)
 		return
 	}
 

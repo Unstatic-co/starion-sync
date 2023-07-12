@@ -496,4 +496,21 @@ clickhouse local -q "
     SELECT * FROM file('$json_file', 'JSONEachRow')
 "
 
+### Upload JSON
+if [ "$DEBUG" == "on" ]; then
+    info-log "Uploading json..."
+    s3_location="$s3_url/$s3_bucket/data/$data_source_id-$sync_version.json"
+    clickhouse local -q "
+        SET s3_truncate_on_insert = 1;
+        INSERT INTO FUNCTION
+            s3(
+                '$s3_location',
+                '$s3_access_key',
+                '$s3_secret_key',
+                'JSONEachRow'
+            )
+        SELECT * FROM file('$json_file', 'JSONEachRow')
+    "
+fi
+
 close-excel-session || true

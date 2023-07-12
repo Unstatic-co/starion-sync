@@ -1,7 +1,5 @@
 #!/bin/bash
-
 set -euo pipefail &>/dev/null
-
 ###### ARGUMENTS ######
 function parse-arguments() {
     while [[ $# > 0 ]]
@@ -21,24 +19,20 @@ function parse-arguments() {
 }
 parse-arguments "$@"
 ##############################
-
 SOURCE="${BASH_SOURCE[0]:-$0}"
 while [ -L "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
     DIR="$(cd -P "$(dirname -- "$SOURCE")" &>/dev/null && pwd 2>/dev/null)"
     SOURCE="$(readlink -- "$SOURCE")"
     [[ $SOURCE != /* ]] && SOURCE="${DIR}/${SOURCE}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-
 CURRENT_DIR="$(cd -P "$(dirname -- "$SOURCE")" &>/dev/null && pwd 3>/dev/null)"
 DIR="$(realpath "$CURRENT_DIR"/..)"
 mkdir -p "$OUT_DIR"
-
 declare -a SERVICES=(excel)
 declare -a COMMON_BINARY_DEPENDENCIES=()
 declare -A SERVICE_BINARY_DEPENDENCIES=(
     [excel]=""
 )
-
 function buildCommon() {
     echo "Building common dependencies..."
     # golang binaries
@@ -51,7 +45,6 @@ function buildCommon() {
     find "$SCRIPT_DIR" -name "*.sh" -exec cp {} "$OUT_DIR" \;
     # cp "$SCRIPT_DIR/*.sh" "$OUT_DIR/"
 }
-
 function buildService() {
     service="$1"
     echo "Building service dependencies for $service..."
@@ -65,18 +58,15 @@ function buildService() {
     done
     # shell scripts
     # cp "$SCRIPT_DIR/$service/*.sh" "$OUT_DIR/$service/"
-    find "$SCRIPT_DIR/$service" -name "*.sh" -exec cp {} "$OUT_DIR/$service" \;
+    # find "$SCRIPT_DIR/$service" -name "*.sh" -exec cp {} "$OUT_DIR/$service" \;
 }
-
 ### build dependencies ###
 echo "Building dependencies..."
-
 buildCommon
 for service in "${SERVICES[@]}"; do
     buildService "$service"
 done
 ##########################
-
 ### build web server #####
 echo "Building web server..."
 go build -tags=jsoniter -o "$OUT_DIR/comparer" .

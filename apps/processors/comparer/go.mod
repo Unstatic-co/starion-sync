@@ -12,6 +12,8 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/samber/lo v1.38.1
 	github.com/sirupsen/logrus v1.9.3
+	github.com/zhenjl/cityhash v0.0.0-20131128155616-cdd6a94144ab
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 )
 
 require (
