@@ -6,7 +6,7 @@ var MsgFlags = map[int]string{
 	INVALID_PARAMS:  "invalid params",
 	ERROR_EXIST_TAG: "tag is exist",
 
-	COMPARE_ERROR: "download error",
+	COMPARE_ERROR: "compare error",
 }
 
 // GetMsg get error information based on Code

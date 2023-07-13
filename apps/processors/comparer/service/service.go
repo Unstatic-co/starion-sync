@@ -12,8 +12,14 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"github.com/zhenjl/cityhash"
-	"golang.org/x/sync/errgroup"
 )
+
+type CompareSchemaResult struct {
+	DeletedFields []string                      `json:"deletedFields"`
+	AddedFields   map[string]schema.FieldSchema `json:"addedFields"`
+	UpdatedFields map[string]schema.FieldSchema `json:"updatedFields"`
+	KeptFields    map[string]schema.FieldSchema `json:"keptFields"`
+}
 
 type CompareServiceInitParams struct {
 	DataSourceId string `json:"dataSourceId"`
@@ -26,6 +32,9 @@ type CompareService struct {
 
 	prevSchema schema.TableSchema
 	curSchema  schema.TableSchema
+
+	// result
+	compareSchemaResult CompareSchemaResult
 
 	// loger
 	logger *log.Entry
@@ -67,14 +76,20 @@ func (s *CompareService) getS3ResultDeletedFieldsFileLocation(syncVersion int) s
 func (s *CompareService) getS3ResultUpdatedFieldsFileLocation(syncVersion int) string {
 	return fmt.Sprintf(`%s/%s/result/%s-%d-updatedFields.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
+func (s *CompareService) getS3ResultAddedFieldsFileLocation(syncVersion int) string {
+	return fmt.Sprintf(`%s/%s/result/%s-%d-addedFields.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
+}
 
 func (s *CompareService) CompareData(ctx context.Context) error {
 	log.Info("Running compare for ds " + s.dataSourceId)
 
 	queryContext := QueryContext{
-		PrimaryColumn:           schema.HashedPrimaryField,
-		PreviousSchema:          s.prevSchema,
-		CurrentSchema:           s.curSchema,
+		PrimaryColumn:  schema.HashedPrimaryField,
+		PreviousSchema: s.prevSchema,
+		CurrentSchema:  s.curSchema,
+
+		CompareSchemaResult: s.compareSchemaResult,
+
 		PreviousDataS3Location:  s.getS3DataFileLocation(s.syncVersion - 1),
 		CurrentDataS3Location:   s.getS3DataFileLocation(s.syncVersion),
 		ResultS3Location:        s.getS3ResultFileLocation(s.syncVersion),
@@ -82,9 +97,11 @@ func (s *CompareService) CompareData(ctx context.Context) error {
 		DeletedRowsS3Location:   s.getS3ResultDeletedRowsFileLocation(s.syncVersion),
 		DeletedFieldsS3Location: s.getS3ResultDeletedFieldsFileLocation(s.syncVersion),
 		UpdatedFieldsS3Location: s.getS3ResultUpdatedFieldsFileLocation(s.syncVersion),
+		AddedFieldsS3Location:   s.getS3ResultAddedFieldsFileLocation(s.syncVersion),
 	}
 	queryContext.Setup()
 	query := queryContext.GetFullCompareQuery()
+	log.Debug("Query: " + query)
 
 	cmd := exec.CommandContext(
 		ctx,
@@ -114,6 +131,7 @@ func (s *CompareService) CompareSchema(ctx context.Context) error {
 	deletedFields := make([]string, 0)
 	addedFields := make(map[string]schema.FieldSchema)
 	updatedFields := make(map[string]schema.FieldSchema)
+	keptFields := make(map[string]schema.FieldSchema)
 
 	prevFields := make(map[string]schema.FieldSchema)
 	curFields := make(map[string]schema.FieldSchema)
@@ -152,21 +170,21 @@ func (s *CompareService) CompareSchema(ctx context.Context) error {
 			}
 			if cityhash.CityHash64(marshaledPrevField, uint32(len(marshaledPrevField))) != cityhash.CityHash64(marshaledCurField, uint32(len(marshaledCurField))) {
 				updatedFields[fieldName] = curFields[fieldName]
+			} else {
+				keptFields[fieldName] = curFields[fieldName]
 			}
 		}
 
 	}
 
-	var schemaDiffResult struct {
-		DeletedFields []string                      `json:"deletedFields"`
-		AddedFields   map[string]schema.FieldSchema `json:"addedFields"`
-		UpdatedFields map[string]schema.FieldSchema `json:"updatedFields"`
+	s.compareSchemaResult = CompareSchemaResult{
+		DeletedFields: deletedFields,
+		AddedFields:   addedFields,
+		UpdatedFields: updatedFields,
+		KeptFields:    keptFields,
 	}
-	schemaDiffResult.DeletedFields = deletedFields
-	schemaDiffResult.AddedFields = addedFields
-	schemaDiffResult.UpdatedFields = updatedFields
 
-	schemaDiffResultBytes, err := jsoniter.Marshal(schemaDiffResult)
+	schemaDiffResultBytes, err := jsoniter.Marshal(s.compareSchemaResult)
 	if err != nil {
 		return fmt.Errorf("Error when marshalling schema diff result: %+v", err)
 	}
@@ -234,15 +252,24 @@ func (s *CompareService) Run(ctx context.Context) error {
 		return err
 	}
 
-	group, subctx := errgroup.WithContext(ctx)
-	group.Go(func() error {
-		return s.CompareSchema(subctx)
-	})
-	group.Go(func() error {
-		return s.CompareData(subctx)
-	})
+	// group, subctx := errgroup.WithContext(ctx)
+	// group.Go(func() error {
+	// return s.CompareSchema(subctx)
+	// })
+	// group.Go(func() error {
+	// return s.CompareData(subctx)
+	// })
 
-	if err := group.Wait(); err != nil {
+	// if err := group.Wait(); err != nil {
+	// return err
+	// }
+
+	err = s.CompareSchema(ctx)
+	if err != nil {
+		return err
+	}
+	err = s.CompareData(ctx)
+	if err != nil {
 		return err
 	}
 

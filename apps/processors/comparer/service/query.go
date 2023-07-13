@@ -34,23 +34,30 @@ var ClickHouseTypeMap = map[schema.DataType]ClickHouseType{
 
 // ######################################
 type QueryContext struct {
-	PrimaryColumn           string
-	PreviousSchema          schema.TableSchema
-	CurrentSchema           schema.TableSchema
+	PrimaryColumn  string
+	PreviousSchema schema.TableSchema
+	CurrentSchema  schema.TableSchema
+
+	CompareSchemaResult CompareSchemaResult
+
 	PreviousDataS3Location  string
 	CurrentDataS3Location   string
 	ResultS3Location        string
 	AddedRowsS3Location     string
 	DeletedRowsS3Location   string
 	UpdatedFieldsS3Location string
+	AddedFieldsS3Location   string
 	DeletedFieldsS3Location string
 
-	prevFields []string
-	curFields  []string
-	allFields  []string
+	prevFields  []string
+	curFields   []string
+	allFields   []string
+	keptFields  []string
+	addedFields []string
 }
 
 func (c *QueryContext) Setup() {
+	commonFields := make([]string, 0)
 	// get prev fields
 	prevFields := make([]string, 0, len(c.PreviousSchema))
 	for fieldName := range c.PreviousSchema {
@@ -69,6 +76,8 @@ func (c *QueryContext) Setup() {
 	for key := range c.CurrentSchema {
 		if _, ok := fieldMap[key]; !ok {
 			fieldMap[key] = true
+		} else {
+			commonFields = append(commonFields, key)
 		}
 	}
 	allFields := make([]string, 0, len(fieldMap))
@@ -79,20 +88,27 @@ func (c *QueryContext) Setup() {
 	c.prevFields = prevFields
 	c.curFields = curFields
 	c.allFields = allFields
+	c.keptFields = commonFields
+
+	c.addedFields = make([]string, 0)
+	for fieldName, _ := range c.CompareSchemaResult.AddedFields {
+		c.addedFields = append(c.addedFields, fieldName)
+	}
 }
 
 func (c *QueryContext) GetFullCompareQuery() string {
 	query := fmt.Sprintf(
-		`SET s3_truncate_on_insert = 1; %[1]s; %[2]s; %[3]s; %[4]s; %[5]s; %[6]s; %[7]s; %[8]s; %[9]s; %[10]s`,
+		`SET s3_truncate_on_insert = 1; %[1]s; %[2]s; %[3]s; %[4]s; %[5]s; %[6]s; %[7]s; %[8]s; %[9]s; %[10]s; %[11]s`,
 		c.GenerateCreateTableQuery("p", c.PreviousSchema),
 		c.GenerateCreateTableQuery("c", c.CurrentSchema),
 		c.GenerateInsertDataQuery("p", c.PreviousDataS3Location),
 		c.GenerateInsertDataQuery("c", c.CurrentDataS3Location),
-		c.GenerateCreateDiffTableQuery("p", "c", "diff"),
 		c.GenerateAddedRowsTableQuery("p", "c"),
 		c.GenerateDeletedRowsTableQuery("p", "c"),
-		c.GenerateDeletedFieldsTableQuery("diff"),
+		c.GenerateCreateDiffTableQuery("p", "c", "diff"),
+		c.GenerateUpdatedNullFieldsTableQuery("diff"),
 		c.GenerateUpdatedFieldsTableQuery("c", "diff"),
+		c.GenerateAddedFieldsTableQuery("c", "diff"),
 		c.GetExportResultQuery("diff"),
 	)
 	return query
@@ -157,39 +173,42 @@ func (c *QueryContext) GenerateInsertDataQuery(tableName, s3Location string) str
 	return query
 }
 func (c *QueryContext) GenerateCreateDiffTableQuery(prevTableName, curTableName, resultTableName string) string {
-	diffFieldsSubQuery := func(prevTableName, curTableName string, allFields []string) string {
-		diffFieldsPartialQuery := lo.Map(allFields, func(field string, _ int) string {
-			if field == schema.HashedPrimaryField {
-				return fmt.Sprintf(`%[1]s.|%[2]s| AS %[2]s`, curTableName, field)
+	selectKeptFields := func(prevTableName, curTableName string, keptFields []string) string {
+		selectKeptFields := lo.Map(keptFields, func(field string, _ int) string {
+			if field == c.PrimaryColumn {
+				return fmt.Sprintf(`%[1]s.|%[2]s| AS |%[2]s|`, curTableName, field)
 			}
 			return fmt.Sprintf(
 				`
-                    IF(
-                        has(%[2]s_cols, '%[3]s') AND %[2]s.|%[3]s| IS NOT NULL,
-                        IF(
-                            has(%[1]s_cols, '%[3]s'),
-                            IF(
-                                %[1]s.|%[3]s| IS NULL,
-                                'update',
-                                IF(cityHash64(%[1]s.|%[3]s|)=cityHash64(%[2]s.|%[3]s|), 'keep', 'update')
-                            ),
-                            'delete'
-                        ),
-                        IF(
-                            NOT has(%[2]s_cols, '%[3]s'),
-                            'delete',
-                            IF (%[1]s.|%[3]s| IS NOT NULL, 'updateNull', 'keep')
-                        )
-                    ) AS |%[3]s|
+					IF (
+						%[1]s.|%[3]s| IS NOT NULL AND %[2]s.|%[3]s| IS NULL,
+						'updateNull',
+						IF (
+							cityHash64(assumeNotNull(%[1]s.|%[3]s|))=cityHash64(assumeNotNull(%[2]s.|%[3]s|)),
+							'keep',
+							'update'
+						)
+					) AS |%[3]s|
                 `,
 				prevTableName,
 				curTableName,
 				field,
-				schema.HashedPrimaryField,
 			)
 		})
-		return strings.ReplaceAll(strings.Join(diffFieldsPartialQuery, ","), "|", "`")
-	}(prevTableName, curTableName, c.allFields)
+		return strings.ReplaceAll(strings.Join(selectKeptFields, ","), "|", "`")
+	}(prevTableName, curTableName, c.keptFields)
+
+	selectAddedFields := func(curTableName string, addedFields []string) string {
+		selectAddedFields := lo.Map(addedFields, func(field string, _ int) string {
+			return fmt.Sprintf(
+				`%[1]s.|%[2]s| AS |%[2]s|`,
+				curTableName,
+				field,
+			)
+		})
+		return strings.ReplaceAll(strings.Join(selectAddedFields, ","), "|", "`")
+	}(curTableName, c.addedFields)
+
 	whereConditionsSubQuery := func(prevTableName, curTableName string, prevFields, curFields []string) string {
 		prevHashFields := lo.Map(prevFields, func(field string, _ int) string {
 			return fmt.Sprintf("assumeNotNull(%[1]s.|%[2]s|)", prevTableName, field)
@@ -201,17 +220,19 @@ func (c *QueryContext) GenerateCreateDiffTableQuery(prevTableName, curTableName,
 		curHashFieldsString := fmt.Sprintf("cityHash64(%[1]s)", strings.Join(curHashFields, ","))
 		return strings.ReplaceAll(fmt.Sprintf("%[1]s != %[2]s", prevHashFieldsString, curHashFieldsString), "|", "`")
 	}(prevTableName, curTableName, c.prevFields, c.curFields)
+
 	query := fmt.Sprintf(
 		`
-            CREATE TABLE %[5]s Engine=Memory AS
+            CREATE TABLE %[6]s Engine=Memory AS
             WITH
                 (select groupArray(name) from system.columns where table = '%[1]s') as %[1]s_cols,
                 (select groupArray(name) from system.columns where table = '%[2]s') as %[2]s_cols
-            SELECT %[3]s FROM %[1]s JOIN %[2]s ON %[1]s.|%[6]s| = %[2]s.|%[6]s| WHERE %[4]s
+            SELECT %[3]s FROM %[1]s JOIN %[2]s ON %[1]s.|%[7]s| = %[2]s.|%[7]s| WHERE %[5]s
         `,
 		prevTableName,
 		curTableName,
-		diffFieldsSubQuery,
+		selectKeptFields,
+		selectAddedFields,
 		whereConditionsSubQuery,
 		resultTableName,
 		c.PrimaryColumn,
@@ -264,11 +285,11 @@ func (c *QueryContext) GenerateDeletedRowsTableQuery(prevTableName, curTableName
 	)
 	return strings.ReplaceAll(query, "|", "`")
 }
-func (c *QueryContext) GenerateDeletedFieldsTableQuery(diffTableName string) string {
-	allFieldsWithoutIdField := lo.Filter(c.allFields, func(field string, _ int) bool {
+func (c *QueryContext) GenerateUpdatedNullFieldsTableQuery(diffTableName string) string {
+	keptFieldsWithoutIdField := lo.Filter(c.keptFields, func(field string, _ int) bool {
 		return field != c.PrimaryColumn
 	})
-	mapBuild := strings.Join(lo.Map(allFieldsWithoutIdField, func(field string, _ int) string {
+	mapBuild := strings.Join(lo.Map(keptFieldsWithoutIdField, func(field string, _ int) string {
 		return fmt.Sprintf("'%[1]s',%[1]s", field)
 	}), ",")
 
@@ -282,10 +303,9 @@ func (c *QueryContext) GenerateDeletedFieldsTableQuery(diffTableName string) str
                     'JSONCompact'
                 )
             SELECT %[5]s AS id,
-				mapKeys(mapFilter((k,v) -> (v == 'delete'), map(%[6]s))) AS deletedFields,
 				mapKeys(mapFilter((k,v) -> (v == 'updateNull'), map(%[6]s))) AS updatedNullFields
 			FROM %[1]s
-			WHERE length(deletedFields) > 0 OR length(updatedNullFields) > 0
+			WHERE length(updatedNullFields) > 0
         `,
 		diffTableName,
 		c.DeletedFieldsS3Location,
@@ -297,13 +317,13 @@ func (c *QueryContext) GenerateDeletedFieldsTableQuery(diffTableName string) str
 	return strings.ReplaceAll(query, "|", "`")
 }
 func (c *QueryContext) GenerateUpdatedFieldsTableQuery(curTableName, diffTableName string) string {
-	allFieldsWithoutIdField := lo.Filter(c.allFields, func(field string, _ int) bool {
+	keptFieldsWithoutIdField := lo.Filter(c.keptFields, func(field string, _ int) bool {
 		return field != c.PrimaryColumn
 	})
-	mapBuild := strings.Join(lo.Map(allFieldsWithoutIdField, func(field string, _ int) string {
+	mapBuild := strings.Join(lo.Map(keptFieldsWithoutIdField, func(field string, _ int) string {
 		return fmt.Sprintf("IF(%[2]s.`%[3]s` = 'update', %[1]s.`%[3]s`, NULL) AS %[3]s", curTableName, diffTableName, field)
 	}), ",")
-	selectDiffFields := strings.Join(allFieldsWithoutIdField, ",")
+	selectKeptFields := strings.Join(keptFieldsWithoutIdField, ",")
 
 	query := fmt.Sprintf(
 		`
@@ -314,12 +334,12 @@ func (c *QueryContext) GenerateUpdatedFieldsTableQuery(curTableName, diffTableNa
                     '%[5]s',
                     'JSONCompact'
                 )
-			SELECT %[6]s AS id, replaceRegexpAll(formatRowNoNewline('JSONEachRow',%[8]s), '"\w+?"\s*:\s*null,?', '') AS updatedFields
-			FROM (
-				SELECT %[6]s, %[7]s
+			SELECT
+				%[6]s AS id, replaceRegexpAll(formatRowNoNewline('JSONEachRow',%[8]s), '"\w+?"\s*:\s*null,?', '') AS updatedFields
+			FROM
+				(SELECT %[6]s, %[7]s
 				FROM %[2]s JOIN %[1]s ON %[2]s.|%[6]s| = %[1]s.|%[6]s|
-				WHERE length(arrayFilter(x -> x = 'update', array(%[2]s.*))) > 0
-			)
+				WHERE length(arrayFilter(x -> x = 'update', array(%[2]s.*))) > 0)
         `,
 		curTableName,
 		diffTableName,
@@ -328,7 +348,41 @@ func (c *QueryContext) GenerateUpdatedFieldsTableQuery(curTableName, diffTableNa
 		config.AppConfig.S3SecretKey,
 		c.PrimaryColumn,
 		mapBuild,
-		selectDiffFields,
+		selectKeptFields,
 	)
+
+	return strings.ReplaceAll(query, "|", "`")
+}
+func (c *QueryContext) GenerateAddedFieldsTableQuery(curTableName, diffTableName string) string {
+	if (len(c.addedFields)) == 0 {
+		return "select 'no added fields'"
+	}
+	selectAddedFields := strings.Join(lo.Map(c.addedFields, func(field string, _ int) string {
+		return fmt.Sprintf("`%[1]s`", field)
+	}), ",")
+
+	query := fmt.Sprintf(
+		`
+            INSERT INTO FUNCTION
+                s3(
+                    '%[3]s',
+                    '%[4]s',
+                    '%[5]s',
+                    'JSONCompact'
+                )
+			SELECT
+				%[6]s AS id, formatRowNoNewline('JSONEachRow',%[7]s) AS addedFields
+			FROM
+				%[1]s JOIN %[2]s ON %[2]s.|%[6]s| = %[1]s.|%[6]s|
+        `,
+		curTableName,
+		diffTableName,
+		c.AddedFieldsS3Location,
+		config.AppConfig.S3AccessKey,
+		config.AppConfig.S3SecretKey,
+		c.PrimaryColumn,
+		selectAddedFields,
+	)
+
 	return strings.ReplaceAll(query, "|", "`")
 }
