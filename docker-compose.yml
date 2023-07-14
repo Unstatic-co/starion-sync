@@ -157,6 +157,23 @@ services:
       - S3_DIFF_DATA_BUCKET=diff-data
       - S3_ACCESS_KEY=admin
       - S3_SECRET_KEY=abc123456
+  loader:
+    depends_on:
+      - minio
+    build:
+      context: ./apps/processors/loader
+      dockerfile: Dockerfile
+    expose:
+      - 9007
+    ports:
+      - 9007:8080
+    environment:
+      - PORT=8080
+      - S3_URL=http://minio:9000
+      - S3_REGION=us-east-1
+      - S3_DIFF_DATA_BUCKET=diff-data
+      - S3_ACCESS_KEY=admin
+      - S3_SECRET_KEY=abc123456
       #--------------------------------- DATABASE ---------------------------------------#
       # mysql:
       # image: mysql:8.0
@@ -203,6 +220,31 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=abc123456
       - MONGO_INITDB_DATABASE=starion-sync
+  postgresql:
+    container_name: postgresql
+    image: postgres:15.3-alpine3.18
+    expose:
+      - 5432
+    ports:
+      - 5432:5432
+    volumes:
+      - postgresql:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=abc123456
+      - POSTGRES_DB=starion-sync
+  pgadmin:
+    container_name: pgadmin
+    restart: unless-stopped
+    image: dpage/pgadmin4:7.4
+    ports:
+      - 8003:80
+    volumes:
+       - pgadmin:/var/lib/pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@starion.io
+      - PGADMIN_DEFAULT_PASSWORD=abc123456
+      - PGADMIN_CONFIG_SERVER_MODE='False'
   #--------------------------------- KAFKA ---------------------------------------#
   zookeeper:
     # restart: always
@@ -212,8 +254,8 @@ services:
     ports:
       - 2181:2181
     volumes:
-      - "zookeeper-data:/var/lib/zookeeper/data"
-      - "zookeeper-log:/var/lib/zookeeper/log"
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-log:/var/lib/zookeeper/log
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
       - ZOOKEEPER_CLIENT_PORT=2181
@@ -290,18 +332,6 @@ services:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms256m -Xmx256m
       - xpack.security.enabled=false
-  postgresql:
-    container_name: temporal-postgresql
-    image: postgres:15.3-alpine3.18
-    expose:
-      - 5432
-    ports:
-      - 5432:5432
-    volumes:
-      - postgresql:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: temporal
-      POSTGRES_USER: temporal
   temporal:
     depends_on:
       - postgresql
@@ -319,8 +349,8 @@ services:
     environment:
       - DB=postgresql
       - DB_PORT=5432
-      - POSTGRES_USER=temporal
-      - POSTGRES_PWD=temporal
+      - POSTGRES_USER=admin
+      - POSTGRES_PWD=abc123456
       - POSTGRES_SEEDS=postgresql
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
       - ENABLE_ES=true
@@ -359,8 +389,8 @@ services:
     volumes:
       - minio:/data
     environment:
-      MINIO_ROOT_USER: admin
-      MINIO_ROOT_PASSWORD: abc123456
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=abc123456
 volumes:
   mongo:
   mysql:
@@ -371,3 +401,4 @@ volumes:
   elasticsearch:
   postgresql:
   minio:
+  pgadmin:
