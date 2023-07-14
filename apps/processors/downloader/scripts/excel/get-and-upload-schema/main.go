@@ -15,6 +15,27 @@ import (
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v5"
 )
 
+func inferBooleanType(enum []interface{}) bool {
+	if len(enum) != 2 {
+		return false
+	}
+
+	enumStr := make([]string, len(enum))
+	for i, v := range enum {
+		if str, ok := v.(string); ok {
+			enumStr[i] = str
+		} else {
+			// If enum contains non-string value, return false
+			return false
+		}
+	}
+
+	if (lo.Contains(enumStr, "true") && lo.Contains(enumStr, "false") || (lo.Contains(enumStr, "True") && lo.Contains(enumStr, "False"))) || (lo.Contains(enumStr, "TRUE") && lo.Contains(enumStr, "FALSE")) {
+		return true
+	}
+	return false
+}
+
 func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -54,6 +75,10 @@ func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 				continue
 			}
 			fieldType := fieldTypeList[0]
+
+			// qsv does not comply with `--enum-threshold`, so we must filter enum length in client
+			enum := lo.Filter(property.Enum, func(item any, _ int) bool { return item != "" && item != nil })
+
 			var detectedType schema.DataType
 
 			switch fieldType {
@@ -64,7 +89,13 @@ func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 				case "date":
 					detectedType = schema.DateTime
 				default:
-					detectedType = schema.String
+					// detect enum
+					if inferBooleanType(enum) {
+						detectedType = schema.Boolean
+						enum = []interface{}{true, false}
+					} else {
+						detectedType = schema.String
+					}
 				}
 			case "null":
 				// If column does not have data
@@ -90,14 +121,11 @@ func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 				log.Fatalf("Unknown data type: %s", fieldType)
 			}
 
-			// qsv does not comply with `--enum-threshold`, so we must filter enum length in client
-			enum := lo.Filter(property.Enum, func(item any, _ int) bool { return item != "" && item != nil })
-
 			var fieldEnum []any
-			if len(enum) <= 5 {
+			if len(enum) <= 5 && len(enum) > 0 {
 				fieldEnum = enum
 			} else {
-				fieldEnum = []any{}
+				fieldEnum = nil
 			}
 
 			fieldSchema = schema.FieldSchema{
