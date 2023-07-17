@@ -20,7 +20,7 @@ func InitRouter() *gin.Engine {
 	apiV1.GET("/", v1.HelloWorld)
 	apiV1.GET("/test", v1.Test)
 
-	apiV1.POST("/execel/load", v1.LoadExcel)
+	apiV1.POST("/excel/load", v1.LoadExcel)
 
 	return r
 }

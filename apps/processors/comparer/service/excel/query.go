@@ -1,4 +1,4 @@
-package service
+package excel
 
 import (
 	"comparer/libs/schema"
@@ -91,25 +91,39 @@ func (c *QueryContext) Setup() {
 	c.keptFields = commonFields
 
 	c.addedFields = make([]string, 0)
-	for fieldName, _ := range c.CompareSchemaResult.AddedFields {
+	for fieldName := range c.CompareSchemaResult.AddedFields {
 		c.addedFields = append(c.addedFields, fieldName)
 	}
 }
 
+func (c *QueryContext) GetFirstVersionCompareQuery() string {
+	currentTableName := "c"
+	query := fmt.Sprintf(
+		`SET s3_truncate_on_insert = 1; %[1]s; %[2]s; %[3]s`,
+		c.GenerateCreateTableQuery(currentTableName, c.CurrentSchema),
+		c.GenerateInsertDataQuery(currentTableName, c.CurrentDataS3Location),
+		c.GenerateFirstVersionAddedRowsTableQuery(currentTableName),
+	)
+	return query
+}
+
 func (c *QueryContext) GetFullCompareQuery() string {
+	previousTableName := "p"
+	currentTableName := "c"
+	diffTableName := "diff"
 	query := fmt.Sprintf(
 		`SET s3_truncate_on_insert = 1; %[1]s; %[2]s; %[3]s; %[4]s; %[5]s; %[6]s; %[7]s; %[8]s; %[9]s; %[10]s; %[11]s`,
-		c.GenerateCreateTableQuery("p", c.PreviousSchema),
-		c.GenerateCreateTableQuery("c", c.CurrentSchema),
-		c.GenerateInsertDataQuery("p", c.PreviousDataS3Location),
-		c.GenerateInsertDataQuery("c", c.CurrentDataS3Location),
-		c.GenerateAddedRowsTableQuery("p", "c"),
-		c.GenerateDeletedRowsTableQuery("p", "c"),
-		c.GenerateCreateDiffTableQuery("p", "c", "diff"),
-		c.GenerateUpdatedNullFieldsTableQuery("diff"),
-		c.GenerateUpdatedFieldsTableQuery("c", "diff"),
-		c.GenerateAddedFieldsTableQuery("c", "diff"),
-		c.GetExportResultQuery("diff"),
+		c.GenerateCreateTableQuery(previousTableName, c.PreviousSchema),
+		c.GenerateCreateTableQuery(currentTableName, c.CurrentSchema),
+		c.GenerateInsertDataQuery(previousTableName, c.PreviousDataS3Location),
+		c.GenerateInsertDataQuery(currentTableName, c.CurrentDataS3Location),
+		c.GenerateAddedRowsTableQuery(previousTableName, currentTableName),
+		c.GenerateDeletedRowsTableQuery(previousTableName, currentTableName),
+		c.GenerateCreateDiffTableQuery(previousTableName, currentTableName, diffTableName),
+		c.GenerateUpdatedNullFieldsTableQuery(diffTableName),
+		c.GenerateUpdatedFieldsTableQuery(currentTableName, diffTableName),
+		c.GenerateAddedFieldsTableQuery(currentTableName, diffTableName),
+		c.GetExportResultQuery(diffTableName),
 	)
 	return query
 }
@@ -235,6 +249,26 @@ func (c *QueryContext) GenerateCreateDiffTableQuery(prevTableName, curTableName,
 		selectAddedFields,
 		whereConditionsSubQuery,
 		resultTableName,
+		c.PrimaryColumn,
+	)
+	return strings.ReplaceAll(query, "|", "`")
+}
+func (c *QueryContext) GenerateFirstVersionAddedRowsTableQuery(curTableName string) string {
+	query := fmt.Sprintf(
+		`
+            INSERT INTO FUNCTION
+                s3(
+                    '%[2]s',
+                    '%[3]s',
+                    '%[4]s',
+                    'JSONCompact'
+                )
+            SELECT * FROM %[1]s
+        `,
+		curTableName,
+		c.AddedRowsS3Location,
+		config.AppConfig.S3AccessKey,
+		config.AppConfig.S3SecretKey,
 		c.PrimaryColumn,
 	)
 	return strings.ReplaceAll(query, "|", "`")

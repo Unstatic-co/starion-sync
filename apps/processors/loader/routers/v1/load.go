@@ -30,13 +30,18 @@ func LoadExcel(c *gin.Context) {
 		return
 	}
 
-	excelService := excel.NewExcelService(excel.MicrosoftExcelServiceInitParams{
+	excelService, err := excel.NewService(excel.MicrosoftExcelServiceInitParams{
 		DataSourceId: body.DataSourceId,
 		SyncVersion:  body.SyncVersion,
 	})
+	if err != nil {
+		log.Error(fmt.Sprintf("Error when initializing excel service for ds %s: ", body.DataSourceId), err)
+		appG.Response(e.ERROR, e.LOADER_ERROR, nil)
+		return
+	}
 
 	requestContext := c.Request.Context()
-	err := excelService.Load(requestContext)
+	err = excelService.Load(requestContext)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error running load data for ds %s: ", body.DataSourceId), err)
 		appG.Response(e.ERROR, e.LOADER_ERROR, nil)
