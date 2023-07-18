@@ -3,6 +3,7 @@ package loader
 import (
 	"loader/libs/schema"
 	"loader/pkg/config"
+	"loader/service"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -13,13 +14,21 @@ type AddedRowsData struct {
 	Fields []string
 	Rows   [][]interface{}
 }
-type DeletedRowData string
-type UpdatedFieldData map[string]interface{}
+type DeletedRowsData []string
+type UpdatedFieldsData map[string]map[string]interface{}
+type AddedFieldsData map[string]map[string]interface{}
+type DeletedFieldsData map[string][]string
 type LoaderData struct {
-	Schema            schema.TableSchema
-	AddedRows         AddedRowsData
-	DeletedRows       []DeletedRowData
-	UpdatedFieldsData []UpdatedFieldData
+	Schema       schema.TableSchema
+	PrimaryField string
+
+	SchemaChanges service.SchemaDiffResult
+
+	AddedRows     AddedRowsData
+	DeletedRows   DeletedRowsData
+	AddedFields   AddedFieldsData
+	UpdatedFields UpdatedFieldsData
+	DeletedFields DeletedFieldsData
 }
 
 type Loader interface {
@@ -38,6 +47,7 @@ func New(loaderType LoaderType, dataSourceId string, syncVersion int) (Loader, e
 		}
 	}
 	if loader != nil {
+		// setup
 		err := loader.Setup()
 		if err != nil {
 			return nil, err

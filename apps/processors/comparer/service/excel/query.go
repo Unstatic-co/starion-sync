@@ -369,7 +369,7 @@ func (c *QueryContext) GenerateUpdatedFieldsTableQuery(curTableName, diffTableNa
                     'JSONCompact'
                 )
 			SELECT
-				%[6]s AS id, replaceRegexpAll(formatRowNoNewline('JSONEachRow',%[8]s), '"\w+?"\s*:\s*null,?', '') AS updatedFields
+				%[6]s AS id, replaceAll(replaceRegexpAll(formatRowNoNewline('JSONEachRow',%[8]s), '"\w+?"\s*:\s*null,?', ''), ',}', '}') AS updatedFields
 			FROM
 				(SELECT %[6]s, %[7]s
 				FROM %[2]s JOIN %[1]s ON %[2]s.|%[6]s| = %[1]s.|%[6]s|
@@ -388,9 +388,25 @@ func (c *QueryContext) GenerateUpdatedFieldsTableQuery(curTableName, diffTableNa
 	return strings.ReplaceAll(query, "|", "`")
 }
 func (c *QueryContext) GenerateAddedFieldsTableQuery(curTableName, diffTableName string) string {
-	if (len(c.addedFields)) == 0 {
-		return "select 'no added fields'"
+	if len(c.addedFields) == 0 {
+		// upload empty result
+		return fmt.Sprintf(
+			`
+				INSERT INTO FUNCTION
+					s3(
+						'%[1]s',
+						'%[2]s',
+						'%[3]s',
+						'JSONCompact'
+					)
+				SELECT 1 LIMIT 0
+			`,
+			c.AddedFieldsS3Location,
+			config.AppConfig.S3AccessKey,
+			config.AppConfig.S3SecretKey,
+		)
 	}
+
 	selectAddedFields := strings.Join(lo.Map(c.addedFields, func(field string, _ int) string {
 		return fmt.Sprintf("`%[1]s`", field)
 	}), ",")

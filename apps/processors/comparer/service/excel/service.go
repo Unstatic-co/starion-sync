@@ -15,10 +15,11 @@ import (
 )
 
 type CompareSchemaResult struct {
-	DeletedFields []string                      `json:"deletedFields"`
-	AddedFields   map[string]schema.FieldSchema `json:"addedFields"`
-	UpdatedFields map[string]schema.FieldSchema `json:"updatedFields"`
-	KeptFields    map[string]schema.FieldSchema `json:"keptFields"`
+	DeletedFields     []string                      `json:"deletedFields"`
+	AddedFields       map[string]schema.FieldSchema `json:"addedFields"`
+	UpdatedFields     map[string]schema.FieldSchema `json:"updatedFields"`
+	UpdatedTypeFields map[string]schema.DataType    `json:"updatedTypeFields"`
+	KeptFields        map[string]schema.FieldSchema `json:"keptFields"`
 }
 
 type CompareServiceInitParams struct {
@@ -137,6 +138,7 @@ func (s *CompareService) CompareSchema(ctx context.Context) error {
 	deletedFields := make([]string, 0)
 	addedFields := make(map[string]schema.FieldSchema)
 	updatedFields := make(map[string]schema.FieldSchema)
+	updatedTypeFields := make(map[string]schema.DataType)
 	keptFields := make(map[string]schema.FieldSchema)
 
 	prevFields := make(map[string]schema.FieldSchema)
@@ -165,17 +167,22 @@ func (s *CompareService) CompareSchema(ctx context.Context) error {
 			// field is added
 			addedFields[fieldName] = curFields[fieldName]
 		} else {
+			prevField := prevFields[fieldName]
+			curField := curFields[fieldName]
 			// field may be updated, compare field
-			marshaledPrevField, err := jsoniter.Marshal(prevFields[fieldName])
+			marshaledPrevField, err := jsoniter.Marshal(prevField)
 			if err != nil {
 				return fmt.Errorf("Error when marshalling prev field: %+v", err)
 			}
-			marshaledCurField, err := jsoniter.Marshal(curFields[fieldName])
+			marshaledCurField, err := jsoniter.Marshal(curField)
 			if err != nil {
 				return fmt.Errorf("Error when marshalling cur field: %+v", err)
 			}
 			if cityhash.CityHash64(marshaledPrevField, uint32(len(marshaledPrevField))) != cityhash.CityHash64(marshaledCurField, uint32(len(marshaledCurField))) {
-				updatedFields[fieldName] = curFields[fieldName]
+				updatedFields[fieldName] = curField
+				if prevField.Type != curField.Type {
+					updatedTypeFields[fieldName] = curField.Type
+				}
 			} else {
 				keptFields[fieldName] = curFields[fieldName]
 			}
@@ -184,10 +191,11 @@ func (s *CompareService) CompareSchema(ctx context.Context) error {
 	}
 
 	s.compareSchemaResult = CompareSchemaResult{
-		DeletedFields: deletedFields,
-		AddedFields:   addedFields,
-		UpdatedFields: updatedFields,
-		KeptFields:    keptFields,
+		DeletedFields:     deletedFields,
+		AddedFields:       addedFields,
+		UpdatedFields:     updatedFields,
+		UpdatedTypeFields: updatedTypeFields,
+		KeptFields:        keptFields,
 	}
 
 	schemaDiffResultBytes, err := jsoniter.Marshal(s.compareSchemaResult)
