@@ -87,11 +87,14 @@ export class WorkflowService {
       throw new UnacceptableActivityError(`Syncflow is running: ${trigger.id}`);
     }
 
-    const triggeredSyncflow = await this.syncflowRepository.updateStatus(
-      syncflow.id,
-      WorkflowStatus.SCHEDULED,
-      { new: true },
-    );
+    const [triggeredSyncflow] = await Promise.all([
+      this.syncflowRepository.updateStatus(
+        syncflow.id,
+        WorkflowStatus.SCHEDULED,
+        { new: true },
+      ),
+      this.syncflowRepository.increaseVersion(syncflow.id),
+    ]);
 
     return triggeredSyncflow;
   }

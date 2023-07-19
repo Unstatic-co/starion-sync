@@ -43,6 +43,18 @@ export const WorkerProvider = {
         workflowActivities.checkAndUpdateStatusBeforeStartSyncflow.bind(
           workflowActivities,
         ),
+      getSyncDataExcel: microsoftExcelActivities.getSyncDataExcel.bind(
+        microsoftExcelActivities,
+      ),
+      downloadExcel: microsoftExcelActivities.downloadExcel.bind(
+        microsoftExcelActivities,
+      ),
+      compareExcel: microsoftExcelActivities.compareExcel.bind(
+        microsoftExcelActivities,
+      ),
+      loadExcel: microsoftExcelActivities.loadExcel.bind(
+        microsoftExcelActivities,
+      ),
     };
 
     const taskQueue = configService.get<string>(

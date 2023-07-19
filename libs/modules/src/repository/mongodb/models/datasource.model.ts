@@ -1,5 +1,7 @@
 import {
   DataSource,
+  DataSourceConfig,
+  DataSourceLimitation,
   DataSourceStatistics,
   Metadata,
   ProviderType,
@@ -38,7 +40,13 @@ export class DataSourceModel extends DataSource {
   };
 
   @Prop({ type: Object })
+  config: DataSourceConfig;
+
+  @Prop({ type: Object })
   statistics: DataSourceStatistics;
+
+  @Prop({ type: Object })
+  limits: DataSourceLimitation;
 
   @Prop({
     type: Object,

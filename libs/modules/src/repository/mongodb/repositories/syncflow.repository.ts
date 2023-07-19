@@ -121,4 +121,21 @@ export class SyncflowRepository implements ISyncflowRepository {
       await session.withTransaction(processFunc);
     }
   }
+
+  public async increaseVersion(id: string, options?: QueryOptions) {
+    await this.syncflowModel.updateOne(
+      {
+        _id: Utils.toObjectId(id),
+        isDeleted: false,
+      },
+      {
+        $inc: {
+          'state.version': 1,
+        },
+      },
+    );
+    if (options?.new) {
+      return this.getById(id);
+    }
+  }
 }

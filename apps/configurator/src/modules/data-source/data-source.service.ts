@@ -93,21 +93,15 @@ export class DataSourceService {
         })
       ).data;
     }
-    if (
-      !(await this.isDataSourceInProvider(
-        dataProvider.type,
-        dataProvider.config,
-        externalLocalId,
-      ))
-    ) {
-      throw new ApiError(
-        ErrorCode.INVALID_DATA,
-        `Data source with id ${externalLocalId} not found in provider`,
-      );
-    }
+    await this.checkDataSourceInProvider(
+      dataProvider.type,
+      dataProvider.config,
+      externalLocalId,
+    );
     const dataSource = await this.dataSourceRepository.create({
       externalId,
       externalLocalId,
+      config: { ...dataProvider.config, ...config },
       providerId: dataProvider.id,
       providerType: type,
       metadata,
@@ -148,7 +142,7 @@ export class DataSourceService {
     switch (type) {
       case ProviderType.MICROSOFT_EXCEL:
         const { workbookId, worksheetId, driveId } =
-          config as ExcelDataSourceConfig;
+          config as unknown as ExcelDataSourceConfig;
         if (!driveId) {
           externalId = `${workbookId}`;
           externalLocalId = `${worksheetId}`;
@@ -166,7 +160,7 @@ export class DataSourceService {
     };
   }
 
-  public async isDataSourceInProvider(
+  public async checkDataSourceInProvider(
     providerType: ProviderType,
     providerConfig: ProviderConfig,
     externalLocalId: string,
@@ -176,8 +170,17 @@ export class DataSourceService {
         providerType,
         providerConfig,
       );
-    return discoveredDataSources.some(
+    const dataSourceInProvider = discoveredDataSources.find(
       (discoveredDataSource) => discoveredDataSource.id === externalLocalId,
     );
+
+    if (!dataSourceInProvider) {
+      throw new ApiError(
+        ErrorCode.INVALID_DATA,
+        `Data source with id ${externalLocalId} not found in provider`,
+      );
+    }
+
+    return dataSourceInProvider;
   }
 }

@@ -5,6 +5,7 @@ services:
       - mongodb
       - zookeeper
       - kafka
+      - temporal
     build:
       context: .
       dockerfile: ./apps/configurator/Dockerfile
@@ -33,6 +34,7 @@ services:
       - mongodb
       - zookeeper
       - kafka
+      - temporal
     build:
       context: .
       dockerfile: ./apps/controller/Dockerfile

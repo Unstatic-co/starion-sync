@@ -1,5 +1,6 @@
 import {
   DataSource,
+  DataSourceConfig,
   DataSourceId,
   Metadata,
   ProviderId,
@@ -30,6 +31,7 @@ export type CreateDataSourceData = {
   providerId: ProviderId;
   externalId: string;
   externalLocalId: string;
+  config: DataSourceConfig;
   name?: string;
   metadata: Metadata;
 };

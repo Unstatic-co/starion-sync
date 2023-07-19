@@ -6,5 +6,6 @@ export enum ConfigName {
   ORCHESTRATOR = 'orchestrator',
   REDIS = 'redis',
   SERVICES = 'services',
+  PROCESSOR = 'processor',
   MICROSOFT = 'microsoft',
 }

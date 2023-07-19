@@ -11,11 +11,6 @@ export enum ProviderType {
 
 export interface ProviderConfig {
   auth: ProviderAuthConfig;
-  client?: ProviderClientConfig;
-}
-
-export interface ProviderClientConfig {
-  [key: string]: any;
 }
 
 export class DataProvider {

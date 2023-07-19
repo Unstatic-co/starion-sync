@@ -10,7 +10,11 @@ import {
   DataSourceModel,
 } from '../models/dataSource.model';
 import { Model } from 'mongoose';
-import { DataSource, defaultDataSourceStatistics } from '@lib/core';
+import {
+  DataSource,
+  defaultDataSourceLimitation,
+  defaultDataSourceStatistics,
+} from '@lib/core';
 import { Utils } from 'apps/configurator/src/common/utils';
 import { QueryOptions } from '../../classes';
 import mongoose from 'mongoose';
@@ -69,6 +73,7 @@ export class DataSourceRepository implements IDataSourceRepository {
         type: data.providerType,
       },
       statistics: defaultDataSourceStatistics,
+      limits: defaultDataSourceLimitation,
     });
     const query = options?.session
       ? dataSource.save({ session: options.session })
