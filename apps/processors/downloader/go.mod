@@ -7,11 +7,11 @@ require (
 	github.com/aws/aws-sdk-go v1.44.297
 	github.com/caarlos0/env/v9 v9.0.0
 	github.com/gin-gonic/gin v1.9.1
+	github.com/google/uuid v1.3.0
 	github.com/hiyali/logli v0.0.0-20190425151209-5f4624646a54
 	github.com/joho/godotenv v1.5.1
 	github.com/json-iterator/go v1.1.12
 	github.com/jszwec/csvutil v1.8.0
-	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/samber/lo v1.38.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/sirupsen/logrus v1.9.3

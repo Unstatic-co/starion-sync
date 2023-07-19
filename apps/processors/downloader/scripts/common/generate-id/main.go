@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	gonanoid "github.com/matoous/go-nanoid/v2"
+	"github.com/google/uuid"
 )
 
 const (
@@ -20,7 +20,7 @@ func main() {
 	fmt.Println(*col)
 
 	for i := 0; i < *num; i++ {
-		id, _ := gonanoid.New()
-		fmt.Println(id)
+		id := uuid.New()
+		fmt.Println(id.String())
 	}
 }

@@ -154,7 +154,6 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 			log.Error("Error when deleting fields: ", err)
 			return err
 		}
-		return nil
 	}
 
 	// added fields
@@ -171,7 +170,6 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 			log.Error("Error when adding fields: ", err)
 			return err
 		}
-		return nil
 	}
 
 	// updated type fields
@@ -201,8 +199,6 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 			log.Error("Error when updating type fields (add column): ", err)
 			return err
 		}
-
-		return nil
 	}
 
 	log.Info("Loaded schema changes")
