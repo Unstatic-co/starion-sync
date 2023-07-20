@@ -30,10 +30,14 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
     const [worksheets, workbookFileInfo] = await Promise.all([
       this.microsoftGraphService.listWorksheets(
         client,
-        sessionId,
         config.workbookId,
+        sessionId,
       ),
-      this.microsoftGraphService.getWorkbookFileInfo(client, config.workbookId),
+      this.microsoftGraphService.getWorkbookFileInfo(
+        client,
+        config.workbookId,
+        sessionId,
+      ),
     ]);
   }
 
@@ -44,14 +48,8 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
       config.auth.refreshToken,
     );
     const client = await this.microsoftGraphService.createClient(accessToken);
-    const sessionId = await this.microsoftGraphService.createWorkbookSession(
-      client,
-      config.workbookId,
-      false,
-    );
     return await this.microsoftGraphService.listWorksheets(
       client,
-      sessionId,
       config.workbookId,
     );
   }

@@ -1,12 +1,16 @@
 package excel
 
 import (
+	"bytes"
 	"context"
 	"downloader/pkg/config"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 
+	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -43,11 +47,15 @@ type MicrosoftExcelService struct {
 
 	driveInfo interface{}
 
+	// client
+	httpClient http.Client
+
 	// loger
 	logger *log.Entry
 }
 
 func New(params MicrosoftExcelServiceInitParams) *MicrosoftExcelService {
+	// logger
 	logger := log.New()
 	logger.SetOutput(os.Stdout)
 	logger.SetFormatter(&log.JSONFormatter{})
@@ -56,6 +64,10 @@ func New(params MicrosoftExcelServiceInitParams) *MicrosoftExcelService {
 		"workbookId":  params.WorkbookId,
 		"worksheetId": params.WorksheetId,
 	})
+
+	// client
+	client := &http.Client{}
+
 	return &MicrosoftExcelService{
 		driveId:       params.DriveId,
 		workbookId:    params.WorkbookId,
@@ -65,15 +77,97 @@ func New(params MicrosoftExcelServiceInitParams) *MicrosoftExcelService {
 		sessionId:     params.SessionId,
 		dataSourceId:  params.DataSourceId,
 		syncVersion:   params.SyncVersion,
+		httpClient:    *client,
 		logger:        loggerEntry,
 	}
 }
 
-func (source *MicrosoftExcelService) GetWorkbookInfo(ctx context.Context) error {
+func (s *MicrosoftExcelService) CreateSessionId(persistChanges bool) error {
+	s.logger.Debug("Creating session id")
+	var url string
+	if s.driveId == "" {
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/me/drive/items/%s/workbook/createSession", s.workbookId)
+	} else {
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/drives/%s/items/%s/workbook/createSession", s.driveId, s.workbookId)
+	}
+	body := CreateSessionRequest{
+		PersistChanges: persistChanges,
+	}
+	bodyJSON, err := jsoniter.Marshal(body)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyJSON))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.accessToken))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(bodyJSON)))
+	req.Header.Set("workbook-session-id", s.sessionId)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var response CreateSessionResponse
+	err = jsoniter.Unmarshal(responseBody, &response)
+	if err != nil {
+		return err
+	}
+	log.Debug("Session id: ", response.Id)
+
+	s.sessionId = response.Id
+	return nil
+}
+
+func (s *MicrosoftExcelService) GetWorksheetInfo() error {
+	s.logger.Debug("Getting worksheet info")
+	var url string
+	if s.driveId == "" {
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/me/drive/items/%s/workbook/worksheets/%s", s.workbookId, s.worksheetId)
+	} else {
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/drives/%s/items/%s/workbook/worksheets/%s", s.driveId, s.workbookId, s.worksheetId)
+	}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.accessToken))
+	req.Header.Set("workbook-session-id", s.sessionId)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var response GetWorksheetInfoResponse
+	err = jsoniter.Unmarshal(responseBody, &response)
+	if err != nil {
+		return err
+	}
+	log.Debug("Worksheet name: ", response.Name)
+
+	s.worksheetName = response.Name
 	return nil
 }
 
 func (source *MicrosoftExcelService) Download(ctx context.Context) error {
+	if err := source.CreateSessionId(true); err != nil {
+		source.logger.Error("Error creating session id", err)
+		return err
+	}
+	if err := source.GetWorksheetInfo(); err != nil {
+		source.logger.Error("Error getting worksheet info", err)
+		return err
+	}
+
 	var debugParam string
 	if config.AppConfig.IsProduction {
 		debugParam = "off"

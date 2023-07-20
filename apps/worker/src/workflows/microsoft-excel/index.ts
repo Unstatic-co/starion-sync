@@ -37,7 +37,6 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
       syncVersion: syncData.syncVersion,
       workbookId: syncData.workbookId,
       worksheetId: syncData.worksheetId,
-      worksheetName: syncData.worksheetName,
       accessToken: syncData.accessToken,
     });
     await compareExcel({

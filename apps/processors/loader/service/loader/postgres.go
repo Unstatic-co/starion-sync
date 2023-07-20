@@ -28,10 +28,13 @@ type PostgreLoader struct {
 	DatasourceId string
 	SyncVersion  int
 	conn         *sql.DB
+
+	tableName string
 }
 
 func (l *PostgreLoader) Setup() error {
 	log.Debug("Setting up postgres loader")
+
 	connStr := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		config.AppConfig.DbHost,
@@ -47,6 +50,8 @@ func (l *PostgreLoader) Setup() error {
 		return err
 	}
 	l.conn = db
+
+	l.tableName = fmt.Sprintf("_%s", l.DatasourceId)
 
 	return nil
 }
@@ -126,7 +131,7 @@ func (l *PostgreLoader) initTable(txn *sql.Tx, data *LoaderData) error {
 		}
 		return result
 	}), ",")
-	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s)", l.DatasourceId, fields)
+	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s)", l.tableName, fields)
 	log.Debug("Query: ", query)
 	_, err := txn.Exec(query)
 	if err != nil {
@@ -147,7 +152,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 		dropColumns := strings.Join(lo.Map(data.SchemaChanges.DeletedFields, func(field string, _ int) string {
 			return fmt.Sprintf("DROP COLUMN %s", field)
 		}), ",")
-		query := fmt.Sprintf("ALTER TABLE %s %s", l.DatasourceId, dropColumns)
+		query := fmt.Sprintf("ALTER TABLE %s %s", l.tableName, dropColumns)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -163,7 +168,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 		for fieldName, field := range data.SchemaChanges.AddedFields {
 			addColumns = append(addColumns, fmt.Sprintf("ADD COLUMN %s %s", fieldName, ProgresTypeMap[field.Type]))
 		}
-		query := fmt.Sprintf("ALTER TABLE %s %s", l.DatasourceId, strings.Join(addColumns, ","))
+		query := fmt.Sprintf("ALTER TABLE %s %s", l.tableName, strings.Join(addColumns, ","))
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -181,7 +186,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 		dropColumns := strings.Join(lo.Map(updatedTypeFields, func(field string, _ int) string {
 			return fmt.Sprintf("DROP COLUMN %s", field)
 		}), ",")
-		query := fmt.Sprintf("ALTER TABLE %s %s", l.DatasourceId, dropColumns)
+		query := fmt.Sprintf("ALTER TABLE %s %s", l.tableName, dropColumns)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -192,7 +197,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 		addColumns := strings.Join(lo.Map(updatedTypeFields, func(field string, _ int) string {
 			return fmt.Sprintf("ADD COLUMN %s %s", field, ProgresTypeMap[data.SchemaChanges.UpdatedTypeFields[field]])
 		}), ",")
-		query = fmt.Sprintf("ALTER TABLE %s %s", l.DatasourceId, addColumns)
+		query = fmt.Sprintf("ALTER TABLE %s %s", l.tableName, addColumns)
 		log.Debug("Query: ", query)
 		_, err = txn.Exec(query)
 		if err != nil {
@@ -214,27 +219,8 @@ func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *LoaderData) error {
 		return nil
 	}
 
-	if l.SyncVersion == 1 {
-		// create table
-		log.Debug("Creating table")
-		fields := strings.Join(lo.Map(data.AddedRows.Fields, func(fieldName string, _ int) string {
-			schemaField := data.Schema[fieldName]
-			result := fmt.Sprintf("%s %s", fieldName, ProgresTypeMap[schemaField.Type])
-			if schemaField.Primary {
-				result += " PRIMARY KEY"
-			}
-			return result
-		}), ",")
-		query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s)", l.DatasourceId, fields)
-		log.Debug("Query: ", query)
-		_, err := txn.Exec(query)
-		if err != nil {
-			return err
-		}
-	}
-
 	log.Debug("Inserting data")
-	query := pq.CopyIn(l.DatasourceId, data.AddedRows.Fields...)
+	query := pq.CopyIn(l.tableName, data.AddedRows.Fields...)
 	log.Debug("Query: ", query)
 	stmt, err := txn.Prepare(query)
 	if err != nil {
@@ -272,7 +258,7 @@ func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	for _, id := range data.DeletedRows {
-		query := fmt.Sprintf("DELETE FROM %s WHERE %s = '%s'", l.DatasourceId, data.PrimaryField, id)
+		query := fmt.Sprintf("DELETE FROM %s WHERE %s = '%s'", l.tableName, data.PrimaryField, id)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -311,7 +297,7 @@ func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *LoaderData) error {
 			}
 			return fmt.Sprintf("%s = %s", fieldName, updateData)
 		}), ", ")
-		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = '%s'", l.DatasourceId, setUpdatedFields, data.PrimaryField, rowId)
+		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = '%s'", l.tableName, setUpdatedFields, data.PrimaryField, rowId)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -350,7 +336,7 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *LoaderData) error {
 			}
 			return fmt.Sprintf("%s = %s", fieldName, addData)
 		}), ", ")
-		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = '%s'", l.DatasourceId, setAddedFields, data.PrimaryField, rowId)
+		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = '%s'", l.tableName, setAddedFields, data.PrimaryField, rowId)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -375,7 +361,7 @@ func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *LoaderData) error {
 		setDeletedFields := strings.Join(lo.Map(fieldsToDelete, func(fieldName string, _ int) string {
 			return fmt.Sprintf("%s = NULL", fieldName)
 		}), ", ")
-		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = '%s'", l.DatasourceId, setDeletedFields, data.PrimaryField, rowId)
+		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = '%s'", l.tableName, setDeletedFields, data.PrimaryField, rowId)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {

@@ -11,14 +11,14 @@ import (
 )
 
 type DownloadExcelRequest struct {
-	DriveId       string `form:"driveId"`
-	WorkbookId    string `form:"workbookId" valid:"Required"`
-	WorksheetId   string `form:"worksheetId" valid:"Required"`
-	WorksheetName string `form:"worksheetName" valid:"Required"`
-	AccessToken   string `form:"accessToken" valid:"Required"`
-	SessionId     string `form:"sessionId"`
-	DataSourceId  string `form:"dataSourceId" valid:"Required"`
-	SyncVersion   int    `form:"syncVersion" valid:"Required; Min(0)"`
+	DriveId     string `form:"driveId"`
+	WorkbookId  string `form:"workbookId" valid:"Required"`
+	WorksheetId string `form:"worksheetId" valid:"Required"`
+	// WorksheetName string `form:"worksheetName" valid:"Required"`
+	AccessToken  string `form:"accessToken" valid:"Required"`
+	SessionId    string `form:"sessionId"`
+	DataSourceId string `form:"dataSourceId" valid:"Required"`
+	SyncVersion  int    `form:"syncVersion" valid:"Required; Min(0)"`
 }
 type DownloadExcelResponse struct {
 	Message string `json:"message"`
@@ -37,14 +37,14 @@ func DownloadExcel(c *gin.Context) {
 	}
 
 	excelService := excel.New(excel.MicrosoftExcelServiceInitParams{
-		DriveId:       body.DriveId,
-		WorkbookId:    body.WorkbookId,
-		WorksheetId:   body.WorksheetId,
-		WorksheetName: body.WorksheetName,
-		AccessToken:   body.AccessToken,
-		SessionId:     body.SessionId,
-		DataSourceId:  body.DataSourceId,
-		SyncVersion:   body.SyncVersion,
+		DriveId:     body.DriveId,
+		WorkbookId:  body.WorkbookId,
+		WorksheetId: body.WorksheetId,
+		// WorksheetName: body.WorksheetName,
+		AccessToken:  body.AccessToken,
+		SessionId:    body.SessionId,
+		DataSourceId: body.DataSourceId,
+		SyncVersion:  body.SyncVersion,
 	})
 
 	requestContext := c.Request.Context()

@@ -8,14 +8,11 @@ export interface ProcessorConfig {
 }
 
 export const processorConfig: ProcessorConfig = {
-  downloaderUrl: process.env.DOWLOADER_URL || 'http://localhost:9005',
+  downloaderUrl: process.env.DOWNLOADER_URL || 'http://localhost:9005',
   comparerUrl: process.env.COMPARER_URL || 'http://localhost:9006',
   loaderUrl: process.env.LOADER_URL || 'http://localhost:9007',
 };
 
-export const orchestratorConfigRegister = registerAs(
-  ConfigName.PROCESSOR,
-  () => {
-    return processorConfig;
-  },
-);
+export const processorConfigRegister = registerAs(ConfigName.PROCESSOR, () => {
+  return processorConfig;
+});

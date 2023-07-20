@@ -52,30 +52,33 @@ services:
       - KAFKA_CLIENT_ID=controller
       - KAFKA_CONSUMER_GROUP_ID=controller-consumer
       - KAFKA_SSL_ENABLED=false
-  executor:
-    depends_on:
-      - mongodb
-      - zookeeper
-      - kafka
-      - temporal
-    build:
-      context: .
-      dockerfile: ./apps/executor/Dockerfile
-    expose:
-      - 9002
-    ports:
-      - 9002:9002
-    environment:
-      - NODE_ENV=dev
-      - PORT=9002
-      - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
-      - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
-      - KAFKA_CLIENT_ID=executor
-      - KAFKA_CONSUMER_GROUP_ID=executor-consumer
-      - KAFKA_SSL_ENABLED=false
       - ORCHESTRATOR_ADDRESS=temporal:7233
+      - ORCHESTRATOR_WORKER_TASKQUEUE=controller
+      - ORCHESTRATOR_DEFAULT_TASKQUEUE=controller
+  # executor:
+    # depends_on:
+      # - mongodb
+      # - zookeeper
+      # - kafka
+      # - temporal
+    # build:
+      # context: .
+      # dockerfile: ./apps/executor/Dockerfile
+    # expose:
+      # - 9002
+    # ports:
+      # - 9002:9002
+    # environment:
+      # - NODE_ENV=dev
+      # - PORT=9002
+      # - DB_TYPE=mongodb
+      # - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      # - BROKER_TYPE=kafka
+      # - BROKER_URIS=kafka:29092
+      # - KAFKA_CLIENT_ID=executor
+      # - KAFKA_CONSUMER_GROUP_ID=executor-consumer
+      # - KAFKA_SSL_ENABLED=false
+      # - ORCHESTRATOR_ADDRESS=temporal:7233
   worker:
     depends_on:
       - mongodb
@@ -100,6 +103,13 @@ services:
       - KAFKA_CONSUMER_GROUP_ID=worker-consumer
       - KAFKA_SSL_ENABLED=false
       - ORCHESTRATOR_ADDRESS=temporal:7233
+      - ORCHESTRATOR_WORKER_TASKQUEUE=worker
+      - ORCHESTRATOR_DEFAULT_TASKQUEUE=worker
+      - DOWNLOADER_URL=http://downloader:8080
+      - COMPARER_URL=http://comparer:8080
+      - LOADER_URL=http://loader:8080
+      - MICROSOFT_CLIENT_ID=cf0e88e2-566f-4c81-abb5-2ae0111251fe
+      - MICROSOFT_CLIENT_SECRET=PTw8Q~A3IFhv~FuckTAfR.nYtoMMxVMoS_Oi3bxd
   post-processor:
     depends_on:
       - mongodb
@@ -132,7 +142,7 @@ services:
       context: ./apps/processors/downloader
       dockerfile: Dockerfile
     expose:
-      - 9005
+      - 8080
     ports:
       - 9005:8080
     environment:
@@ -149,7 +159,7 @@ services:
       context: ./apps/processors/comparer
       dockerfile: Dockerfile
     expose:
-      - 9006
+      - 8080
     ports:
       - 9006:8080
     environment:
@@ -167,7 +177,7 @@ services:
       context: ./apps/processors/loader
       dockerfile: Dockerfile
     expose:
-      - 9007
+      - 8080
     ports:
       - 9007:8080
     environment:
@@ -397,7 +407,8 @@ services:
       - 9000
     ports:
       - 8002:9001
-    command: server --console-address ":9001" /data
+    entrypoint: sh
+    command: -c 'mkdir -p /data/diff-data && minio server --console-address ":9001" /data'
     volumes:
       - minio:/data
     environment:

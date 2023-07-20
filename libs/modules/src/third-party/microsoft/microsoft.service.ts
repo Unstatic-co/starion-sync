@@ -39,7 +39,9 @@ export class MicrosoftService {
     const response = await this.microsoftAuthClient.acquireTokenByRefreshToken(
       byRefreshTokenRequest,
     );
-    this.logger.debug(`getAccessToken(): response = ${response}`);
+    this.logger.debug(
+      `getAccessToken(): response = ${JSON.stringify(response)}`,
+    );
     return response.accessToken;
   }
 }
@@ -86,26 +88,36 @@ export class MicrosoftGraphService {
 
   async listWorksheets(
     client: Client,
-    workbookSessionId: string,
     workbookId: string,
+    workbookSessionId?: string,
   ) {
     this.logger.debug(`listWorksheets(): workbookId = ${workbookId}`);
     this.logger.debug(
       `listWorksheets(): workbookSessionId = ${workbookSessionId}`,
     );
-    const worksheets = await client
-      .api(`/me/drive/items/${workbookId}/workbook/worksheets`)
-      .header('workbook-session-id', workbookSessionId)
-      .get();
+    let api = client.api(`/me/drive/items/${workbookId}/workbook/worksheets`);
+    if (workbookSessionId) {
+      api = api.header('workbook-session-id', workbookSessionId);
+    }
+    const worksheets = await api.get();
+
     this.logger.debug(`listWorksheets(): worksheets = ${worksheets}`);
     return worksheets.value.map((worksheet) =>
       pick(worksheet, ['id', 'name', 'position', 'visibility']),
     ) as DiscoveredExcelDataSource[];
   }
 
-  async getWorkbookFileInfo(client: Client, workbookId: string) {
+  async getWorkbookFileInfo(
+    client: Client,
+    workbookId: string,
+    workbookSessionId?: string,
+  ) {
     this.logger.debug(`getWorkbookFileInfo(): workbookId = ${workbookId}`);
-    const fileInfo = await client.api(`/me/drive/items/${workbookId}`).get();
+    let api = await client.api(`/me/drive/items/${workbookId}`);
+    if (workbookSessionId) {
+      api = api.header('workbook-session-id', workbookSessionId);
+    }
+    const fileInfo = await api.get();
     this.logger.debug(`getWorkbookFileInfo(): fileInfo = ${fileInfo}`);
     return fileInfo;
   }

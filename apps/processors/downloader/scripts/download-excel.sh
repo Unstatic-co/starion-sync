@@ -61,7 +61,7 @@ function parse-arguments() {
                 access_token="$2"
                 shift
                 ;;
-            --sesionId)
+            --sessionId)
                 session_id="$2"
                 shift
                 ;;

@@ -9,6 +9,7 @@ import {
   Syncflow,
 } from '@lib/core';
 import { IDataSourceRepository, InjectTokens } from '@lib/modules';
+import { MicrosoftService } from '@lib/modules/third-party';
 
 @Injectable()
 export class MicrosoftExcelActivities {
@@ -16,6 +17,7 @@ export class MicrosoftExcelActivities {
     private readonly configService: ConfigService,
     @Inject(InjectTokens.DATA_SOURCE_REPOSITORY)
     private readonly dataSourceRepository: IDataSourceRepository,
+    private readonly microsoftService: MicrosoftService,
   ) {}
 
   async getSyncDataExcel(syncflow: Syncflow) {
@@ -28,16 +30,15 @@ export class MicrosoftExcelActivities {
         { shouldWorkflowFail: false },
       );
     }
+    const accessToken = await this.microsoftService.getAccessToken(
+      (dataSource.config.auth as ExcelDataSourceAuthConfig).refreshToken,
+    );
     return {
       dataSourceId: syncflow.sourceId,
       syncVersion: syncflow.state.version,
       workbookId: (dataSource.config as ExcelDataSourceConfig).workbookId,
       worksheetId: (dataSource.config as ExcelDataSourceConfig).worksheetId,
-      worksheetName: (dataSource.config as ExcelDataSourceConfig).worksheetName,
-      accessToken: (
-        (dataSource.config as ExcelDataSourceConfig)
-          .auth as ExcelDataSourceAuthConfig
-      ).accessToken,
+      accessToken,
     };
   }
 
@@ -45,7 +46,6 @@ export class MicrosoftExcelActivities {
     dataSourceId: string;
     syncVersion: number;
     workbookId: string;
-    worksheetName: string;
     worksheetId: string;
     accessToken: string;
   }) {
@@ -53,7 +53,7 @@ export class MicrosoftExcelActivities {
       const downloaderUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.downloaderUrl`,
       );
-      await axios.post(downloaderUrl, data);
+      await axios.post(`${downloaderUrl}/api/v1/excel/download`, data);
     } catch (err) {
       throw new UnacceptableActivityError(
         `Error when executing downloader: ${err.message}`,
@@ -69,7 +69,7 @@ export class MicrosoftExcelActivities {
       const comparerUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.comparerUrl`,
       );
-      await axios.post(comparerUrl, data);
+      await axios.post(`${comparerUrl}/api/v1/excel/compare`, data);
     } catch (err) {
       throw new UnacceptableActivityError(
         `Error when executing comparer: ${err.message}`,
@@ -85,7 +85,7 @@ export class MicrosoftExcelActivities {
       const loaderUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.loaderUrl`,
       );
-      await axios.post(loaderUrl, data);
+      await axios.post(`${loaderUrl}/api/v1/excel/load`, data);
     } catch (err) {
       throw new UnacceptableActivityError(
         `Error when executing loader: ${err.message}`,

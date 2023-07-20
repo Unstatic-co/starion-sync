@@ -9,7 +9,9 @@ import {
   brokerConfigRegister,
   databaseConfigRegister,
   destinationDatabaseConfigRegister,
+  microsoftConfigRegister,
   orchestratorConfigRegister,
+  processorConfigRegister,
 } from '@lib/core/config';
 import { DatabaseModule } from '@lib/modules';
 import { BrokerModule } from './modules/broker/broker.module';
@@ -27,6 +29,8 @@ import { WorkerModule } from './modules/worker/worker.module';
         destinationDatabaseConfigRegister,
         brokerConfigRegister,
         orchestratorConfigRegister,
+        processorConfigRegister,
+        microsoftConfigRegister,
       ],
     }),
     DatabaseModule.forRootAsync(),

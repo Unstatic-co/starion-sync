@@ -10,6 +10,7 @@ import { WorkflowModule } from '../modules/workflow/worflow.module';
 import { WorkflowActivities } from './workflow.activities';
 import { BrokerModule } from '../modules/broker/broker.module';
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
+import { MicrosoftModule } from '@lib/modules/third-party';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { BrokerActivities } from '@lib/modules/broker/broker.activities';
     DestinationDatabaseModule.forFeature(),
     BrokerModule,
     WorkflowModule,
+    MicrosoftModule,
   ],
   providers: [
     CommonActivities,
