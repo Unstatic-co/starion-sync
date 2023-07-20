@@ -6,16 +6,22 @@ services:
       - zookeeper
       - kafka
       - temporal
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
     build:
       context: .
       dockerfile: ./apps/configurator/Dockerfile
     expose:
-      - 9000
+      - 8080
     ports:
-      - 9000:9000
+      - 9000:8080
     environment:
       - NODE_ENV=dev
-      - PORT=9000
+      - PORT=8080
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
@@ -35,16 +41,22 @@ services:
       - zookeeper
       - kafka
       - temporal
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
     build:
       context: .
       dockerfile: ./apps/controller/Dockerfile
     expose:
-      - 9001
+      - 8080
     ports:
-      - 9001:9001
+      - 9001:8080
     environment:
       - NODE_ENV=dev
-      - PORT=9001
+      - PORT=8080
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
@@ -85,16 +97,22 @@ services:
       - zookeeper
       - kafka
       - temporal
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
     build:
       context: .
       dockerfile: ./apps/worker/Dockerfile
     expose:
-      - 9003
+      - 8080
     ports:
-      - 9003:9003
+      - 9003:8080
     environment:
       - NODE_ENV=dev
-      - PORT=9003
+      - PORT=9000
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
@@ -116,16 +134,22 @@ services:
       - zookeeper
       - kafka
       - temporal
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
     build:
       context: .
       dockerfile: ./apps/post-processor/Dockerfile
     expose:
-      - 9004
+      - 8080
     ports:
-      - 9004:9004
+      - 9004:8080
     environment:
       - NODE_ENV=dev
-      - PORT=9004
+      - PORT=9000
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
@@ -138,13 +162,19 @@ services:
   downloader:
     depends_on:
       - minio
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
     build:
       context: ./apps/processors/downloader
       dockerfile: Dockerfile
     expose:
       - 8080
     ports:
-      - 9005:8080
+      - 8000:8080
     environment:
       - PORT=8080
       - S3_URL=http://minio:9000
@@ -155,13 +185,19 @@ services:
   comparer:
     depends_on:
       - minio
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
     build:
       context: ./apps/processors/comparer
       dockerfile: Dockerfile
     expose:
       - 8080
     ports:
-      - 9006:8080
+      - 8001:8080
     environment:
       - PORT=8080
       - S3_URL=http://minio:9000
@@ -173,13 +209,19 @@ services:
     depends_on:
       - minio
       - postgresql
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
     build:
       context: ./apps/processors/loader
       dockerfile: Dockerfile
     expose:
       - 8080
     ports:
-      - 9007:8080
+      - 8002:8080
     environment:
       - PORT=8080
       - S3_URL=http://minio:9000
@@ -194,6 +236,42 @@ services:
       - DB_PASSWORD=abc123456
       - DB_NAME=starion-sync
       - DB_SSL_MODE=disable
+  #--------------------------------- TRIGGERS --------------------------------------#
+  cron-trigger:
+    depends_on:
+      - mongodb
+      - zookeeper
+      - kafka
+      - temporal
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
+    build:
+      context: .
+      dockerfile: ./apps/triggers/cron/Dockerfile
+    expose:
+      - 8080
+    ports:
+      - 8003:8080
+    environment:
+      - NODE_ENV=dev
+      - PORT=8080
+      - DB_TYPE=mongodb
+      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - BROKER_TYPE=kafka
+      - BROKER_URIS=kafka:29092
+      - KAFKA_CLIENT_ID=cron-trigger
+      - KAFKA_CONSUMER_GROUP_ID=cron-trigger
+      - KAFKA_SSL_ENABLED=false
+      - ORCHESTRATOR_ADDRESS=temporal:7233
+      - ORCHESTRATOR_WORKER_TASKQUEUE=cron-trigger
+      - ORCHESTRATOR_DEFAULT_TASKQUEUE=cron-trigger
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=abc123456
       #--------------------------------- DATABASE ---------------------------------------#
       # mysql:
       # image: mysql:8.0
@@ -225,7 +303,7 @@ services:
     restart: on-failure
     build:
       context: .
-      dockerfile: ./mongodb.Dockerfile
+      dockerfile: ./init/mongodb.Dockerfile
     expose:
       - 27017
     ports:
@@ -260,9 +338,11 @@ services:
     restart: unless-stopped
     image: dpage/pgadmin4:7.4
     ports:
-      - 8003:80
+      - 3003:80
     volumes:
       - pgadmin:/var/lib/pgadmin
+      - ./init/pgadmin-servers.json:/pgadmin4/servers.json # preconfigured servers/connections
+      - ./init/pgpass:/pgpass # passwords for the connections in this file
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@starion.io
       - PGADMIN_DEFAULT_PASSWORD=abc123456
@@ -308,24 +388,24 @@ services:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
     ports:
-      - 8000:8080
+      - 3000:8080
     volumes:
-      - ./kui-config.yml:/etc/kafkaui/dynamic_config.yaml
+      - ./init/kui-config.yml:/etc/kafkaui/dynamic_config.yaml
     environment:
       DYNAMIC_CONFIG_ENABLED: true
   #--------------------------------- CONNECTOR ---------------------------------------#
-  debezium:
-    image: debezium/connect:2.3
-    expose:
-      - 8083
-    ports:
-      - 8083:8083
-    environment:
-      - BOOTSTRAP_SERVERS=kafka:29092
-      - GROUP_ID=1
-      - CONFIG_STORAGE_TOPIC=my_connect_configs
-      - OFFSET_STORAGE_TOPIC=my_connect_offsets
-      - STATUS_STORAGE_TOPIC=my_connect_statuses
+  # debezium:
+    # image: debezium/connect:2.3
+    # expose:
+      # - 8083
+    # ports:
+      # - 8083:8083
+    # environment:
+      # - BOOTSTRAP_SERVERS=kafka:29092
+      # - GROUP_ID=1
+      # - CONFIG_STORAGE_TOPIC=my_connect_configs
+      # - OFFSET_STORAGE_TOPIC=my_connect_offsets
+      # - STATUS_STORAGE_TOPIC=my_connect_statuses
   #----------------------------------- REDIS ----------------------------------------#
   redis:
     image: redis:6.2-alpine
@@ -367,7 +447,7 @@ services:
     labels:
       kompose.volume.type: configMap
     volumes:
-      - ./temporal-config.yml:/etc/temporal/config/dynamicconfig/development-sql.yaml
+      - ./init/temporal-config.yml:/etc/temporal/config/dynamicconfig/development-sql.yaml
     environment:
       - DB=postgresql
       - DB_PORT=5432
@@ -394,11 +474,11 @@ services:
       - temporal
     container_name: temporal-ui
     ports:
-      - 8001:8080
+      - 3001:8080
     image: temporalio/ui:2.15.0
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3001
   #--------------------------------- MINIO ---------------------------------------#
   minio:
     container_name: minio
@@ -406,7 +486,7 @@ services:
     expose:
       - 9000
     ports:
-      - 8002:9001
+      - 3002:9001
     entrypoint: sh
     command: -c 'mkdir -p /data/diff-data && minio server --console-address ":9001" /data'
     volumes:

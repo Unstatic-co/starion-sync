@@ -3,10 +3,12 @@ import {
   SyncConnectionState,
   SyncConnectionConfig,
   Syncflow,
+  DataSourceId,
 } from '@lib/core';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { DataProviderSchema } from './dataProvider.model';
+import mongoose from 'mongoose';
 
 export type SyncConnectionDocument = SyncConnectionModel & Document;
 
@@ -27,6 +29,11 @@ export class SyncConnectionModel extends SyncConnection {
     type: Object,
   })
   state: SyncConnectionState;
+
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+  })
+  sourceId: DataSourceId;
 
   @Prop({
     type: Object,
