@@ -293,7 +293,7 @@ func (s *MicrosoftExcelService) GetDiffData() (loader.LoaderData, error) {
 	return data, nil
 }
 
-func (s *MicrosoftExcelService) Load(ctx context.Context) error {
+func (s *MicrosoftExcelService) Load(ctx context.Context) (*loader.LoadedDataStatistics, error) {
 	s.logger.Info("Start load data from excel")
 
 	// get diff data
@@ -301,22 +301,29 @@ func (s *MicrosoftExcelService) Load(ctx context.Context) error {
 	data, err := s.GetDiffData()
 	if err != nil {
 		s.logger.Error("Error when getting diff data: ", err)
-		return err
+		return nil, err
 	}
 
 	// execute loader
 	s.logger.Debug("Executing loader")
-	loader, err := loader.NewDefaultLoader(s.dataSourceId, s.syncVersion)
+	loaderInstance, err := loader.NewDefaultLoader(s.dataSourceId, s.syncVersion)
 	if err != nil {
 		s.logger.Error("Error when creating loader: ", err)
-		return err
+		return nil, err
 	}
-	defer loader.Close()
-	err = loader.Load(&data)
+	defer loaderInstance.Close()
+	err = loaderInstance.Load(&data)
 	if err != nil {
 		s.logger.Error("Error when loading data: ", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	// caculate statistic
+	s.logger.Debug("Caculating statistic")
+	statistics := loader.LoadedDataStatistics{
+		AddedRowsCount:   len(data.AddedRows.Rows),
+		DeletedRowsCount: len(data.DeletedRows),
+	}
+
+	return &statistics, nil
 }

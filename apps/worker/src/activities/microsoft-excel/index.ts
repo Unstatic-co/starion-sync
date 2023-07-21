@@ -85,7 +85,11 @@ export class MicrosoftExcelActivities {
       const loaderUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.loaderUrl`,
       );
-      await axios.post(`${loaderUrl}/api/v1/excel/load`, data);
+      const res = await axios.post(`${loaderUrl}/api/v1/excel/load`, data);
+      return res.data.data as {
+        addedRowsCount: number;
+        deletedRowsCount: number;
+      };
     } catch (err) {
       throw new UnacceptableActivityError(
         `Error when executing loader: ${err.message}`,

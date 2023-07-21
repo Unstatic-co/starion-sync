@@ -158,6 +158,8 @@ services:
       - KAFKA_CONSUMER_GROUP_ID=post-processor-consumer
       - KAFKA_SSL_ENABLED=false
       - ORCHESTRATOR_ADDRESS=temporal:7233
+      - ORCHESTRATOR_WORKER_TASKQUEUE=post-processor
+      - ORCHESTRATOR_DEFAULT_TASKQUEUE=post-processor
   #--------------------------------- PROCESSORS --------------------------------------#
   downloader:
     depends_on:

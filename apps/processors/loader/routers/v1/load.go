@@ -41,14 +41,12 @@ func LoadExcel(c *gin.Context) {
 	}
 
 	requestContext := c.Request.Context()
-	err = excelService.Load(requestContext)
+	statistics, err := excelService.Load(requestContext)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error running load data for ds %s: ", body.DataSourceId), err)
 		appG.Response(e.ERROR, e.LOADER_ERROR, nil)
 		return
 	}
 
-	appG.Response(e.SUCCESS, e.SUCCESS, &LoadResponse{
-		Message: "Load Success!",
-	})
+	appG.Response(e.SUCCESS, e.SUCCESS, &statistics)
 }

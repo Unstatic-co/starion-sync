@@ -1,11 +1,16 @@
-import { EventNames, SyncflowScheduledPayload } from '@lib/core';
+import {
+  EventNames,
+  SyncflowScheduledPayload,
+  SyncflowSucceedPayload,
+  WorkflowStatus,
+} from '@lib/core';
 import { workflowWrapper } from '../wrapper';
 import { WorkflowActivities } from '../../activities/workflow.activities';
 import { proxyActivities } from '@temporalio/workflow';
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import { MicrosoftExcelActivities } from '../../activities';
 
-const { checkAndUpdateStatusBeforeStartSyncflow } =
+const { checkAndUpdateStatusBeforeStartSyncflow, updateSyncflowStatus } =
   proxyActivities<WorkflowActivities>({
     startToCloseTimeout: '10 second',
   });
@@ -43,13 +48,19 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
       dataSourceId: syncData.dataSourceId,
       syncVersion: syncData.syncVersion,
     });
-    await loadExcel({
+    const loadedDataStatistics = await loadExcel({
       dataSourceId: syncData.dataSourceId,
       syncVersion: syncData.syncVersion,
     });
 
+    await updateSyncflowStatus(data.id, WorkflowStatus.IDLING);
+
     await emitEvent(EventNames.SYNCFLOW_SUCCEED, {
-      payload: {},
+      payload: {
+        dataSourceId: syncData.dataSourceId,
+        syncflowId: data.id,
+        loadedDataStatistics,
+      } as SyncflowSucceedPayload,
     });
   });
 }

@@ -39,10 +39,14 @@ export const WorkerProvider = {
       ),
       testSaveDb: testActivitiesService.testSaveDb.bind(testActivitiesService),
       emitEvent: brokerActivities.emitEvent.bind(brokerActivities),
+      // workflow
       checkAndUpdateStatusBeforeStartSyncflow:
         workflowActivities.checkAndUpdateStatusBeforeStartSyncflow.bind(
           workflowActivities,
         ),
+      updateSyncflowStatus:
+        workflowActivities.updateSyncflowStatus.bind(workflowActivities),
+      // excel
       getSyncDataExcel: microsoftExcelActivities.getSyncDataExcel.bind(
         microsoftExcelActivities,
       ),

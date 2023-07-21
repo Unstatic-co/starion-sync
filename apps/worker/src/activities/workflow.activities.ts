@@ -11,4 +11,10 @@ export class WorkflowActivities {
       this.workflowService.checkAndUpdateStatusBeforeStartSyncflow(arg),
     );
   }
+
+  async updateSyncflowStatus(id: string, status: any) {
+    return activityWrapper(() =>
+      this.workflowService.updateSyncflowStatus(id, status),
+    );
+  }
 }

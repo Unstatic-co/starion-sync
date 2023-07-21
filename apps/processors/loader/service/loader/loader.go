@@ -31,6 +31,11 @@ type LoaderData struct {
 	DeletedFields DeletedFieldsData
 }
 
+type LoadedDataStatistics struct {
+	AddedRowsCount   int `json:"addedRowsCount"`
+	DeletedRowsCount int `json:"deletedRowsCount"`
+}
+
 type Loader interface {
 	Setup() error
 	Load(data *LoaderData) error

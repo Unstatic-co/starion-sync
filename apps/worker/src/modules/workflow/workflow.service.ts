@@ -40,4 +40,8 @@ export class WorkflowService {
     );
     return syncflowAfterUpdated;
   }
+
+  async updateSyncflowStatus(id: string, status: WorkflowStatus) {
+    return this.syncFlowRepository.updateStatus(id, status);
+  }
 }

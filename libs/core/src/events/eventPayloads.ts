@@ -6,4 +6,11 @@ export type ConnectionCreatedPayload = EventPayload & SyncConnection;
 export type ConnectionDeletedPayload = EventPayload & SyncConnection;
 export type WorkflowTriggeredPayload = EventPayload & Trigger;
 export type SyncflowScheduledPayload = EventPayload & Syncflow;
-export type SyncflowSucceedPayload = EventPayload & Syncflow;
+export type SyncflowSucceedPayload = EventPayload & {
+  dataSourceId: string;
+  syncflowId: string;
+  loadedDataStatistics: {
+    addedRowsCount: number;
+    deletedRowsCount: number;
+  };
+};
