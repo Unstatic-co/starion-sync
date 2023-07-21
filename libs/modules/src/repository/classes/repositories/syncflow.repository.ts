@@ -32,6 +32,14 @@ export interface ISyncflowRepository extends IRepository {
     id: SyncflowId,
     options?: QueryOptions,
   ): Promise<Syncflow | void>;
+  updateState(
+    id: SyncflowId,
+    state: {
+      status?: WorkflowStatus;
+      increaseVersion?: boolean;
+    },
+    options?: QueryOptions,
+  ): Promise<Syncflow | void>;
 }
 
 export type CreateSyncflowData = any;

@@ -10,7 +10,7 @@ export interface DataSourceStatistics {
   storageUsage: number;
 }
 
-type LimitationValue = {
+export type LimitationValue = {
   soft: number;
   hard: number;
 };
@@ -42,7 +42,13 @@ export const defaultDataSourceStatistics: DataSourceStatistics = {
   storageUsage: 0,
 };
 
-export const defaultDataSourceLimitation: DataSourceStatistics = {
-  rowsNumber: 10000,
-  storageUsage: 2,
+export const defaultDataSourceLimitation: DataSourceLimitation = {
+  rowsNumber: {
+    soft: 5000,
+    hard: 10000,
+  },
+  storageUsage: {
+    soft: 2147483648, // 2gb
+    hard: 4294967296, // 4gb
+  },
 };

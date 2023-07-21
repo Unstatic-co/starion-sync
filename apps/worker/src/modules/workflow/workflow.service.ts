@@ -2,6 +2,7 @@ import { Syncflow, SyncflowId, WorkflowStatus } from '@lib/core';
 import { ISyncflowRepository, InjectTokens } from '@lib/modules';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { UnacceptableActivityError } from '../../common/exception';
+import { AcceptableActivityError } from 'apps/controller/src/common/exception';
 
 @Injectable()
 export class WorkflowService {
@@ -23,16 +24,15 @@ export class WorkflowService {
         },
       );
     }
-    if (syncflow.state.status !== WorkflowStatus.SCHEDULED) {
-      if (syncflow.state.status === WorkflowStatus.RUNNING) {
-        throw new UnacceptableActivityError(
-          `Syncflow already started: ${syncflow.id}`,
-          {
-            shouldWorkflowFail: false,
-          },
-        );
-      }
+
+    // avoid idempotency
+    if (syncflow.state.status === WorkflowStatus.RUNNING) {
+      throw new AcceptableActivityError(
+        `Syncflow already started: ${syncflow.id}`,
+        syncflow,
+      );
     }
+
     const syncflowAfterUpdated = await this.syncFlowRepository.updateStatus(
       id,
       WorkflowStatus.RUNNING,

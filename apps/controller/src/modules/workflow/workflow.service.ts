@@ -32,12 +32,13 @@ export class WorkflowService {
       this.logger.warn(`Workflow not found: ${trigger.workflow.id}`);
       throw new UnacceptableActivityError(
         `Workflow not found: ${trigger.workflow.id}`,
+        { shouldWorkflowFail: false },
       );
     }
-    if (workflow.state.status === WorkflowStatus.SCHEDULED) {
+    if (workflow.state.status !== WorkflowStatus.IDLING) {
       throw new UnacceptableActivityError(
-        `Workflow status is already scheduled: ${workflow.id}`,
-        { shouldWorkflowFail: false, shouldActivityRetry: false },
+        `Workflow status is already scheduled or running: ${workflow.id}`,
+        { shouldWorkflowFail: false },
       );
     }
   }
@@ -46,7 +47,10 @@ export class WorkflowService {
     this.logger.debug('handleWorkflowTriggered', trigger);
     const triggerFromDb = await this.triggerRepository.getById(trigger.id);
     if (!triggerFromDb) {
-      throw new UnacceptableActivityError(`Trigger not found: ${trigger.id}`);
+      this.logger.warn(`Trigger not found: ${trigger.id}`);
+      throw new UnacceptableActivityError(`Trigger not found: ${trigger.id}`, {
+        shouldWorkflowFail: false,
+      });
     }
     switch (trigger.workflow.type) {
       case WorkflowType.SYNCFLOW:
@@ -68,33 +72,28 @@ export class WorkflowService {
       this.logger.warn(`Syncflow not found: ${trigger.workflow.id}`);
       throw new UnacceptableActivityError(
         `Syncflow not found: ${trigger.workflow.id}`,
+        { shouldWorkflowFail: false },
       );
     }
     const dataSource = await this.dataSourceRepository.getById(
       syncflow.sourceId,
     );
 
-    await this.dataSourceService.checkLimitation(dataSource);
-
-    if (syncflow.state.status !== WorkflowStatus.IDLING) {
-      if (syncflow.state.status === WorkflowStatus.SCHEDULED) {
-        throw new AcceptableActivityError(
-          `Syncflow status is already scheduled: ${syncflow.id}`,
-          syncflow,
-        );
-      }
-      this.logger.debug(`Syncflow status is not idling: ${trigger.id}`);
-      throw new UnacceptableActivityError(`Syncflow is running: ${trigger.id}`);
+    // check status (to avoid idempotency)
+    if (syncflow.state.status === WorkflowStatus.SCHEDULED) {
+      throw new AcceptableActivityError(
+        `Syncflow status is already scheduled: ${syncflow.id}`,
+        syncflow,
+      );
     }
 
-    const [triggeredSyncflow] = await Promise.all([
-      this.syncflowRepository.updateStatus(
-        syncflow.id,
-        WorkflowStatus.SCHEDULED,
-        { new: true },
-      ),
-      this.syncflowRepository.increaseVersion(syncflow.id),
-    ]);
+    await this.dataSourceService.checkLimitation(dataSource);
+
+    const triggeredSyncflow = await this.syncflowRepository.updateState(
+      syncflow.id,
+      { status: WorkflowStatus.SCHEDULED, increaseVersion: true },
+      { new: true },
+    );
 
     return triggeredSyncflow;
   }

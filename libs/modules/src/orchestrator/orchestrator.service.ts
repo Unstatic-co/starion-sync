@@ -23,6 +23,7 @@ export class OrchestratorService {
     workflow: string | Workflow,
     options: {
       taskQueue?: string;
+      waitResult?: boolean;
     } & Partial<WorkflowStartOptions>,
   ) {
     const workflowName =
@@ -44,7 +45,9 @@ export class OrchestratorService {
       this.logger.debug(
         `Started workflow: ${workflowName}, firstExecId = ${handle.firstExecutionRunId}}`,
       );
-      result = await handle.result();
+      if (options.waitResult) {
+        result = await handle.result();
+      }
     } catch (err) {
       if (err instanceof WorkflowExecutionAlreadyStartedError) {
         this.logger.debug(`Reusing existing workflow: ${workflowName}`);
@@ -58,6 +61,8 @@ export class OrchestratorService {
       `Workflow finished: ${workflowName}, workflowId = ${handle.workflowId}}`,
     );
 
-    return result;
+    if (options.waitResult) {
+      return result;
+    }
   }
 }

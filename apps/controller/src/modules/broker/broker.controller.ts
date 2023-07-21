@@ -4,6 +4,7 @@ import { BrokerService } from './broker.service';
 import { EventNames, WorkflowTriggeredPayload } from '@lib/core';
 import { OrchestratorService } from '@lib/modules';
 import { handleWorkflowTriggeredWf } from '../../workflows';
+import { WorkflowIdReusePolicy } from '@temporalio/common';
 
 @Controller('broker')
 export class BrokerController {
@@ -20,6 +21,8 @@ export class BrokerController {
       workflowId: `${payload.id}`,
       args: [payload],
       workflowExecutionTimeout: 5000,
+      workflowIdReusePolicy:
+        WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE,
     });
   }
 

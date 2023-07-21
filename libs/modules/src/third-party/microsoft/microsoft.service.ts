@@ -39,9 +39,6 @@ export class MicrosoftService {
     const response = await this.microsoftAuthClient.acquireTokenByRefreshToken(
       byRefreshTokenRequest,
     );
-    this.logger.debug(
-      `getAccessToken(): response = ${JSON.stringify(response)}`,
-    );
     return response.accessToken;
   }
 }

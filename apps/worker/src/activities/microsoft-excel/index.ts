@@ -1,5 +1,5 @@
 import { ConfigName } from '@lib/core/config';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { UnacceptableActivityError } from '../../common/exception';
@@ -13,6 +13,8 @@ import { MicrosoftService } from '@lib/modules/third-party';
 
 @Injectable()
 export class MicrosoftExcelActivities {
+  private readonly logger = new Logger(MicrosoftExcelActivities.name);
+
   constructor(
     private readonly configService: ConfigService,
     @Inject(InjectTokens.DATA_SOURCE_REPOSITORY)
@@ -21,6 +23,7 @@ export class MicrosoftExcelActivities {
   ) {}
 
   async getSyncDataExcel(syncflow: Syncflow) {
+    this.logger.debug(`Getting sync data for syncflow: ${syncflow.id}`);
     const dataSource = await this.dataSourceRepository.getById(
       syncflow.sourceId,
     );
@@ -49,6 +52,7 @@ export class MicrosoftExcelActivities {
     worksheetId: string;
     accessToken: string;
   }) {
+    this.logger.debug(`Downloading for ds: ${data.dataSourceId}`);
     try {
       const downloaderUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.downloaderUrl`,
@@ -65,6 +69,7 @@ export class MicrosoftExcelActivities {
   }
 
   async compareExcel(data: { dataSourceId: string; syncVersion: number }) {
+    this.logger.debug(`Comparing for ds: ${data.dataSourceId}`);
     try {
       const comparerUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.comparerUrl`,
@@ -81,6 +86,7 @@ export class MicrosoftExcelActivities {
   }
 
   async loadExcel(data: { dataSourceId: string; syncVersion: number }) {
+    this.logger.debug(`Loading for ds: ${data.dataSourceId}`);
     try {
       const loaderUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.loaderUrl`,

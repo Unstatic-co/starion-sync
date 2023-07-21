@@ -1,5 +1,6 @@
 import {
   EventNames,
+  Syncflow,
   SyncflowScheduledPayload,
   WorkflowTriggeredPayload,
   WorkflowType,
@@ -23,12 +24,14 @@ export async function handleWorkflowTriggeredWf(
 ) {
   return await workflowWrapper(async () => {
     await checkWorkflowAlreadyScheduled(data);
-    const result = await handleWorkflowTriggered(data);
+    const syncflow = await handleWorkflowTriggered(data);
     if (data.workflow.type === WorkflowType.SYNCFLOW) {
       await emitEvent(EventNames.SYNCFLOW_SCHEDULED, {
-        payload: result as SyncflowScheduledPayload,
+        payload: {
+          syncflow,
+          version: (syncflow as Syncflow).state.version,
+        } as SyncflowScheduledPayload,
       });
     }
-    return result;
   });
 }

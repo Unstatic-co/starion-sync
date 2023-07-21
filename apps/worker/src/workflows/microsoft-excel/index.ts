@@ -33,32 +33,32 @@ const { emitEvent } = proxyActivities<BrokerActivities>({
 
 export async function excelFullSync(data: SyncflowScheduledPayload) {
   return await workflowWrapper(async () => {
-    await checkAndUpdateStatusBeforeStartSyncflow(data);
+    await checkAndUpdateStatusBeforeStartSyncflow(data.syncflow.id);
 
-    const syncData = await getSyncDataExcel(data);
+    const syncData = await getSyncDataExcel(data.syncflow);
 
     await downloadExcel({
       dataSourceId: syncData.dataSourceId,
-      syncVersion: syncData.syncVersion,
+      syncVersion: data.version,
       workbookId: syncData.workbookId,
       worksheetId: syncData.worksheetId,
       accessToken: syncData.accessToken,
     });
     await compareExcel({
       dataSourceId: syncData.dataSourceId,
-      syncVersion: syncData.syncVersion,
+      syncVersion: data.version,
     });
     const loadedDataStatistics = await loadExcel({
       dataSourceId: syncData.dataSourceId,
-      syncVersion: syncData.syncVersion,
+      syncVersion: data.version,
     });
 
-    await updateSyncflowStatus(data.id, WorkflowStatus.IDLING);
+    await updateSyncflowStatus(data.syncflow.id, WorkflowStatus.IDLING);
 
     await emitEvent(EventNames.SYNCFLOW_SUCCEED, {
       payload: {
         dataSourceId: syncData.dataSourceId,
-        syncflowId: data.id,
+        syncflowId: data.syncflow.id,
         loadedDataStatistics,
       } as SyncflowSucceedPayload,
     });

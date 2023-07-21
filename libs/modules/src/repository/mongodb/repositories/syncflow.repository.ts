@@ -138,4 +138,33 @@ export class SyncflowRepository implements ISyncflowRepository {
       return this.getById(id);
     }
   }
+
+  public async updateState(
+    id: string,
+    state: {
+      status?: WorkflowStatus;
+      increaseVersion?: boolean;
+    },
+    options?: QueryOptions,
+  ) {
+    const { status, increaseVersion } = state;
+    const updatesSet = {};
+    status !== undefined &&
+      Object.assign(updatesSet, { 'state.status': status });
+    const updateInc = {};
+    increaseVersion && Object.assign(updateInc, { 'state.version': 1 });
+    await this.syncflowModel.updateOne(
+      {
+        _id: Utils.toObjectId(id),
+        isDeleted: false,
+      },
+      {
+        $set: updatesSet,
+        $inc: updateInc,
+      },
+    );
+    if (options?.new) {
+      return this.getById(id);
+    }
+  }
 }

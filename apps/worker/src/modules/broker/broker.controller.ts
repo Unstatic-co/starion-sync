@@ -3,6 +3,7 @@ import { EventPattern } from '@nestjs/microservices';
 import { BrokerService } from './broker.service';
 import { EventNames, SyncflowScheduledPayload, WorkflowType } from '@lib/core';
 import { OrchestratorService } from '@lib/modules';
+import { WorkflowIdReusePolicy } from '@temporalio/common';
 
 @Controller('broker')
 export class BrokerController {
@@ -15,10 +16,12 @@ export class BrokerController {
   @EventPattern(EventNames.SYNCFLOW_SCHEDULED)
   async handleSyncflowScheduledEvent(payload: SyncflowScheduledPayload) {
     this.logger.debug('handleSyncflowScheduledEvent', payload);
-    return this.orchestratorService.executeWorkflow(payload.name, {
-      workflowId: `${payload.id}`,
+    return this.orchestratorService.executeWorkflow(payload.syncflow.name, {
+      workflowId: `${payload.syncflow.id}-${payload.version}`,
       args: [payload],
       workflowExecutionTimeout: 60000,
+      workflowIdReusePolicy:
+        WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
     });
   }
 

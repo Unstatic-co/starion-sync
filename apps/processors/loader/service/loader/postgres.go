@@ -13,6 +13,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// UTILS
+func formatVariable(a interface{}) string {
+	switch v := a.(type) {
+	case string:
+		return fmt.Sprintf("'%v'", v)
+	case nil:
+		return "NULL"
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+//
+
 var (
 	ProgresTypeMap = map[schema.DataType]string{
 		schema.String:   "text",
@@ -282,20 +296,7 @@ func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *LoaderData) error {
 	for rowId, fieldUpdateData := range data.UpdatedFields {
 		updatedFields := lo.Keys(fieldUpdateData)
 		setUpdatedFields := strings.Join(lo.Map(updatedFields, func(fieldName string, _ int) string {
-			var updateData string
-			switch fieldUpdateData[fieldName].(type) {
-			case string:
-				updateData = fmt.Sprintf("'%s'", fieldUpdateData[fieldName])
-			case int:
-				updateData = fmt.Sprintf("%d", fieldUpdateData[fieldName])
-			case float64:
-				updateData = fmt.Sprintf("%f", fieldUpdateData[fieldName])
-			case bool:
-				updateData = fmt.Sprintf("%t", fieldUpdateData[fieldName])
-			default:
-				updateData = fmt.Sprintf("%s", fieldUpdateData[fieldName])
-			}
-			return fmt.Sprintf("%s = %s", fieldName, updateData)
+			return fmt.Sprintf("%s = %s", fieldName, formatVariable(fieldUpdateData[fieldName]))
 		}), ", ")
 		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = '%s'", l.tableName, setUpdatedFields, data.PrimaryField, rowId)
 		log.Debug("Query: ", query)
@@ -321,20 +322,7 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *LoaderData) error {
 	for rowId, fieldAddData := range data.AddedFields {
 		addedFields := lo.Keys(fieldAddData)
 		setAddedFields := strings.Join(lo.Map(addedFields, func(fieldName string, _ int) string {
-			var addData string
-			switch fieldAddData[fieldName].(type) {
-			case string:
-				addData = fmt.Sprintf("'%s'", fieldAddData[fieldName])
-			case int:
-				addData = fmt.Sprintf("%d", fieldAddData[fieldName])
-			case float64:
-				addData = fmt.Sprintf("%f", fieldAddData[fieldName])
-			case bool:
-				addData = fmt.Sprintf("%t", fieldAddData[fieldName])
-			default:
-				addData = fmt.Sprintf("%s", fieldAddData[fieldName])
-			}
-			return fmt.Sprintf("%s = %s", fieldName, addData)
+			return fmt.Sprintf("%s = %s", fieldName, formatVariable(fieldAddData[fieldName]))
 		}), ", ")
 		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = '%s'", l.tableName, setAddedFields, data.PrimaryField, rowId)
 		log.Debug("Query: ", query)
