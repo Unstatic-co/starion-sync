@@ -67,20 +67,20 @@ services:
       - ORCHESTRATOR_ADDRESS=temporal:7233
       - ORCHESTRATOR_WORKER_TASKQUEUE=controller
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=controller
-  # executor:
-    # depends_on:
+      # executor:
+      # depends_on:
       # - mongodb
       # - zookeeper
       # - kafka
       # - temporal
-    # build:
+      # build:
       # context: .
       # dockerfile: ./apps/executor/Dockerfile
-    # expose:
+      # expose:
       # - 9002
-    # ports:
+      # ports:
       # - 9002:9002
-    # environment:
+      # environment:
       # - NODE_ENV=dev
       # - PORT=9002
       # - DB_TYPE=mongodb
@@ -336,7 +336,6 @@ services:
   pgadmin:
     depends_on:
       - postgresql
-    container_name: pgadmin
     restart: unless-stopped
     image: dpage/pgadmin4:7.4
     ports:
@@ -395,20 +394,20 @@ services:
       - ./init/kui-config.yml:/etc/kafkaui/dynamic_config.yaml
     environment:
       DYNAMIC_CONFIG_ENABLED: true
-  #--------------------------------- CONNECTOR ---------------------------------------#
-  # debezium:
-    # image: debezium/connect:2.3
-    # expose:
+      #--------------------------------- CONNECTOR ---------------------------------------#
+      # debezium:
+      # image: debezium/connect:2.3
+      # expose:
       # - 8083
-    # ports:
+      # ports:
       # - 8083:8083
-    # environment:
+      # environment:
       # - BOOTSTRAP_SERVERS=kafka:29092
       # - GROUP_ID=1
       # - CONFIG_STORAGE_TOPIC=my_connect_configs
       # - OFFSET_STORAGE_TOPIC=my_connect_offsets
       # - STATUS_STORAGE_TOPIC=my_connect_statuses
-  #----------------------------------- REDIS ----------------------------------------#
+      #----------------------------------- REDIS ----------------------------------------#
   redis:
     image: redis:6.2-alpine
     expose:
