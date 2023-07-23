@@ -27,6 +27,7 @@ type MicrosoftExcelServiceInitParams struct {
 
 	DataSourceId string `json:"dataSourceId"`
 	SyncVersion  int    `json:"syncVersion"`
+	Timezone     string `json:"timezone"`
 }
 
 type MicrosoftExcelService struct {
@@ -44,6 +45,7 @@ type MicrosoftExcelService struct {
 	// data
 	dataSourceId string
 	syncVersion  int
+	timezone     string
 
 	driveInfo interface{}
 
@@ -77,6 +79,7 @@ func New(params MicrosoftExcelServiceInitParams) *MicrosoftExcelService {
 		sessionId:     params.SessionId,
 		dataSourceId:  params.DataSourceId,
 		syncVersion:   params.SyncVersion,
+		timezone:      params.Timezone,
 		httpClient:    *client,
 		logger:        loggerEntry,
 	}
@@ -187,6 +190,7 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 		"--sessionId", source.sessionId,
 		"--dataSourceId", source.dataSourceId,
 		"--syncVersion", fmt.Sprintf("%d", source.syncVersion),
+		"--timezone", source.timezone,
 		"--s3Url", config.AppConfig.S3Url,
 		"--s3Region", config.AppConfig.S3Region,
 		"--s3Bucket", config.AppConfig.S3DiffDataBucket,

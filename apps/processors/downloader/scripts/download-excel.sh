@@ -73,6 +73,10 @@ function parse-arguments() {
                 sync_version="$2"
                 shift
                 ;;
+            --timezone)
+                time_zone="$2"
+                shift
+                ;;
             --s3Url)
                 s3_url="$2"
                 shift
@@ -327,7 +331,8 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
             --sessionId "$session_id" \
             --colIndexes "$date_col_idxs" \
             --rowNumber "$rows_number" \
-            --replaceEmpty "$EMPTY_VALUE_TOKEN"
+            --replaceEmpty "$EMPTY_VALUE_TOKEN" \
+            --timezone "$time_zone"
     ) >"$temp_updated_dates_file"
 
     "$QSV" cat columns -p <("$QSV" select "!${date_col_idxs}" "$dedup_header_file") "$temp_updated_dates_file" |

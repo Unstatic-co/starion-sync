@@ -22,9 +22,6 @@ const (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // UTILS
-func printExecutionTime(t time.Time) {
-	fmt.Println("Execution time: ", time.Since(t))
-}
 func toFloat(unk any) (float64, error) {
 	switch v := unk.(type) {
 	case int:
@@ -58,12 +55,17 @@ func toFloat(unk any) (float64, error) {
 		return 0, fmt.Errorf("%+v is not convertible to float", unk)
 	}
 }
-func convertSerialNumberToDate(serialNumber float64, replaceEmpty string) string {
+func convertSerialNumberToDate(serialNumber float64, timezone string, replaceEmpty string) string {
 	if serialNumber == 0 {
 		return replaceEmpty
 	}
 
-	anchorTime := time.Date(1899, time.December, 30, 0, 0, 0, 0, time.UTC)
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		log.Fatalf("Cannot load timezone %s: %+v", timezone, err)
+	}
+
+	anchorTime := time.Date(1899, time.December, 30, 0, 0, 0, 0, location)
 	offsetFractionsNs := serialNumber*nanosInADay - float64(int64(serialNumber))*nanosInADay
 
 	return anchorTime.
@@ -154,6 +156,7 @@ func main() {
 	sessionId := flag.String("sessionId", "", "Workbook session Id")
 	columnIndexs := flag.String("colIndexes", "", "Number index of datetime columns, start at 1")
 	numberOfRows := flag.Int("rowNumber", 0, "Number of row")
+	timezone := flag.String("timezone", "UTC", "Timezone of worksheet")
 	replaceEmpty := flag.String("replaceEmpty", defaultReplaceEmpty, "Number of row")
 	out := flag.String("out", "-", "Output path, - to output to stdin")
 
@@ -181,8 +184,7 @@ func main() {
 	}
 
 	columnIndexesList := strings.Split(*columnIndexs, ",")
-	columnIndexes := make([]int, len(columnIndexesList))
-	columnIndexes = lo.Map(columnIndexesList, func(value string, _ int) int {
+	columnIndexes := lo.Map(columnIndexesList, func(value string, _ int) int {
 		index, err := strconv.Atoi(value)
 		if err != nil {
 			log.Fatalln("Error parsing column index")
@@ -198,7 +200,8 @@ func main() {
 	for row := 0; row < *numberOfRows; row++ {
 		rowStrings := make([]string, len(columnIndexes))
 		for i, colIndex := range columnIndexes {
-			rowStrings[i] = convertSerialNumberToDate(serialNumberDateValues[colIndex][row], *replaceEmpty)
+			rowStrings[i] = convertSerialNumberToDate(serialNumberDateValues[colIndex][row], *timezone, *replaceEmpty)
+			log.Println("Date result: ", rowStrings[i])
 		}
 		rowString := strings.Join(rowStrings, ",")
 		// print to output
