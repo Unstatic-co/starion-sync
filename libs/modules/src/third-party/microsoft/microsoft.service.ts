@@ -104,13 +104,19 @@ export class MicrosoftGraphService {
     ) as DiscoveredExcelDataSource[];
   }
 
-  async getWorkbookFileInfo(
-    client: Client,
-    workbookId: string,
-    workbookSessionId?: string,
-  ) {
+  async getWorkbookFileInfo(data: {
+    client: Client;
+    workbookId: string;
+    workbookSessionId?: string;
+    select?: string[];
+  }) {
+    const { client, workbookId, workbookSessionId, select } = data;
     this.logger.debug(`getWorkbookFileInfo(): workbookId = ${workbookId}`);
-    let api = await client.api(`/me/drive/items/${workbookId}`);
+    const url = `/me/drive/items/${workbookId}`;
+    if (select?.length) {
+      url.concat(`?$select=${select.join(',')}`);
+    }
+    let api = await client.api(url);
     if (workbookSessionId) {
       api = api.header('workbook-session-id', workbookSessionId);
     }

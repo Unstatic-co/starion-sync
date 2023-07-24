@@ -33,11 +33,11 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
         config.workbookId,
         sessionId,
       ),
-      this.microsoftGraphService.getWorkbookFileInfo(
+      this.microsoftGraphService.getWorkbookFileInfo({
         client,
-        config.workbookId,
-        sessionId,
-      ),
+        workbookId: config.workbookId,
+        workbookSessionId: sessionId,
+      }),
     ]);
   }
 

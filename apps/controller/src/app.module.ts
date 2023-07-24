@@ -6,6 +6,7 @@ import { CommonModule } from './modules/common/common.module';
 import {
   appConfigRegister,
   databaseConfigRegister,
+  microsoftConfigRegister,
   orchestratorConfigRegister,
 } from '@lib/core/config';
 import { DatabaseModule } from '@lib/modules';
@@ -23,6 +24,7 @@ import { OrchestratorWorkerModule } from './modules/orchestrator-worker/orchestr
         databaseConfigRegister,
         brokerConfigRegister,
         orchestratorConfigRegister,
+        microsoftConfigRegister,
       ],
     }),
     DatabaseModule.forRootAsync(),

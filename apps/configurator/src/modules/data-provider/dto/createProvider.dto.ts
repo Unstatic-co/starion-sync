@@ -31,6 +31,10 @@ export class ProviderConfigDto {
   @IsString()
   driveId?: string;
 
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+
   @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => ProviderAuthConfigDto)

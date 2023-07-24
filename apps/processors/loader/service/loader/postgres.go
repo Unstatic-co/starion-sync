@@ -31,7 +31,7 @@ var (
 	ProgresTypeMap = map[schema.DataType]string{
 		schema.String:   "text",
 		schema.Number:   "decimal",
-		schema.DateTime: "timestamp",
+		schema.DateTime: "timestamptz",
 		schema.Boolean:  "boolean",
 		schema.Array:    "text[]",
 		schema.Unknown:  "text",
@@ -89,6 +89,8 @@ func (l *PostgreLoader) Load(data *LoaderData) error {
 	}
 	defer txn.Rollback()
 
+	l.setTimezone(txn)
+
 	if l.SyncVersion == 1 {
 		err = l.initTable(txn, data)
 		if err != nil {
@@ -128,6 +130,16 @@ func (l *PostgreLoader) Load(data *LoaderData) error {
 	err = txn.Commit()
 	if err != nil {
 		txn.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+func (l *PostgreLoader) setTimezone(txn *sql.Tx) error {
+	query := fmt.Sprintf("SET TIMEZONE = 'UTC'")
+	_, err := txn.Exec(query)
+	if err != nil {
 		return err
 	}
 

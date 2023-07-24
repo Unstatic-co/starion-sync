@@ -22,11 +22,11 @@ export type SyncflowVersion = number;
 
 export type SyncflowCursor = any;
 
-export type SyncflowState = WorkflowState & {
+export interface SyncflowState extends WorkflowState {
   status: SyncflowStatus;
   version: SyncflowVersion;
   cursor?: SyncflowCursor;
-};
+}
 
 export class Syncflow extends Workflow {
   id: SyncflowId;

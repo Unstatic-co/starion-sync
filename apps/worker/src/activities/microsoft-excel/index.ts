@@ -41,6 +41,7 @@ export class MicrosoftExcelActivities {
       syncVersion: syncflow.state.version,
       workbookId: (dataSource.config as ExcelDataSourceConfig).workbookId,
       worksheetId: (dataSource.config as ExcelDataSourceConfig).worksheetId,
+      timezone: (dataSource.config as ExcelDataSourceConfig).timezone,
       accessToken,
     };
   }
@@ -50,6 +51,7 @@ export class MicrosoftExcelActivities {
     syncVersion: number;
     workbookId: string;
     worksheetId: string;
+    timezone: string;
     accessToken: string;
   }) {
     this.logger.debug(`Downloading for ds: ${data.dataSourceId}`);

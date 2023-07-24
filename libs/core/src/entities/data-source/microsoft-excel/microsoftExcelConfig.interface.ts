@@ -14,6 +14,7 @@ export interface ExcelDataSourceConfig extends DataSourceConfig {
   workbookId: string;
   worksheetId: string;
   worksheetName: string;
+  timezone: string;
 }
 
 export interface ExcelProviderAuthConfig extends ProviderAuthConfig {

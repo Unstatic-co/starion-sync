@@ -11,6 +11,7 @@ import {
   AcceptableActivityError,
   UnacceptableActivityError,
 } from '../../common/exception';
+import { SyncflowControllerFactory } from '../controller/controller.factory';
 
 @Injectable()
 export class WorkflowService {
@@ -24,6 +25,7 @@ export class WorkflowService {
     @Inject(InjectTokens.DATA_SOURCE_REPOSITORY)
     private readonly dataSourceRepository: IDataSourceRepository,
     private readonly dataSourceService: DataSourceService,
+    private readonly syncflowControllerFactory: SyncflowControllerFactory,
   ) {}
 
   async checkWorkflowAlreadyScheduled(trigger: Trigger) {
@@ -87,7 +89,13 @@ export class WorkflowService {
       );
     }
 
-    await this.dataSourceService.checkLimitation(dataSource);
+    const syncflowController = this.syncflowControllerFactory.get(
+      dataSource.provider.type,
+    );
+    await Promise.all([
+      this.dataSourceService.checkLimitation(dataSource),
+      syncflowController.run(syncflow, dataSource),
+    ]);
 
     const triggeredSyncflow = await this.syncflowRepository.updateState(
       syncflow.id,

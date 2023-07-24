@@ -19,7 +19,7 @@ import {
   TriggerRegistry,
   TriggerType,
 } from '../../trigger';
-import { SyncflowName } from '../syncflow.entity';
+import { SyncflowCursor, SyncflowName } from '../syncflow.entity';
 
 const attributesBuilder = new SyncflowAttributesBuilder();
 
@@ -33,24 +33,28 @@ const MicrosoftExcelSyncflowDefinitions: Array<{
     type: TriggerType;
   };
 }> = [
-    // SYNCFLOW: FULL REFRESH
-    {
-      name: SyncflowNames.EXCEL_FULL,
-      attributes: attributesBuilder
-        .reset()
-        .setDirection(SyncflowDirection.FORWARD)
-        .setSyncMode(SyncflowMode.REFRESH)
-        .setProviderType(ProviderType.MICROSOFT_EXCEL)
-        .setSyncMethod(SyncflowSyncMethod.FULL)
-        .setSyncTarget(SyncflowSyncTarget.FULL)
-        .setSyncType(SyncflowSyncType.FULL)
-        .build(),
-      trigger: {
-        name: TriggerNames.MIRCROSOFT_EXCEL_CRON,
-        type: TriggerType.CRON,
-      },
+  // SYNCFLOW: FULL REFRESH
+  {
+    name: SyncflowNames.EXCEL_FULL,
+    attributes: attributesBuilder
+      .reset()
+      .setDirection(SyncflowDirection.FORWARD)
+      .setSyncMode(SyncflowMode.REFRESH)
+      .setProviderType(ProviderType.MICROSOFT_EXCEL)
+      .setSyncMethod(SyncflowSyncMethod.FULL)
+      .setSyncTarget(SyncflowSyncTarget.FULL)
+      .setSyncType(SyncflowSyncType.FULL)
+      .build(),
+    trigger: {
+      name: TriggerNames.MIRCROSOFT_EXCEL_CRON,
+      type: TriggerType.CRON,
     },
-  ];
+  },
+];
+
+// Define cursor types
+
+export type MicrosoftExcelFullSyncCursor = SyncflowCursor & { ctag: string };
 
 // Register syncflows
 
