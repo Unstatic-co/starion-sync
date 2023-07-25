@@ -201,7 +201,6 @@ func main() {
 		rowStrings := make([]string, len(columnIndexes))
 		for i, colIndex := range columnIndexes {
 			rowStrings[i] = convertSerialNumberToDate(serialNumberDateValues[colIndex][row], *timezone, *replaceEmpty)
-			log.Println("Date result: ", rowStrings[i])
 		}
 		rowString := strings.Join(rowStrings, ",")
 		// print to output

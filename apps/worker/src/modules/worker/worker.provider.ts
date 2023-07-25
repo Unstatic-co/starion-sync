@@ -46,6 +46,8 @@ export const WorkerProvider = {
         ),
       updateSyncflowStatus:
         workflowActivities.updateSyncflowStatus.bind(workflowActivities),
+      updateSyncflowState:
+        workflowActivities.updateSyncflowState.bind(workflowActivities),
       // excel
       getSyncDataExcel: microsoftExcelActivities.getSyncDataExcel.bind(
         microsoftExcelActivities,

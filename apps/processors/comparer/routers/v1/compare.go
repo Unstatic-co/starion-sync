@@ -12,7 +12,8 @@ import (
 
 type CompareRequest struct {
 	DataSourceId string `form:"dataSourceId" valid:"Required"`
-	SyncVersion  int    `form:"syncVersion" valid:"Required; Min(0)"`
+	SyncVersion  *uint  `form:"syncVersion" binding:"required,number"`
+	PrevVersion  *uint  `form:"prevVersion" binding:"required,number"`
 }
 type CompareResponse struct {
 	Message string `json:"message"`
@@ -32,7 +33,8 @@ func ExcelCompare(c *gin.Context) {
 
 	compareService := excelService.New(excelService.CompareServiceInitParams{
 		DataSourceId: body.DataSourceId,
-		SyncVersion:  body.SyncVersion,
+		SyncVersion:  *body.SyncVersion,
+		PrevVersion:  *body.PrevVersion,
 	})
 
 	requestContext := c.Request.Context()

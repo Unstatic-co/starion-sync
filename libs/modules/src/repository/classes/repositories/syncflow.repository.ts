@@ -1,6 +1,7 @@
 import {
   SyncConnectionId,
   Syncflow,
+  SyncflowCursor,
   SyncflowId,
   TriggerId,
   WorkflowStatus,
@@ -37,6 +38,8 @@ export interface ISyncflowRepository extends IRepository {
     state: {
       status?: WorkflowStatus;
       increaseVersion?: boolean;
+      prevVersion?: number;
+      cursor?: SyncflowCursor;
     },
     options?: QueryOptions,
   ): Promise<Syncflow | void>;

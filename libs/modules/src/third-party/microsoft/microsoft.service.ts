@@ -15,6 +15,7 @@ import {
 import 'isomorphic-fetch';
 import { pick } from 'lodash';
 import { DiscoveredExcelDataSource } from 'apps/configurator/src/modules/discoverer/discoverer.interface';
+import { GetFileInfoResponse } from './microsoft.interface';
 
 @Injectable()
 export class MicrosoftService {
@@ -109,7 +110,7 @@ export class MicrosoftGraphService {
     workbookId: string;
     workbookSessionId?: string;
     select?: string[];
-  }) {
+  }): Promise<GetFileInfoResponse> {
     const { client, workbookId, workbookSessionId, select } = data;
     this.logger.debug(`getWorkbookFileInfo(): workbookId = ${workbookId}`);
     const url = `/me/drive/items/${workbookId}`;
@@ -121,7 +122,6 @@ export class MicrosoftGraphService {
       api = api.header('workbook-session-id', workbookSessionId);
     }
     const fileInfo = await api.get();
-    this.logger.debug(`getWorkbookFileInfo(): fileInfo = ${fileInfo}`);
     return fileInfo;
   }
 }

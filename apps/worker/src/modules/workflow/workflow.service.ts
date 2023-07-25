@@ -1,4 +1,4 @@
-import { Syncflow, SyncflowId, WorkflowStatus } from '@lib/core';
+import { Syncflow, SyncflowId, SyncflowState, WorkflowStatus } from '@lib/core';
 import { ISyncflowRepository, InjectTokens } from '@lib/modules';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { UnacceptableActivityError } from '../../common/exception';
@@ -43,5 +43,9 @@ export class WorkflowService {
 
   async updateSyncflowStatus(id: string, status: WorkflowStatus) {
     return this.syncFlowRepository.updateStatus(id, status);
+  }
+
+  async updateSyncflowState(id: string, state: Partial<SyncflowState>) {
+    return this.syncFlowRepository.updateState(id, { ...state });
   }
 }

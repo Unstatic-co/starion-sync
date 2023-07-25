@@ -39,6 +39,7 @@ export class MicrosoftExcelActivities {
     return {
       dataSourceId: syncflow.sourceId,
       syncVersion: syncflow.state.version,
+      prevVersion: syncflow.state.prevVersion,
       workbookId: (dataSource.config as ExcelDataSourceConfig).workbookId,
       worksheetId: (dataSource.config as ExcelDataSourceConfig).worksheetId,
       timezone: (dataSource.config as ExcelDataSourceConfig).timezone,
@@ -70,7 +71,11 @@ export class MicrosoftExcelActivities {
     }
   }
 
-  async compareExcel(data: { dataSourceId: string; syncVersion: number }) {
+  async compareExcel(data: {
+    dataSourceId: string;
+    syncVersion: number;
+    prevVersion: number;
+  }) {
     this.logger.debug(`Comparing for ds: ${data.dataSourceId}`);
     try {
       const comparerUrl = this.configService.get(
@@ -87,7 +92,11 @@ export class MicrosoftExcelActivities {
     }
   }
 
-  async loadExcel(data: { dataSourceId: string; syncVersion: number }) {
+  async loadExcel(data: {
+    dataSourceId: string;
+    syncVersion: number;
+    prevVersion: number;
+  }) {
     this.logger.debug(`Loading for ds: ${data.dataSourceId}`);
     try {
       const loaderUrl = this.configService.get(

@@ -15,6 +15,7 @@ import (
 func BindAndValid(c *gin.Context, form interface{}) (int, int) {
 	err := c.Bind(form)
 	if err != nil {
+		log.Error("Error binding: ", err)
 		return http.StatusBadRequest, e.INVALID_PARAMS
 	}
 
@@ -25,6 +26,9 @@ func BindAndValid(c *gin.Context, form interface{}) (int, int) {
 		return http.StatusInternalServerError, e.ERROR
 	}
 	if !check {
+		for _, err := range valid.Errors {
+			log.Error(err.Key, err.Message)
+		}
 		return http.StatusBadRequest, e.INVALID_PARAMS
 	}
 

@@ -18,14 +18,16 @@ import (
 
 type MicrosoftExcelServiceInitParams struct {
 	DataSourceId string `json:"dataSourceId"`
-	SyncVersion  int    `json:"syncVersion"`
+	SyncVersion  uint   `json:"syncVersion"`
+	PrevVersion  uint   `json:"prevVersion"`
 }
 
 type MicrosoftExcelService struct {
 	// info
 	syncflowId   string
 	dataSourceId string
-	syncVersion  int
+	syncVersion  uint
+	prevVersion  uint
 
 	// loger
 	logger *log.Entry
@@ -38,6 +40,7 @@ func NewService(params MicrosoftExcelServiceInitParams) (*MicrosoftExcelService,
 	var s MicrosoftExcelService
 	s.dataSourceId = params.DataSourceId
 	s.syncVersion = params.SyncVersion
+	s.prevVersion = params.PrevVersion
 
 	// logger
 	logger := log.New()
@@ -306,7 +309,7 @@ func (s *MicrosoftExcelService) Load(ctx context.Context) (*loader.LoadedDataSta
 
 	// execute loader
 	s.logger.Debug("Executing loader")
-	loaderInstance, err := loader.NewDefaultLoader(s.dataSourceId, s.syncVersion)
+	loaderInstance, err := loader.NewDefaultLoader(s.dataSourceId, s.syncVersion, s.prevVersion)
 	if err != nil {
 		s.logger.Error("Error when creating loader: ", err)
 		return nil, err

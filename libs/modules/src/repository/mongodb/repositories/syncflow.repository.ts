@@ -10,7 +10,7 @@ import {
   UpdateSyncflowData,
 } from '../../classes/repositories/syncflow.repository';
 import { SyncflowDocument, SyncflowModel } from '../models';
-import { WorkflowStatus } from '@lib/core';
+import { SyncflowCursor, WorkflowStatus } from '@lib/core';
 
 @Injectable()
 export class SyncflowRepository implements ISyncflowRepository {
@@ -144,13 +144,19 @@ export class SyncflowRepository implements ISyncflowRepository {
     state: {
       status?: WorkflowStatus;
       increaseVersion?: boolean;
+      prevVersion?: number;
+      cursor?: SyncflowCursor;
     },
     options?: QueryOptions,
   ) {
-    const { status, increaseVersion } = state;
+    const { status, increaseVersion, cursor, prevVersion } = state;
     const updatesSet = {};
     status !== undefined &&
       Object.assign(updatesSet, { 'state.status': status });
+    prevVersion !== undefined &&
+      Object.assign(updatesSet, { 'state.prevVersion': prevVersion });
+    cursor !== undefined &&
+      Object.assign(updatesSet, { 'state.cursor': cursor });
     const updateInc = {};
     increaseVersion && Object.assign(updateInc, { 'state.version': 1 });
     await this.syncflowModel.updateOne(

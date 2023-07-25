@@ -25,6 +25,7 @@ export type SyncflowCursor = any;
 export interface SyncflowState extends WorkflowState {
   status: SyncflowStatus;
   version: SyncflowVersion;
+  prevVersion: SyncflowVersion;
   cursor?: SyncflowCursor;
 }
 
@@ -44,4 +45,5 @@ export class Syncflow extends Workflow {
 export const defaultSyncflowState: SyncflowState = {
   status: WorkflowStatus.IDLING,
   version: 0,
+  prevVersion: 0,
 };

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { WorkflowService } from '../modules/workflow/workflow.service';
 import { activityWrapper } from './wrapper';
+import { SyncflowState } from '@lib/core';
 
 @Injectable()
 export class WorkflowActivities {
@@ -15,6 +16,12 @@ export class WorkflowActivities {
   async updateSyncflowStatus(id: string, status: any) {
     return activityWrapper(() =>
       this.workflowService.updateSyncflowStatus(id, status),
+    );
+  }
+
+  async updateSyncflowState(id: string, state: Partial<SyncflowState>) {
+    return activityWrapper(() =>
+      this.workflowService.updateSyncflowState(id, state),
     );
   }
 }

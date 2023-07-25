@@ -24,12 +24,14 @@ type CompareSchemaResult struct {
 
 type CompareServiceInitParams struct {
 	DataSourceId string `json:"dataSourceId"`
-	SyncVersion  int    `json:"syncVersion"`
+	SyncVersion  uint   `json:"syncVersion"`
+	PrevVersion  uint   `json:"syncVersion"`
 }
 
 type CompareService struct {
 	dataSourceId string
-	syncVersion  int
+	syncVersion  uint
+	prevVersion  uint
 
 	prevSchema schema.TableSchema
 	curSchema  schema.TableSchema
@@ -52,32 +54,33 @@ func New(params CompareServiceInitParams) *CompareService {
 	return &CompareService{
 		dataSourceId: params.DataSourceId,
 		syncVersion:  params.SyncVersion,
+		prevVersion:  params.PrevVersion,
 		logger:       loggerEntry,
 	}
 }
 
-func (s *CompareService) getS3DataFileLocation(syncVersion int) string {
+func (s *CompareService) getS3DataFileLocation(syncVersion uint) string {
 	return fmt.Sprintf(`%s/%s/data/%s-%d.parquet`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
-func (s *CompareService) getS3SchemaFileLocation(syncVersion int) string {
+func (s *CompareService) getS3SchemaFileLocation(syncVersion uint) string {
 	return fmt.Sprintf(`%s/%s/schema/%s-%d.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
-func (s *CompareService) getS3ResultFileLocation(syncVersion int) string {
+func (s *CompareService) getS3ResultFileLocation(syncVersion uint) string {
 	return fmt.Sprintf(`%s/%s/result/%s-%d.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
-func (s *CompareService) getS3ResultAddedRowsFileLocation(syncVersion int) string {
+func (s *CompareService) getS3ResultAddedRowsFileLocation(syncVersion uint) string {
 	return fmt.Sprintf(`%s/%s/result/%s-%d-addedRows.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
-func (s *CompareService) getS3ResultDeletedRowsFileLocation(syncVersion int) string {
+func (s *CompareService) getS3ResultDeletedRowsFileLocation(syncVersion uint) string {
 	return fmt.Sprintf(`%s/%s/result/%s-%d-deletedRows.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
-func (s *CompareService) getS3ResultDeletedFieldsFileLocation(syncVersion int) string {
+func (s *CompareService) getS3ResultDeletedFieldsFileLocation(syncVersion uint) string {
 	return fmt.Sprintf(`%s/%s/result/%s-%d-deletedFields.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
-func (s *CompareService) getS3ResultUpdatedFieldsFileLocation(syncVersion int) string {
+func (s *CompareService) getS3ResultUpdatedFieldsFileLocation(syncVersion uint) string {
 	return fmt.Sprintf(`%s/%s/result/%s-%d-updatedFields.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
-func (s *CompareService) getS3ResultAddedFieldsFileLocation(syncVersion int) string {
+func (s *CompareService) getS3ResultAddedFieldsFileLocation(syncVersion uint) string {
 	return fmt.Sprintf(`%s/%s/result/%s-%d-addedFields.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
 
@@ -91,9 +94,8 @@ func (s *CompareService) CompareData(ctx context.Context) error {
 
 		CompareSchemaResult: s.compareSchemaResult,
 
-		PreviousDataS3Location:  s.getS3DataFileLocation(s.syncVersion - 1),
+		PreviousDataS3Location:  s.getS3DataFileLocation(s.prevVersion),
 		CurrentDataS3Location:   s.getS3DataFileLocation(s.syncVersion),
-		ResultS3Location:        s.getS3ResultFileLocation(s.syncVersion),
 		AddedRowsS3Location:     s.getS3ResultAddedRowsFileLocation(s.syncVersion),
 		DeletedRowsS3Location:   s.getS3ResultDeletedRowsFileLocation(s.syncVersion),
 		DeletedFieldsS3Location: s.getS3ResultDeletedFieldsFileLocation(s.syncVersion),
@@ -103,7 +105,7 @@ func (s *CompareService) CompareData(ctx context.Context) error {
 	queryContext.Setup()
 
 	var query string
-	if s.syncVersion == 1 {
+	if s.syncVersion == 1 || s.prevVersion == 0 {
 		query = queryContext.GetFirstVersionCompareQuery()
 	} else {
 		query = queryContext.GetFullCompareQuery()

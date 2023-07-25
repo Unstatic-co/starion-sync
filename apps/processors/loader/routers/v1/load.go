@@ -12,7 +12,8 @@ import (
 
 type LoadRequest struct {
 	DataSourceId string `form:"dataSourceId" valid:"Required"`
-	SyncVersion  int    `form:"syncVersion" valid:"Required; Min(0)"`
+	SyncVersion  *uint  `form:"syncVersion" binding:"required,number"`
+	PrevVersion  *uint  `form:"prevVersion" binding:"required,number"`
 }
 type LoadResponse struct {
 	Message string `json:"message"`
@@ -32,7 +33,8 @@ func LoadExcel(c *gin.Context) {
 
 	excelService, err := excel.NewService(excel.MicrosoftExcelServiceInitParams{
 		DataSourceId: body.DataSourceId,
-		SyncVersion:  body.SyncVersion,
+		SyncVersion:  *body.SyncVersion,
+		PrevVersion:  *body.PrevVersion,
 	})
 	if err != nil {
 		log.Error(fmt.Sprintf("Error when initializing excel service for ds %s: ", body.DataSourceId), err)

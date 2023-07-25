@@ -99,7 +99,10 @@ export class WorkflowService {
 
     const triggeredSyncflow = await this.syncflowRepository.updateState(
       syncflow.id,
-      { status: WorkflowStatus.SCHEDULED, increaseVersion: true },
+      {
+        status: WorkflowStatus.SCHEDULED,
+        increaseVersion: true,
+      },
       { new: true },
     );
 

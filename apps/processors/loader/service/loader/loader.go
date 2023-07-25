@@ -42,13 +42,14 @@ type Loader interface {
 	Close() error
 }
 
-func New(loaderType LoaderType, dataSourceId string, syncVersion int) (Loader, error) {
+func New(loaderType LoaderType, dataSourceId string, syncVersion uint, prevVersion uint) (Loader, error) {
 	var loader Loader
 	switch loaderType {
 	case LoaderType(config.DbTypePostgres):
 		loader = &PostgreLoader{
 			DatasourceId: dataSourceId,
 			SyncVersion:  syncVersion,
+			PrevVersion:  prevVersion,
 		}
 	}
 	if loader != nil {
@@ -61,7 +62,7 @@ func New(loaderType LoaderType, dataSourceId string, syncVersion int) (Loader, e
 	return loader, nil
 }
 
-func NewDefaultLoader(dataSourceId string, syncVersion int) (Loader, error) {
+func NewDefaultLoader(dataSourceId string, syncVersion uint, prevVersion uint) (Loader, error) {
 	log.Debug("Initializing default loader")
-	return New(LoaderType(config.AppConfig.DbType), dataSourceId, syncVersion)
+	return New(LoaderType(config.AppConfig.DbType), dataSourceId, syncVersion, prevVersion)
 }

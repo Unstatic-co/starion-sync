@@ -40,7 +40,8 @@ var (
 
 type PostgreLoader struct {
 	DatasourceId string
-	SyncVersion  int
+	SyncVersion  uint
+	PrevVersion  uint
 	conn         *sql.DB
 
 	tableName string
@@ -91,7 +92,7 @@ func (l *PostgreLoader) Load(data *LoaderData) error {
 
 	l.setTimezone(txn)
 
-	if l.SyncVersion == 1 {
+	if l.SyncVersion == 1 || l.PrevVersion == 0 {
 		err = l.initTable(txn, data)
 		if err != nil {
 			return err

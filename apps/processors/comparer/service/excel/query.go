@@ -113,7 +113,7 @@ func (c *QueryContext) GetFullCompareQuery() string {
 	currentTableName := "c"
 	diffTableName := "diff"
 	query := fmt.Sprintf(
-		`SET s3_truncate_on_insert = 1; %[1]s; %[2]s; %[3]s; %[4]s; %[5]s; %[6]s; %[7]s; %[8]s; %[9]s; %[10]s; %[11]s`,
+		`SET s3_truncate_on_insert = 1; %[1]s; %[2]s; %[3]s; %[4]s; %[5]s; %[6]s; %[7]s; %[8]s; %[9]s; %[10]s`,
 		c.GenerateCreateTableQuery(previousTableName, c.PreviousSchema),
 		c.GenerateCreateTableQuery(currentTableName, c.CurrentSchema),
 		c.GenerateInsertDataQuery(previousTableName, c.PreviousDataS3Location),
@@ -124,26 +124,6 @@ func (c *QueryContext) GetFullCompareQuery() string {
 		c.GenerateUpdatedNullFieldsTableQuery(diffTableName),
 		c.GenerateUpdatedFieldsTableQuery(currentTableName, diffTableName),
 		c.GenerateAddedFieldsTableQuery(currentTableName, diffTableName),
-		c.GetExportResultQuery(diffTableName),
-	)
-	return query
-}
-func (c *QueryContext) GetExportResultQuery(tableName string) string {
-	query := fmt.Sprintf(
-		`
-            INSERT INTO FUNCTION
-                s3(
-                    '%[1]s',
-                    '%[2]s',
-                    '%[3]s',
-                    'JSONEachRow'
-                )
-            SELECT * FROM %[4]s
-        `,
-		c.ResultS3Location,
-		config.AppConfig.S3AccessKey,
-		config.AppConfig.S3SecretKey,
-		tableName,
 	)
 	return query
 }
