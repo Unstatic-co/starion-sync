@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Scope } from '@nestjs/common';
 import { CommonService } from './modules/common/common.service';
 
 @Injectable()
@@ -15,10 +15,6 @@ export class AppService {
    */
   getHello(): string {
     return 'Hello World !';
-  }
-
-  async getConfig() {
-    return this.commonService.findConfig();
   }
 
   async test() {

@@ -13,6 +13,33 @@
   "monorepo": true,
   "root": "apps/starion-sync",
   "projects": {
+    "@lib/core": {
+      "type": "library",
+      "root": "libs/core",
+      "entryFile": "index",
+      "sourceRoot": "libs/core/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/core/tsconfig.lib.json"
+      }
+    },
+    "@lib/modules": {
+      "type": "library",
+      "root": "libs/modules",
+      "entryFile": "index",
+      "sourceRoot": "libs/modules/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/modules/tsconfig.lib.json"
+      }
+    },
+    "@lib/microservice": {
+      "type": "library",
+      "root": "libs/microservice",
+      "entryFile": "index",
+      "sourceRoot": "libs/microservice/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/microservice/tsconfig.lib.json"
+      }
+    },
     "@app/starion-sync": {
       "type": "application",
       "root": "apps/starion-sync",
@@ -20,6 +47,33 @@
       "sourceRoot": "apps/starion-sync/src",
       "compilerOptions": {
         "tsConfigPath": "apps/starion-sync/tsconfig.app.json"
+      }
+    },
+    "@app/configurator": {
+      "type": "application",
+      "root": "apps/configurator",
+      "entryFile": "main",
+      "sourceRoot": "apps/configurator/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/configurator/tsconfig.app.json"
+      }
+    },
+    "@app/controller": {
+      "type": "application",
+      "root": "apps/controller",
+      "entryFile": "main",
+      "sourceRoot": "apps/controller/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/controller/tsconfig.app.json"
+      }
+    },
+    "@app/executor": {
+      "type": "application",
+      "root": "apps/executor",
+      "entryFile": "main",
+      "sourceRoot": "apps/executor/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/executor/tsconfig.app.json"
       }
     },
     "@app/worker": {
@@ -31,13 +85,22 @@
         "tsConfigPath": "apps/worker/tsconfig.app.json"
       }
     },
-    "@libs/modules": {
-      "type": "library",
-      "root": "libs/modules",
-      "entryFile": "index",
-      "sourceRoot": "libs/modules/src",
+    "@app/post-processor": {
+      "type": "application",
+      "root": "apps/post-processor",
+      "entryFile": "main",
+      "sourceRoot": "apps/post-processor/src",
       "compilerOptions": {
-        "tsConfigPath": "libs/modules/tsconfig.lib.json"
+        "tsConfigPath": "apps/post-processor/tsconfig.app.json"
+      }
+    },
+    "@app/trigger/cron": {
+      "type": "application",
+      "root": "apps/triggers/cron",
+      "entryFile": "main",
+      "sourceRoot": "apps/triggers/cron/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/triggers/cron/tsconfig.app.json"
       }
     }
   }
