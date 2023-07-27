@@ -3,8 +3,9 @@ services:
   configurator:
     depends_on:
       - mongodb
-      - zookeeper
-      - kafka
+      - kafka-0
+      - kafka-1
+      - kafka-2
       - temporal
     deploy:
       restart_policy:
@@ -20,12 +21,12 @@ services:
     ports:
       - 9000:8080
     environment:
-      - NODE_ENV=dev
+      - NODE_ENV=prod
       - PORT=8080
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=kafka-0:9092,kafka-1:9092,kafka-2:9092
       - KAFKA_CLIENT_ID=configurator
       - KAFKA_CONSUMER_GROUP_ID=configurator-consumer
       - KAFKA_SSL_ENABLED=false
@@ -38,8 +39,9 @@ services:
   controller:
     depends_on:
       - mongodb
-      - zookeeper
-      - kafka
+      - kafka-0
+      - kafka-1
+      - kafka-2
       - temporal
     deploy:
       restart_policy:
@@ -55,12 +57,12 @@ services:
     ports:
       - 9001:8080
     environment:
-      - NODE_ENV=dev
+      - NODE_ENV=prod
       - PORT=8080
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=kafka-0:9092,kafka-1:9092,kafka-2:9092
       - KAFKA_CLIENT_ID=controller
       - KAFKA_CONSUMER_GROUP_ID=controller-consumer
       - KAFKA_SSL_ENABLED=false
@@ -70,35 +72,12 @@ services:
       - MICROSOFT_CLIENT_ID=cf0e88e2-566f-4c81-abb5-2ae0111251fe
       - MICROSOFT_CLIENT_SECRET=PTw8Q~A3IFhv~FuckTAfR.nYtoMMxVMoS_Oi3bxd
       - MICROSOFT_PERMISSION_SCOPES=offline_access,openid,User.Read.All,https://graph.microsoft.com/Files.ReadWrite.All
-      # executor:
-      # depends_on:
-      # - mongodb
-      # - zookeeper
-      # - kafka
-      # - temporal
-      # build:
-      # context: .
-      # dockerfile: ./apps/executor/Dockerfile
-      # expose:
-      # - 9002
-      # ports:
-      # - 9002:9002
-      # environment:
-      # - NODE_ENV=dev
-      # - PORT=9002
-      # - DB_TYPE=mongodb
-      # - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
-      # - BROKER_TYPE=kafka
-      # - BROKER_URIS=kafka:29092
-      # - KAFKA_CLIENT_ID=executor
-      # - KAFKA_CONSUMER_GROUP_ID=executor-consumer
-      # - KAFKA_SSL_ENABLED=false
-      # - ORCHESTRATOR_ADDRESS=temporal:7233
   worker:
     depends_on:
       - mongodb
-      - zookeeper
-      - kafka
+      - kafka-0
+      - kafka-1
+      - kafka-2
       - temporal
     deploy:
       restart_policy:
@@ -114,12 +93,12 @@ services:
     ports:
       - 9003:8080
     environment:
-      - NODE_ENV=dev
+      - NODE_ENV=prod
       - PORT=9000
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=kafka-0:9092,kafka-1:9092,kafka-2:9092
       - KAFKA_CLIENT_ID=worker
       - KAFKA_CONSUMER_GROUP_ID=worker-consumer
       - KAFKA_SSL_ENABLED=false
@@ -134,8 +113,9 @@ services:
   post-processor:
     depends_on:
       - mongodb
-      - zookeeper
-      - kafka
+      - kafka-0
+      - kafka-1
+      - kafka-2
       - temporal
     deploy:
       restart_policy:
@@ -151,12 +131,12 @@ services:
     ports:
       - 9004:8080
     environment:
-      - NODE_ENV=dev
+      - NODE_ENV=prod
       - PORT=9000
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=kafka-0:9092,kafka-1:9092,kafka-2:9092
       - KAFKA_CLIENT_ID=post-processor
       - KAFKA_CONSUMER_GROUP_ID=post-processor-consumer
       - KAFKA_SSL_ENABLED=false
@@ -245,8 +225,9 @@ services:
   cron-trigger:
     depends_on:
       - mongodb
-      - zookeeper
-      - kafka
+      - kafka-0
+      - kafka-1
+      - kafka-2
       - temporal
     deploy:
       restart_policy:
@@ -267,7 +248,7 @@ services:
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=kafka-0:9092,kafka-1:9092,kafka-2:9092
       - KAFKA_CLIENT_ID=cron-trigger
       - KAFKA_CONSUMER_GROUP_ID=cron-trigger
       - KAFKA_SSL_ENABLED=false
@@ -277,33 +258,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=abc123456
-      #--------------------------------- DATABASE ---------------------------------------#
-      # mysql:
-      # image: mysql:8.0
-      # expose:
-      # - 3306
-      # ports:
-      # - 3306:3306
-      # volumes:
-      # - mysql:/var/lib/mysql
-      # command: mysqld --default-authentication-plugin=mysql_native_password
-      # environment:
-      # - MYSQL_ROOT_PASSWORD=abc123456@
-      # - MYSQL_DATABASE=starion-sync
-      # - MYSQL_ROOT_HOST=%
-      # - MYSQL_USER=mysqluser
-      # - MYSQL_PASSWORD=mysqlpwd
-      # cap_add:
-      # - CAP_SYS_NICE
-      # phpmyadmin:
-      # image: phpmyadmin/phpmyadmin
-      # platform: linux/amd64
-      # ports:
-      # - 5000:80
-      # environment:
-      # - PMA_HOST=mysql
-      # - PMA_PORT=3306
-      # - PMA_ARBITRARY=1
+  #--------------------------------- DATABASE ---------------------------------------#
   mongodb:
     restart: on-failure
     build:
@@ -314,135 +269,121 @@ services:
     ports:
       - 27017:27017
     volumes:
-      - mongo:/data/db
+      - mongodb:/data/db
     healthcheck:
-      test: test $$(echo 'rs.initiate({_id':' "rs0", members':' [{_id':' 1, "host"':' "localhost':'27017"}]}) || rs.status().ok' | mongosh -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --quiet) -eq 1
+      test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongo -u admin -p abc123456 --quiet) -eq 1
       interval: 10s
       start_period: 30s
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=abc123456
       - MONGO_INITDB_DATABASE=starion-sync
+  # mongodb:
+    # restart: on-failure
+    # image: bitnami/mongodb:5.0
+    # platform: linux/amd64
+    # environment:
+      # - MONGODB_ADVERTISED_HOSTNAME=mongodb
+      # - MONGODB_REPLICA_SET_MODE=primary
+      # - MONGO_DB_ROOT_USER=admin
+      # - MONGODB_ROOT_PASSWORD=abc123456
+      # - MONGODB_REPLICA_SET_KEY=replicasetkey
+    # volumes:
+      # - mongodb:/bitnami/mongodb
   postgresql:
-    container_name: postgresql
-    image: postgres:15.3-alpine3.18
-    expose:
-      - 5432
+    restart: on-failure
+    image: bitnami/postgresql:15-debian-11
     ports:
       - 5432:5432
     volumes:
-      - postgresql:/var/lib/postgresql/data
+      - postgresql:/bitnami/postgresql
     environment:
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=abc123456
-      - POSTGRES_DB=starion-sync
-  pgadmin:
-    depends_on:
-      - postgresql
-    restart: unless-stopped
-    image: dpage/pgadmin4:7.4
-    ports:
-      - 3003:80
-    volumes:
-      - pgadmin:/var/lib/pgadmin
-      - ./init/pgadmin-servers.json:/pgadmin4/servers.json # preconfigured servers/connections
-      - ./init/pgpass:/pgpass # passwords for the connections in this file
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@starion.io
-      - PGADMIN_DEFAULT_PASSWORD=abc123456
-      - PGADMIN_CONFIG_SERVER_MODE=False
+      - POSTGRESQL_USERNAME=admin
+      - POSTGRESQL_PASSWORD=abc123456
+      - POSTGRESQL_DATABASE=starion-sync
   #--------------------------------- KAFKA ---------------------------------------#
-  zookeeper:
-    # restart: always
-    image: confluentinc/cp-zookeeper:7.4.0
-    expose:
-      - 2181
+  kafka-0:
+    image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
     ports:
-      - 2181:2181
-    volumes:
-      - zookeeper-data:/var/lib/zookeeper/data
-      - zookeeper-log:/var/lib/zookeeper/log
+      - 9094:9094
     environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
-      - ZOOKEEPER_CLIENT_PORT=2181
-      - ZOOKEEPER_TICK_TIME=2000
-  kafka:
-    depends_on:
-      - zookeeper
-    # restart: always
-    image: confluentinc/cp-kafka:7.4.0
-    expose:
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=2
+      - KAFKA_CFG_OFFETS_TOPIC_REPLICATION_FACTOR=2
+      - KAFKA_CFG_NUM_PARTITIONS=3
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    volumes:
+      - kafka_0:/bitnami/kafka
+  kafka-1:
+    image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
+    ports:
       - 9092
-      - 29092
-    ports:
-      - 9092:9092
-    volumes:
-      - kafka:/var/lib/kafka/data
     environment:
-      - KAFKA_BROKER_ID=1
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
-      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
-      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=2
+      - KAFKA_CFG_OFFETS_TOPIC_REPLICATION_FACTOR=2
+      - KAFKA_CFG_NUM_PARTITIONS=3
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    volumes:
+      - kafka_1:/bitnami/kafka
+  kafka-2:
+    image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
+    ports:
+      - 9092
+    environment:
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=2
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=2
+      - KAFKA_CFG_OFFETS_TOPIC_REPLICATION_FACTOR=2
+      - KAFKA_CFG_NUM_PARTITIONS=3
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    volumes:
+      - kafka_2:/bitnami/kafka
   kafka-ui:
     depends_on:
-      - kafka
+      - kafka-0
+      - kafka-1
+      - kafka-2
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
     ports:
       - 3000:8080
     volumes:
-      - ./init/kui-config.yml:/etc/kafkaui/dynamic_config.yaml
+      - ./init/kui-config.prod.yml:/etc/kafkaui/dynamic_config.yaml
     environment:
-      DYNAMIC_CONFIG_ENABLED: false
-      #--------------------------------- CONNECTOR ---------------------------------------#
-      # debezium:
-      # image: debezium/connect:2.3
-      # expose:
-      # - 8083
-      # ports:
-      # - 8083:8083
-      # environment:
-      # - BOOTSTRAP_SERVERS=kafka:29092
-      # - GROUP_ID=1
-      # - CONFIG_STORAGE_TOPIC=my_connect_configs
-      # - OFFSET_STORAGE_TOPIC=my_connect_offsets
-      # - STATUS_STORAGE_TOPIC=my_connect_statuses
-      #----------------------------------- REDIS ----------------------------------------#
+      DYNAMIC_CONFIG_ENABLED: true
+  #----------------------------------- REDIS ----------------------------------------#
   redis:
-    image: redis:6.2-alpine
-    expose:
-      - 6379
+    restart: on-failure
+    image: bitnami/redis:6.2.13-debian-11-r13
     ports:
       - 6379:6379
-    command: redis-server --save 20 1 --loglevel warning --requirepass abc123456
     volumes:
-      - redis:/data
-  #--------------------------------- ORCHESTRATOR (TEMPORAL) ---------------------------------------#
-  elasticsearch:
-    container_name: temporal-elasticsearch
-    image: elasticsearch:7.17.10
-    expose:
-      - 9200
-    ports:
-      - 9200:9200
-    volumes:
-      - elasticsearch:/var/lib/elasticsearch/data
+      - redis:/bitnami/redis/data
     environment:
-      - cluster.routing.allocation.disk.threshold_enabled=true
-      - cluster.routing.allocation.disk.watermark.low=512mb
-      - cluster.routing.allocation.disk.watermark.high=256mb
-      - cluster.routing.allocation.disk.watermark.flood_stage=128mb
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms256m -Xmx256m
-      - xpack.security.enabled=false
+      - REDIS_PASSWORD=abc123456
+  #--------------------------------- ORCHESTRATOR (TEMPORAL) ---------------------------------------#
   temporal:
+    restart: on-failure
     depends_on:
       - postgresql
-      - elasticsearch
-    container_name: temporal
     image: temporalio/auto-setup:1.20.3.2
     expose:
       - 7233
@@ -451,7 +392,7 @@ services:
     labels:
       kompose.volume.type: configMap
     volumes:
-      - ./init/temporal-config.yml:/etc/temporal/config/dynamicconfig/development-sql.yaml
+      - ./init/temporal-config.prod.yml:/etc/temporal/config/dynamicconfig/development-sql.yaml
     environment:
       - DB=postgresql
       - DB_PORT=5432
@@ -459,53 +400,32 @@ services:
       - POSTGRES_PWD=abc123456
       - POSTGRES_SEEDS=postgresql
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
-      - ENABLE_ES=true
-      - ES_SEEDS=elasticsearch
-      - ES_VERSION=v7
-      # temporal-admin-tools:
-      # container_name: temporal-admin-tools
-      # depends_on:
-      # - temporal
-      # environment:
-      # - TEMPORAL_CLI_ADDRESS=temporal:7233
-      # image: temporalio/admin-tools:${TEMPORAL_VERSION}
-      # networks:
-      # - temporal-network
-      # stdin_open: true
-      # tty: true
-  temporal-ui:
-    depends_on:
-      - temporal
-    container_name: temporal-ui
-    ports:
-      - 3001:8080
-    image: temporalio/ui:2.15.0
-    environment:
-      - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_CORS_ORIGINS=http://localhost:3001
   #--------------------------------- MINIO ---------------------------------------#
   minio:
-    container_name: minio
-    image: minio/minio
-    expose:
-      - 9000
+    restart: on-failure
+    image: bitnami/minio:2023.7.18-debian-11-r2
     ports:
       - 3002:9001
-    entrypoint: sh
-    command: -c 'mkdir -p /data/diff-data && minio server --console-address ":9001" /data'
     volumes:
       - minio:/data
     environment:
       - MINIO_ROOT_USER=admin
       - MINIO_ROOT_PASSWORD=abc123456
+      - MINIO_DEFAULT_BUCKETS=diff-data
 volumes:
-  mongo:
-  mysql:
+  mongodb:
+    driver: local
   redis:
-  zookeeper-log:
-  zookeeper-data:
-  kafka:
-  elasticsearch:
+    driver: local
+  kafka_0:
+    driver: local
+  kafka_1:
+    driver: local
+  kafka_2:
+    driver: local
   postgresql:
+    driver: local
   minio:
+    driver: local
   pgadmin:
+    driver: local
