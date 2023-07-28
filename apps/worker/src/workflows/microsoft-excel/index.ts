@@ -20,7 +20,7 @@ const {
 });
 
 const { downloadExcel } = proxyActivities<MicrosoftExcelActivities>({
-  startToCloseTimeout: '1m',
+  startToCloseTimeout: '3m',
   scheduleToCloseTimeout: '10y',
 });
 
