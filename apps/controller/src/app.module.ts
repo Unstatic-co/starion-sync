@@ -9,7 +9,7 @@ import {
   microsoftConfigRegister,
   orchestratorConfigRegister,
 } from '@lib/core/config';
-import { DatabaseModule } from '@lib/modules';
+import { DatabaseModule, LoggerModule } from '@lib/modules';
 import { brokerConfigRegister } from '@lib/core/config/broker.config';
 import { BrokerModule } from './modules/broker/broker.module';
 import { WorkflowModule } from './modules/workflow/workflow.module';
@@ -27,6 +27,7 @@ import { OrchestratorWorkerModule } from './modules/orchestrator-worker/orchestr
         microsoftConfigRegister,
       ],
     }),
+    LoggerModule,
     DatabaseModule.forRootAsync(),
     BrokerModule,
     CommonModule,

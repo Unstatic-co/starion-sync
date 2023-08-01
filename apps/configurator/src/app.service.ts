@@ -7,12 +7,13 @@ import { Injectable, Logger } from '@nestjs/common';
 export class AppService {
   private readonly logger = new Logger(AppService.name);
 
-  constructor() {}
+  constructor() { }
   /**
    * Hello world
    * @return {string} Hello message
    */
   getHello(): string {
+    this.logger.log('Hello World !');
     return 'Hello World !';
   }
 
