@@ -139,6 +139,34 @@ services:
       - ORCHESTRATOR_ADDRESS=temporal:7233
       - ORCHESTRATOR_WORKER_TASKQUEUE=post-processor
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=post-processor
+  webhook:
+    depends_on:
+      - mongodb
+      - zookeeper
+      - kafka
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
+    build:
+      context: .
+      dockerfile: ./apps/webhook/Dockerfile
+    expose:
+      - 8080
+    ports:
+      - 9005:8080
+    environment:
+      - NODE_ENV=development
+      - PORT=9000
+      - DB_TYPE=mongodb
+      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - BROKER_TYPE=kafka
+      - BROKER_URIS=kafka:29092
+      - KAFKA_CLIENT_ID=post-processor
+      - KAFKA_CONSUMER_GROUP_ID=post-processor-consumer
+      - KAFKA_SSL_ENABLED=false
   #--------------------------------- PROCESSORS --------------------------------------#
   downloader:
     depends_on:
