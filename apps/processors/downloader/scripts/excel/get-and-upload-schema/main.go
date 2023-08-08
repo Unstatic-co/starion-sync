@@ -7,8 +7,10 @@ import (
 	"downloader/util/s3"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/samber/lo"
@@ -36,7 +38,7 @@ func inferBooleanType(enum []interface{}) bool {
 	return false
 }
 
-func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
+func getSchemaFromJsonSchemaFile(filePath string) (schema.TableSchema, []string) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatalf("Cannot open schema file %s\n", filePath)
@@ -54,6 +56,7 @@ func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 	}
 
 	tableSchema := make(schema.TableSchema)
+	nullBecomeStringFields := make([]string, 0)
 
 	for fieldName, property := range _baseSchema.Properties {
 		var fieldSchema schema.FieldSchema
@@ -101,6 +104,7 @@ func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 				// If column does not have data
 				log.Printf("Field %s has unprocessable data type `null`, using string datatype to sync...\n", fieldName)
 				detectedType = schema.String
+				nullBecomeStringFields = append(nullBecomeStringFields, hashedFieldName)
 			case "integer":
 				detectedType = schema.Number
 			case "number":
@@ -141,7 +145,7 @@ func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 		tableSchema[hashedFieldName] = fieldSchema
 	}
 
-	return tableSchema
+	return tableSchema, nullBecomeStringFields
 }
 
 func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string) error {
@@ -167,10 +171,11 @@ func main() {
 	s3SecretKey := flag.String("s3SecretKey", "", "s3 secret key")
 	dataSourceId := flag.String("dataSourceId", "", "data source id")
 	syncVersion := flag.String("syncVersion", "", "sync version")
+	saveNullBecomeStringFields := flag.String("saveNullBecomeStringFields", "", "save null become string (empty columns) fields to path")
 
 	flag.Parse()
 
-	schema := getSchemaFromJsonSchemaFile(*schemaFile)
+	schema, nullBecomeStringFields := getSchemaFromJsonSchemaFile(*schemaFile)
 	err := uploadSchema(
 		schema,
 		s3.S3HandlerConfig{
@@ -185,5 +190,13 @@ func main() {
 	)
 	if err != nil {
 		log.Fatalf("Error when uploading schema: %+v\n", err)
+	}
+
+	if *saveNullBecomeStringFields != "" && len(nullBecomeStringFields) > 0 {
+		err := ioutil.WriteFile(*saveNullBecomeStringFields, []byte(strings.Join(nullBecomeStringFields, ",")), 0644)
+		if err != nil {
+			fmt.Printf("Error writing null fields to file: %v\n", err)
+			return
+		}
 	}
 }

@@ -470,6 +470,7 @@ detected_schema_file="$TEMP_DIR/schema.json"
 "$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$appended_id_file" >"$detected_schema_file"
 # upload
 info-log "Uploading schema..."
+null_become_string_file="$TEMP_DIR/null_become_string_fields"
 ./excel/get-and-upload-schema \
     --schemaFile "$detected_schema_file" \
     --s3Url "$s3_url" \
@@ -478,7 +479,10 @@ info-log "Uploading schema..."
     --s3AccessKey "$s3_access_key" \
     --s3SecretKey "$s3_secret_key" \
     --dataSourceId "$data_source_id" \
-    --syncVersion "$sync_version"
+    --syncVersion "$sync_version" \
+    --saveNullBecomeStringFields "$null_become_string_file"
+IFS=',' read -ra null_fields <<< "$(cat "$null_become_string_file")"
+debug-log "Null become string fields: ${null_fields[@]}"
 
 ### Convert JSON
 info-log "Converting json..."
@@ -488,8 +492,12 @@ json_file="$TEMP_DIR/data.json"
 ### Convert parquet
 info-log "Converting parquet..."
 s3_location="$s3_url/$s3_bucket/data/$data_source_id-$sync_version.parquet"
-debug-log "S3 location: $s3_location"
-clickhouse local -q "
+clickhouse_schema_infer_settings="settings schema_inference_hints='"
+for field in "${null_fields[@]}"; do
+    clickhouse_schema_infer_settings+=" $field Nullable(String),"
+done
+clickhouse_schema_infer_settings="${clickhouse_schema_infer_settings%,}'"
+upload_parquet_query="
     SET s3_truncate_on_insert = 1;
     INSERT INTO FUNCTION
         s3(
@@ -499,13 +507,17 @@ clickhouse local -q "
             'Parquet'
         )
     SELECT * FROM file('$json_file', 'JSONEachRow')
-"
+" 
+if [ ${#null_fields[@]} -gt 0 ]; then
+    upload_parquet_query+=" $clickhouse_schema_infer_settings"
+fi
+clickhouse local -q "$upload_parquet_query"
 
 ### Upload JSON
 if [ "$DEBUG" == "on" ]; then
     info-log "Uploading json..."
     s3_location="$s3_url/$s3_bucket/data/$data_source_id-$sync_version.json"
-    clickhouse local -q "
+    upload_json_query="
         SET s3_truncate_on_insert = 1;
         INSERT INTO FUNCTION
             s3(
@@ -516,6 +528,10 @@ if [ "$DEBUG" == "on" ]; then
             )
         SELECT * FROM file('$json_file', 'JSONEachRow')
     "
+    if [ ${#null_fields[@]} -gt 0 ]; then
+        upload_json_query+=" $clickhouse_schema_infer_settings"
+    fi
+    clickhouse local -q "$upload_json_query"
 fi
 
-close-excel-session || true
+# close-excel-session || true
