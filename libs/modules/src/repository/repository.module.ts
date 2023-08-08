@@ -39,6 +39,10 @@ export class RepositoryModule {
             provide: InjectTokens.TRIGGER_REPOSITORY,
             useClass: MongoRepositories.TriggerRepository,
           },
+          {
+            provide: InjectTokens.WEBHOOK_REPOSITORY,
+            useClass: MongoRepositories.WebhookRepository,
+          },
         );
         break;
       default:

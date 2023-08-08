@@ -11,6 +11,8 @@ import {
   DataProviderSchema,
   SyncConnectionModel,
   SyncConnectionSchema,
+  WebhookModel,
+  WebhookSchema,
 } from '../repository';
 import {
   SyncflowModel,
@@ -54,6 +56,7 @@ export class DatabaseModule {
           { name: SyncConnectionModel.name, schema: SyncConnectionSchema },
           { name: SyncflowModel.name, schema: SyncflowSchema },
           { name: TriggerModel.name, schema: TriggerSchema },
+          { name: WebhookModel.name, schema: WebhookSchema },
         ]);
       // case DatabaseType.MYSQL:
       default:
@@ -71,6 +74,7 @@ export class DatabaseModule {
           { name: SyncConnectionModel.name, schema: SyncConnectionSchema },
           { name: SyncflowModel.name, schema: SyncflowSchema },
           { name: TriggerModel.name, schema: TriggerSchema },
+          { name: WebhookModel.name, schema: WebhookSchema },
         ]);
       // case DatabaseType.MYSQL:
       default:

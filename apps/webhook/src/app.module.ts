@@ -5,8 +5,9 @@ import { ConfigModule } from '@nestjs/config';
 import { CommonModule } from './modules/common/common.module';
 import { appConfigRegister, databaseConfigRegister } from '@lib/core/config';
 import { DatabaseModule, LoggerModule } from '@lib/modules';
-import { brokerConfigRegister } from '@lib/core/config/broker.config';
 import { BrokerModule } from './modules/broker/broker.module';
+import { WebhookModule } from './modules/webhook/webhook.module';
+import { brokerConfigRegister } from './config/broker.config';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -17,6 +18,7 @@ import { BrokerModule } from './modules/broker/broker.module';
     DatabaseModule.forRootAsync(),
     BrokerModule,
     CommonModule,
+    WebhookModule,
   ],
   controllers: [AppController],
   providers: [AppService],

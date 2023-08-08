@@ -19,6 +19,7 @@ import { SyncConnectionModule } from './modules/sync-connection/syncConnection.m
 import { OrchestratorWorkerModule } from './modules/orchestrator-worker/orchestratorWorker.module';
 import { ActivityModule } from './modules/activities/activity.module';
 import { WorkflowModule } from './modules/workflow/worflow.module';
+import { WebhookModule } from './modules/webhook/webhook.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -39,6 +40,7 @@ import { WorkflowModule } from './modules/workflow/worflow.module';
     DataProviderModule,
     DataSourceModule,
     SyncConnectionModule,
+    WebhookModule,
     ActivityModule,
     WorkflowModule,
     OrchestratorWorkerModule,
