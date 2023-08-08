@@ -170,6 +170,7 @@ function download-excel-file() {
             -H "workbook-session-id: $session_id" \
             -o "$outfile" \
             --write-out "%{http_code}" \
+            --retry 2 \
             "$download_url"
     )
     if test "$status_code" -ne 200; then

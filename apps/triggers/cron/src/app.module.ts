@@ -10,7 +10,7 @@ import {
   orchestratorConfigRegister,
   redisConfigRegister,
 } from '@lib/core/config';
-import { DatabaseModule } from '@lib/modules';
+import { DatabaseModule, LoggerModule } from '@lib/modules';
 import { brokerConfigRegister } from '@lib/core/config/broker.config';
 import { BrokerModule } from './modules/broker/broker.module';
 import { BullModule, BullRootModuleOptions } from '@nestjs/bull';
@@ -48,6 +48,7 @@ import { TriggerModule } from './modules/trigger/trigger.module';
         } as BullRootModuleOptions;
       },
     }),
+    LoggerModule,
     BrokerModule,
     CommonModule,
     // ActivityModule,

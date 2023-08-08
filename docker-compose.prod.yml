@@ -2,11 +2,16 @@ version: "3.9"
 services:
   configurator:
     depends_on:
-      - mongodb
-      - kafka-0
-      - kafka-1
-      - kafka-2
-      - temporal
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      temporal:
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
@@ -19,8 +24,9 @@ services:
     ports:
       - 9000:8080
     environment:
-      - NODE_ENV=prod
+      - NODE_ENV=production
       - PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL}
       - DB_TYPE=mongodb
       - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
@@ -28,6 +34,7 @@ services:
       - KAFKA_CLIENT_ID=configurator
       - KAFKA_CONSUMER_GROUP_ID=configurator-consumer
       - KAFKA_SSL_ENABLED=false
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
       - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=configurator
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=configurator
@@ -35,11 +42,16 @@ services:
       - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
   controller:
     depends_on:
-      - mongodb
-      - kafka-0
-      - kafka-1
-      - kafka-2
-      - temporal
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      temporal:
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
@@ -52,8 +64,9 @@ services:
     ports:
       - 9001:8080
     environment:
-      - NODE_ENV=prod
+      - NODE_ENV=production
       - PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL}
       - DB_TYPE=mongodb
       - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
@@ -61,6 +74,7 @@ services:
       - KAFKA_CLIENT_ID=controller
       - KAFKA_CONSUMER_GROUP_ID=controller-consumer
       - KAFKA_SSL_ENABLED=false
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
       - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=controller
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=controller
@@ -68,11 +82,16 @@ services:
       - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
   worker:
     depends_on:
-      - mongodb
-      - kafka-0
-      - kafka-1
-      - kafka-2
-      - temporal
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      temporal:
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
@@ -85,8 +104,9 @@ services:
     ports:
       - 9003:8080
     environment:
-      - NODE_ENV=prod
+      - NODE_ENV=production
       - PORT=9000
+      - LOG_LEVEL=${LOG_LEVEL}
       - DB_TYPE=mongodb
       - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
@@ -94,6 +114,7 @@ services:
       - KAFKA_CLIENT_ID=worker
       - KAFKA_CONSUMER_GROUP_ID=worker-consumer
       - KAFKA_SSL_ENABLED=false
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
       - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=worker
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=worker
@@ -104,11 +125,16 @@ services:
       - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
   post-processor:
     depends_on:
-      - mongodb
-      - kafka-0
-      - kafka-1
-      - kafka-2
-      - temporal
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      temporal:
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
@@ -121,8 +147,9 @@ services:
     ports:
       - 9004:8080
     environment:
-      - NODE_ENV=prod
+      - NODE_ENV=production
       - PORT=9000
+      - LOG_LEVEL=${LOG_LEVEL}
       - DB_TYPE=mongodb
       - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
@@ -130,6 +157,7 @@ services:
       - KAFKA_CLIENT_ID=post-processor
       - KAFKA_CONSUMER_GROUP_ID=post-processor-consumer
       - KAFKA_SSL_ENABLED=false
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
       - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=post-processor
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=post-processor
@@ -211,11 +239,16 @@ services:
   #--------------------------------- TRIGGERS --------------------------------------#
   cron-trigger:
     depends_on:
-      - mongodb
-      - kafka-0
-      - kafka-1
-      - kafka-2
-      - temporal
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      temporal:
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
@@ -228,8 +261,9 @@ services:
     ports:
       - 8003:8080
     environment:
-      - NODE_ENV=prod
+      - NODE_ENV=production
       - PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL}
       - DB_TYPE=mongodb
       - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
@@ -237,33 +271,14 @@ services:
       - KAFKA_CLIENT_ID=cron-trigger
       - KAFKA_CONSUMER_GROUP_ID=cron-trigger
       - KAFKA_SSL_ENABLED=false
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
       - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=cron-trigger
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=cron-trigger
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      #--------------------------------- DATABASE ---------------------------------------#
-
-      # mongodb:
-      # restart: on-failure
-      # build:
-      # context: .
-      # dockerfile: ./init/mongodb.Dockerfile
-      # expose:
-      # - 27017
-      # ports:
-      # - 27017:27017
-      # volumes:
-      # - mongodb:/data/db
-      # healthcheck:
-      # test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongo -u admin -p abc123456 --quiet) -eq 1
-      # interval: 10s
-      # start_period: 30s
-      # environment:
-      # - MONGO_INITDB_ROOT_USERNAME=${MONGODB_ROOT_USERNAME}
-      # - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
-      # - MONGO_INITDB_DATABASE=${MONGODB_DATABASE_NAME}
+  #--------------------------------- DATABASE ---------------------------------------#
   mongodb:
     restart: on-failure
     image: bitnami/mongodb:5.0
@@ -292,7 +307,14 @@ services:
       - POSTGRESQL_DATABASE=${POSTGRESQL_DATABASE_NAME}
   #--------------------------------- KAFKA ---------------------------------------#
   kafka-0:
+    restart: on-failure
     image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --describe"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     ports:
       - 9094:9094
     environment:
@@ -310,7 +332,14 @@ services:
     volumes:
       - kafka_0:/bitnami/kafka
   kafka-1:
+    restart: on-failure
     image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --describe"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     ports:
       - 9092
     environment:
@@ -328,7 +357,14 @@ services:
     volumes:
       - kafka_1:/bitnami/kafka
   kafka-2:
+    restart: on-failure
     image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --describe"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     ports:
       - 9092
     environment:

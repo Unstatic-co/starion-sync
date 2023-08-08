@@ -20,7 +20,7 @@ services:
     ports:
       - 9000:8080
     environment:
-      - NODE_ENV=dev
+      - NODE_ENV=development
       - PORT=8080
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
@@ -35,7 +35,6 @@ services:
       - MICROSOFT_CLIENT_ID=cf0e88e2-566f-4c81-abb5-2ae0111251fe
       - MICROSOFT_CLIENT_SECRET=PTw8Q~A3IFhv~FuckTAfR.nYtoMMxVMoS_Oi3bxd
       - MICROSOFT_PERMISSION_SCOPES=offline_access,openid,User.Read.All,https://graph.microsoft.com/Files.ReadWrite.All
-      - LOG_LEVELS=warn,error
   controller:
     depends_on:
       - mongodb
@@ -56,7 +55,7 @@ services:
     ports:
       - 9001:8080
     environment:
-      - NODE_ENV=dev
+      - NODE_ENV=development
       - PORT=8080
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
@@ -71,30 +70,6 @@ services:
       - MICROSOFT_CLIENT_ID=cf0e88e2-566f-4c81-abb5-2ae0111251fe
       - MICROSOFT_CLIENT_SECRET=PTw8Q~A3IFhv~FuckTAfR.nYtoMMxVMoS_Oi3bxd
       - MICROSOFT_PERMISSION_SCOPES=offline_access,openid,User.Read.All,https://graph.microsoft.com/Files.ReadWrite.All
-      # executor:
-      # depends_on:
-      # - mongodb
-      # - zookeeper
-      # - kafka
-      # - temporal
-      # build:
-      # context: .
-      # dockerfile: ./apps/executor/Dockerfile
-      # expose:
-      # - 9002
-      # ports:
-      # - 9002:9002
-      # environment:
-      # - NODE_ENV=dev
-      # - PORT=9002
-      # - DB_TYPE=mongodb
-      # - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
-      # - BROKER_TYPE=kafka
-      # - BROKER_URIS=kafka:29092
-      # - KAFKA_CLIENT_ID=executor
-      # - KAFKA_CONSUMER_GROUP_ID=executor-consumer
-      # - KAFKA_SSL_ENABLED=false
-      # - ORCHESTRATOR_ADDRESS=temporal:7233
   worker:
     depends_on:
       - mongodb
@@ -115,7 +90,7 @@ services:
     ports:
       - 9003:8080
     environment:
-      - NODE_ENV=dev
+      - NODE_ENV=development
       - PORT=9000
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
@@ -152,7 +127,7 @@ services:
     ports:
       - 9004:8080
     environment:
-      - NODE_ENV=dev
+      - NODE_ENV=development
       - PORT=9000
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
@@ -263,7 +238,7 @@ services:
     ports:
       - 8003:8080
     environment:
-      - NODE_ENV=dev
+      - NODE_ENV=development
       - PORT=8080
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
@@ -278,33 +253,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=abc123456
-      #--------------------------------- DATABASE ---------------------------------------#
-      # mysql:
-      # image: mysql:8.0
-      # expose:
-      # - 3306
-      # ports:
-      # - 3306:3306
-      # volumes:
-      # - mysql:/var/lib/mysql
-      # command: mysqld --default-authentication-plugin=mysql_native_password
-      # environment:
-      # - MYSQL_ROOT_PASSWORD=abc123456@
-      # - MYSQL_DATABASE=starion-sync
-      # - MYSQL_ROOT_HOST=%
-      # - MYSQL_USER=mysqluser
-      # - MYSQL_PASSWORD=mysqlpwd
-      # cap_add:
-      # - CAP_SYS_NICE
-      # phpmyadmin:
-      # image: phpmyadmin/phpmyadmin
-      # platform: linux/amd64
-      # ports:
-      # - 5000:80
-      # environment:
-      # - PMA_HOST=mysql
-      # - PMA_PORT=3306
-      # - PMA_ARBITRARY=1
+  #--------------------------------- DATABASE ---------------------------------------#
   mongodb:
     restart: on-failure
     build:
@@ -463,17 +412,6 @@ services:
       - ENABLE_ES=true
       - ES_SEEDS=elasticsearch
       - ES_VERSION=v7
-      # temporal-admin-tools:
-      # container_name: temporal-admin-tools
-      # depends_on:
-      # - temporal
-      # environment:
-      # - TEMPORAL_CLI_ADDRESS=temporal:7233
-      # image: temporalio/admin-tools:${TEMPORAL_VERSION}
-      # networks:
-      # - temporal-network
-      # stdin_open: true
-      # tty: true
   temporal-ui:
     depends_on:
       - temporal

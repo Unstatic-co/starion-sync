@@ -12,7 +12,7 @@ import { LoggingInterceptor } from './common/interceptor/logging.interceptor';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig, ConfigName } from '@lib/core/config';
 import { BrokerConfig, TRANSPORT_MAP } from '@lib/core/config/broker.config';
-import { LogLevel, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { AggregateByDataProvidertTypeContextIdStrategy } from '@lib/microservice';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
