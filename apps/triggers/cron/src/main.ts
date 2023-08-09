@@ -31,7 +31,11 @@ async function bootstrap() {
     options: brokerConfig.options,
   });
 
-  app.startAllMicroservices();
+  if (environment === 'production') {
+    await app.startAllMicroservices();
+  } else {
+    app.startAllMicroservices();
+  }
   await app.listen(port, () => {
     Logger.log(`Server is listening at http://localhost:${port}`);
     Logger.log(`Evironment: ${environment}`);

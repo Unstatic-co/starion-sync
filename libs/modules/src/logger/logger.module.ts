@@ -16,9 +16,9 @@ export const LoggerModule = WinstonModule.forRootAsync({
           winston.format.colorize({ all: true }),
           winston.format.prettyPrint(),
           winston.format.printf((info) => {
-            return `${info.timestamp} ${info.level.toLocaleUpperCase()}: ${
-              info.message
-            }`;
+            return `${info.level} ${
+              info.context ? '[' + info.context + ']' : ''
+            }: ${info.message}`;
           }),
         ),
         handleExceptions: true,
