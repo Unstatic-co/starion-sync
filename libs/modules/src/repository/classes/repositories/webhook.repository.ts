@@ -4,6 +4,10 @@ import { QueryOptions } from '../common';
 
 export interface IWebhookRepository extends IRepository {
   getById(id: WebhookId, options?: QueryOptions): Promise<Webhook | null>;
+  getActiveWebhooksByType(
+    type: WebhookType,
+    options?: QueryOptions,
+  ): Promise<Webhook[]>;
   create(data: CreateWebhookData, options?: QueryOptions): Promise<Webhook>;
   update(
     data: UpdateWebhookData,

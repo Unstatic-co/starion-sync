@@ -1,21 +1,51 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CommonModule } from './modules/common/common.module';
-import { appConfigRegister, databaseConfigRegister } from '@lib/core/config';
+import {
+  ConfigName,
+  RedisConfig,
+  appConfigRegister,
+  databaseConfigRegister,
+  redisConfigRegister,
+} from '@lib/core/config';
 import { DatabaseModule, LoggerModule } from '@lib/modules';
 import { BrokerModule } from './modules/broker/broker.module';
 import { WebhookModule } from './modules/webhook/webhook.module';
 import { brokerConfigRegister } from './config/broker.config';
+import { webhookConfigRegister } from './config/webhook.config';
+import { BullModule, BullRootModuleOptions } from '@nestjs/bull';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfigRegister, databaseConfigRegister, brokerConfigRegister],
+      load: [
+        appConfigRegister,
+        databaseConfigRegister,
+        brokerConfigRegister,
+        redisConfigRegister,
+        webhookConfigRegister,
+      ],
+    }),
+    DatabaseModule.forRootAsync(),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const redisConfig = configService.get<RedisConfig>(
+          `${ConfigName.REDIS}`,
+        );
+        const { host, port, password } = redisConfig;
+        return {
+          redis: {
+            host,
+            port,
+            password,
+          },
+        } as BullRootModuleOptions;
+      },
     }),
     LoggerModule,
-    DatabaseModule.forRootAsync(),
     BrokerModule,
     CommonModule,
     WebhookModule,

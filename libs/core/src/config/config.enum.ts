@@ -7,5 +7,6 @@ export enum ConfigName {
   REDIS = 'redis',
   SERVICES = 'services',
   PROCESSOR = 'processor',
+  WEBHOOK = 'webhook',
   MICROSOFT = 'microsoft',
 }

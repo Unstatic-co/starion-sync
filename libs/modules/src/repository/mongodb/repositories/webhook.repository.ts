@@ -37,6 +37,24 @@ export class WebhookRepository implements IWebhookRepository {
     return result.toJSON();
   }
 
+  public async getActiveWebhooksByType(type: string, options?: QueryOptions) {
+    const conditions = {
+      type,
+      status: WebhookStatus.ACTIVE,
+      isDeleted: false,
+    };
+    if (options?.includeDeleted) {
+      Object.assign(conditions, { isDeleted: true });
+    }
+    let query = this.webhookModel.find(conditions);
+    if (options?.session) {
+      query = query.session(options.session);
+    }
+    const result = await query;
+    if (!result) return null;
+    return result.map((result) => result.toJSON());
+  }
+
   public async create(data: CreateWebhookData) {
     const doc = new this.webhookModel({
       ...data,

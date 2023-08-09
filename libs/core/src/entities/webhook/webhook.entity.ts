@@ -20,3 +20,11 @@ export class Webhook {
 
   type: WebhookType;
 }
+
+export interface WebhookPayload {
+  [key: string]: any;
+
+  timestamp: Date;
+}
+
+export type WebhookConnectionCreatedPayload = WebhookPayload;

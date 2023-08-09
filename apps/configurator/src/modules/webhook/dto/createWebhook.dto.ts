@@ -1,5 +1,5 @@
 import { WebhookType } from '@lib/core';
-import { IsEnum, IsNotEmpty, IsString, IsUrl } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateWebhookDto {
   @IsNotEmpty()
@@ -8,6 +8,5 @@ export class CreateWebhookDto {
 
   @IsNotEmpty()
   @IsString()
-  @IsUrl()
   url: string;
 }
