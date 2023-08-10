@@ -161,6 +161,45 @@ services:
       - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=post-processor
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=post-processor
+  webhook:
+    depends_on:
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_healthy
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+    build:
+      context: .
+      dockerfile: ./apps/webhook/Dockerfile
+    expose:
+      - 8080
+    ports:
+      - 9005:8080
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL}
+      - DB_TYPE=mongodb
+      - DB_URI=${DB_URI}
+      - BROKER_TYPE=kafka
+      - BROKER_URIS=${BROKER_URIS}
+      - KAFKA_CLIENT_ID=webhook
+      - KAFKA_CONSUMER_GROUP_ID=wehook-consumer
+      - KAFKA_SSL_ENABLED=false
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - WEBHOOK_PRIVATE_KEY=${WEBHOOK_PRIVATE_KEY}
   #--------------------------------- PROCESSORS --------------------------------------#
   downloader:
     depends_on:
@@ -305,16 +344,27 @@ services:
       - POSTGRESQL_USERNAME=${POSTGRESQL_USERNAME}
       - POSTGRESQL_PASSWORD=${POSTGRESQL_PASSWORD}
       - POSTGRESQL_DATABASE=${POSTGRESQL_DATABASE_NAME}
+  #----------------------------------- REDIS ----------------------------------------#
+  redis:
+    restart: on-failure
+    image: bitnami/redis:6.2.13-debian-11-r13
+    ports:
+      - 6379:${REDIS_PORT}
+    volumes:
+      - redis:/bitnami/redis/data
+    environment:
+      - REDIS_PORT_NUMBER=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
   #--------------------------------- KAFKA ---------------------------------------#
   kafka-0:
     restart: on-failure
     image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --describe"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 10s
+      start_period: 20s
     ports:
       - 9094:9094
     environment:
@@ -336,10 +386,10 @@ services:
     image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --describe"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 10s
+      start_period: 20s
     ports:
       - 9092
     environment:
@@ -361,10 +411,10 @@ services:
     image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --describe"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 10s
+      start_period: 20s
     ports:
       - 9092
     environment:
@@ -381,30 +431,6 @@ services:
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
     volumes:
       - kafka_2:/bitnami/kafka
-  kafka-ui:
-    depends_on:
-      - kafka-0
-      - kafka-1
-      - kafka-2
-    container_name: kafka-ui
-    image: provectuslabs/kafka-ui:latest
-    ports:
-      - 3000:8080
-    volumes:
-      - ./init/kui-config.prod.yml:/etc/kafkaui/dynamic_config.yaml
-    environment:
-      DYNAMIC_CONFIG_ENABLED: true
-  #----------------------------------- REDIS ----------------------------------------#
-  redis:
-    restart: on-failure
-    image: bitnami/redis:6.2.13-debian-11-r13
-    ports:
-      - 6379:${REDIS_PORT}
-    volumes:
-      - redis:/bitnami/redis/data
-    environment:
-      - REDIS_PORT_NUMBER=${REDIS_PORT}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
   #--------------------------------- ORCHESTRATOR (TEMPORAL) ---------------------------------------#
   temporal:
     restart: on-failure

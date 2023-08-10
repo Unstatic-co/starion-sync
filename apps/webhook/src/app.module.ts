@@ -44,6 +44,7 @@ import { BullModule, BullRootModuleOptions } from '@nestjs/bull';
           },
         } as BullRootModuleOptions;
       },
+      imports: [ConfigModule],
     }),
     LoggerModule,
     BrokerModule,

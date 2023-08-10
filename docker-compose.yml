@@ -144,6 +144,7 @@ services:
       - mongodb
       - zookeeper
       - kafka
+      - redis
     deploy:
       restart_policy:
         condition: on-failure
@@ -164,9 +165,13 @@ services:
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
       - BROKER_URIS=kafka:29092
-      - KAFKA_CLIENT_ID=post-processor
-      - KAFKA_CONSUMER_GROUP_ID=post-processor-consumer
+      - KAFKA_CLIENT_ID=webhook
+      - KAFKA_CONSUMER_GROUP_ID=webhook-consumer
       - KAFKA_SSL_ENABLED=false
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=abc123456
+      - WEBHOOK_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDP2yBStuVi2fIQvv1tFh0VvyGvZIhLrhA/JoDnO3Cp2psh5UHXssLntj3wQY+eyrDhEPAj0bq9LT8xCBlFKOmv1oojtx0uTNudFTFFgluQA2f4y/91HqCh9QL26lu1mNUx/Tx5NSUlZjdp2gEMD84+8d+eYzbUOzlsqlNHYicHz/o04l1XzEWZ0dLiEaYas4FI9Rlu+aa5oXLS+Mbn6tift+L/EC0hD4V6flRz/HH3kCnYDPOJ/m2UjY22gimvW/aTl2j1WZWYgqyTlIu9YCG548lrOIXFFCwsxHrcwMzM8DoPdKx5HVxR2I1cJ4KhmIgwqBNcP7yuwk0JCNJmiQbNAgMBAAECggEAG4W/326hVrgA0fqAKGrLr3P5/AqbSNjDr6D5DjqJfgGDa3cQWK/ZGAEXwtGOOK/3wNgofA21eimHcFt1Vnoxi0YkpNBb2E7MAPOWl8Ydj/xWJD8Ff0Fux/3fMR5cxgx2emKLmIm9dpjKJfAnFazyxH9BesGst73J1PDZYHPc3YSNQIzP/4F2rhGn7fFkWu06Bsj2nY6/J0L7HLHKAdJ1GvV2K/zoiv2GEsZKvOPa24ofo+eYYfwccZ1+09wnfxuBo1f9Qva80Hc3MTHgiQwG3BVdnmV5KuL+DUX2sqWokfhqEnHrmtaoPK3M0fsU3T6fTiXEnrSK/ectUyKAvCjL/wKBgQD92tZ+exjXiGawIHkBrvTK17kPH8vQYxKvDL6/xB0ggKrL1okyV0aqpQJVB2bW0Qf8zxxpFDCx6gtZ0ML6FU2zfJ0xpG/k1dRELCs9KvH4yyDRkK9Ld2XWDB4XfTTA3y3LuOfOVgLE/PmKSzXFFG0LrcGGgALG4CDaMB3jMFEVWwKBgQDRnMeGw65ETeTz+HPkAnDRb1UBaMyhyGafjq4kALV8m0pR2JVmR/D5OvH/yt65t1IZ6HAbaccIncBfJ3+604wN+URGG2Tmln+hVSdIdTLNhbLsfkBBqbuBWkTPtdrYgXL0nlM47U1UZlvgqQ5y7iXoyOcqsYRETLNl2R1TNWgE9wKBgH8VlDYDmB8mmQnpZ8rQ9Jmrv2hz6YvsXUknH0NPgalo4JhlUY/TI3yAWReKOhCm2tHUOYvdYLdgzMfs+/9ItPp7ExLsGFw+NCLg3dCkdDiyMD7ZqPgl0OSEcngd5U/9KqcHbXzdkEtfvele149PN3wWQ4D7CujXAXtZhUzcPmtrAoGAQ3XVsUWg/FKlcO9xPNycOos+LGnyEc9RV+Cvot6niibgUF8IFhbpMw0JfW1pKRQa1EO+cNQmPlum4fjwXsxestCabIW8f4nIIcAqGGO/qe1xnDM1suxRcFwA8WhxumRO/vNFjXix/ovC3hcKk2qZwMWHwHHJQ8H7qrepfHIfvBkCgYBYrO2h24uke0fVFgy5CJErjV9S7yymPgJBv4LePctisAspnFL83T+NODIZGqb9aq4woYfJAT6BoAKuWGrCOp6rvalb+b7OfhYf74l/fozfYx5NsCqyCucATy6y6tarsk1bfRGoS5Nu/dJxpckKk+6EGPk6PZLQyLtkfkcNylXz0A==\n-----END PRIVATE KEY-----
   #--------------------------------- PROCESSORS --------------------------------------#
   downloader:
     depends_on:

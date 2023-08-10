@@ -6,7 +6,9 @@ export interface WebhookConfig {
 }
 
 export const webhookConfig: WebhookConfig = {
-  privateKey: process.env.WEBHOOK_PRIVATE_KEY || undefined,
+  privateKey:
+    process.env.WEBHOOK_PRIVATE_KEY?.split(String.raw`\n`).join('\n') ||
+    undefined,
 };
 
 export const webhookConfigRegister = registerAs(ConfigName.WEBHOOK, () => {
