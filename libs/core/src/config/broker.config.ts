@@ -35,6 +35,10 @@ const brokerConfig = (() => {
         client: {
           clientId: KAFKA_CLIENT_ID,
           brokers: BROKER_URIS.split(','),
+          connectionTimeout: 3000,
+          retry: {
+            retries: 8,
+          },
           ssl: KAFKA_SSL_ENABLED === 'true',
           // sasl: {
           // mechanism: 'plain', // plain or scram-sha-256 or scram-sha-512
@@ -57,6 +61,10 @@ const brokerConfig = (() => {
         client: {
           clientId: KAFKA_CLIENT_ID,
           brokers: BROKER_URIS.split(','),
+          connectionTimeout: 3000,
+          retry: {
+            retries: 8,
+          },
           ssl: KAFKA_SSL_ENABLED === 'true',
           // sasl: {
           // mechanism: 'plain', // plain or scram-sha-256 or scram-sha-512
@@ -90,11 +98,16 @@ export interface KafkaBrokerConfig {
   client: {
     clientId: string;
     brokers: string[];
-    ssl: boolean;
-    sasl: {
+    ssl?: boolean;
+    sasl?: {
       mechanism: string; // plain or scram-sha-256 or scram-sha-512
       username: string;
       password: string;
+    };
+    connectionTimeout?: number;
+    retry?: {
+      initialRetryTime?: number;
+      retries?: number;
     };
   };
   consumer: {
