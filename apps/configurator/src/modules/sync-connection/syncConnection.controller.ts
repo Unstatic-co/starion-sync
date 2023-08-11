@@ -54,7 +54,7 @@ export class SyncConnectionController {
       {
         workflowId: `${id}`,
         args: [id],
-        workflowExecutionTimeout: 10000,
+        // workflowExecutionTimeout: 10000,
         waitResult: true,
       },
     )) as DeleteResult<SyncConnection>;

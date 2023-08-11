@@ -16,27 +16,24 @@ const {
   updateSyncflowState,
 } = proxyActivities<WorkflowActivities>({
   startToCloseTimeout: '10 second',
-  scheduleToCloseTimeout: '10y',
 });
 
 const { downloadExcel } = proxyActivities<MicrosoftExcelActivities>({
   startToCloseTimeout: '4m',
-  scheduleToCloseTimeout: '1h',
+  // scheduleToCloseTimeout: '10y',
 });
 
 const { compareExcel, loadExcel } = proxyActivities<MicrosoftExcelActivities>({
   startToCloseTimeout: '30 second',
-  scheduleToCloseTimeout: '10y',
+  // scheduleToCloseTimeout: '10y',
 });
 
 const { getSyncDataExcel } = proxyActivities<MicrosoftExcelActivities>({
   startToCloseTimeout: '5 second',
-  scheduleToCloseTimeout: '10y',
 });
 
 const { emitEvent } = proxyActivities<BrokerActivities>({
   startToCloseTimeout: '5 second',
-  scheduleToCloseTimeout: '10y',
 });
 
 export async function excelFullSync(data: SyncflowScheduledPayload) {

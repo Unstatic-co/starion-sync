@@ -19,7 +19,7 @@ export class BrokerController {
     return this.orchestratorService.executeWorkflow(payload.syncflow.name, {
       workflowId: `${payload.syncflow.id}-${payload.version}`,
       args: [payload],
-      workflowExecutionTimeout: 60000,
+      // workflowExecutionTimeout: 60000,
       workflowIdReusePolicy:
         WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
     });

@@ -20,7 +20,7 @@ export class BrokerController {
     return this.orchestratorService.executeWorkflow(handleWorkflowTriggeredWf, {
       workflowId: `${payload.id}`,
       args: [payload],
-      workflowExecutionTimeout: 5000,
+      // workflowExecutionTimeout: 5000,
       workflowIdReusePolicy:
         WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE,
     });

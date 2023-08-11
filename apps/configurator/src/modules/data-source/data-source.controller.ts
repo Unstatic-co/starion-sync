@@ -44,7 +44,7 @@ export class DataSourceController {
       {
         workflowId: `${id}`,
         args: [{ ...data, sourceId: id }],
-        workflowExecutionTimeout: 5000,
+        // workflowExecutionTimeout: 5000,
       },
     );
     if (result.isAlreadyCreated) {
