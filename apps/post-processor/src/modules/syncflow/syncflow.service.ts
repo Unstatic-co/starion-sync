@@ -20,7 +20,7 @@ export class SyncflowService {
   ) {}
 
   async handleSyncflowSucceed(data: SyncflowSucceedPayload): Promise<void> {
-    const { syncflowId, dataSourceId } = data;
+    const { syncflowId, dataSourceId, syncVersion, prevSyncVersion } = data;
     this.logger.log(`Handling syncflow succeeded for ${syncflowId}`);
 
     const [syncflow, dataSource] = await Promise.all([
@@ -37,17 +37,7 @@ export class SyncflowService {
     }
     const cleaner = this.cleanerFactory.get(dataSource.provider.type);
 
-    // await Promise.all([
-    // cleaner.run(syncflow),
-    // this.dataSourceRepository.updateStatistics(dataSourceId, {
-    // rowsNumber:
-    // dataSource.statistics.rowsNumber +
-    // (data.loadedDataStatistics.addedRowsCount -
-    // data.loadedDataStatistics.deletedRowsCount),
-    // }),
-    // ]);
-
-    await cleaner.run(syncflow);
+    await cleaner.run(syncflow, { syncVersion, prevSyncVersion });
     await this.dataSourceRepository.updateStatistics(dataSourceId, {
       rowsNumber:
         dataSource.statistics.rowsNumber +

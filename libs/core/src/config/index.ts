@@ -7,3 +7,4 @@ export * from './orchestrator.config';
 export * from './microsoft.config';
 export * from './redis.config';
 export * from './processor.config';
+export * from './storage.config';

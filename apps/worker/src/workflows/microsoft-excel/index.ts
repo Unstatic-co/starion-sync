@@ -43,9 +43,12 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
 
       const syncData = await getSyncDataExcel(data.syncflow);
 
+      const syncVersion = data.version;
+      const prevSyncVersion = data.syncflow.state.prevVersion;
+
       await downloadExcel({
         dataSourceId: syncData.dataSourceId,
-        syncVersion: data.version,
+        syncVersion,
         workbookId: syncData.workbookId,
         worksheetId: syncData.worksheetId,
         timezone: syncData.timezone,
@@ -53,19 +56,21 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
       });
       await compareExcel({
         dataSourceId: syncData.dataSourceId,
-        syncVersion: data.version,
-        prevVersion: data.syncflow.state.prevVersion,
+        syncVersion,
+        prevVersion: prevSyncVersion,
       });
       const loadedDataStatistics = await loadExcel({
         dataSourceId: syncData.dataSourceId,
-        syncVersion: data.version,
-        prevVersion: data.syncflow.state.prevVersion,
+        syncVersion,
+        prevVersion: prevSyncVersion,
       });
 
       await emitEvent(EventNames.SYNCFLOW_SUCCEED, {
         payload: {
           dataSourceId: syncData.dataSourceId,
           syncflowId: data.syncflow.id,
+          syncVersion,
+          prevSyncVersion,
           loadedDataStatistics,
         } as SyncflowSucceedPayload,
       });

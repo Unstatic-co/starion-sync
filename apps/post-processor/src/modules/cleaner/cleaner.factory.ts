@@ -3,7 +3,13 @@ import { Injectable } from '@nestjs/common';
 import { MicrosoftExcelCleanerService } from './excel';
 
 export interface WorkflowCleaner {
-  run(providerConfig: Workflow): Promise<void>;
+  run(
+    providerConfig: Workflow,
+    additionalData: {
+      syncVersion: number;
+      prevSyncVersion: number;
+    },
+  ): Promise<void>;
 }
 
 @Injectable()

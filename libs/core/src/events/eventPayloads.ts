@@ -12,6 +12,8 @@ export type SyncflowScheduledPayload = EventPayload & {
 export type SyncflowSucceedPayload = EventPayload & {
   dataSourceId: string;
   syncflowId: string;
+  syncVersion: number;
+  prevSyncVersion: number;
   loadedDataStatistics: {
     addedRowsCount: number;
     deletedRowsCount: number;
