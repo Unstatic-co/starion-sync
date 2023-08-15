@@ -2,6 +2,7 @@ import {
   DataSource,
   DataSourceConfig,
   DataSourceId,
+  DataSourceStatistics,
   Metadata,
   ProviderId,
   ProviderType,
@@ -24,6 +25,11 @@ export interface IDataSourceRepository extends IRepository {
     options?: QueryOptions,
   ): Promise<DataSource | void>;
   delete(id: string, options?: QueryOptions): Promise<void>;
+  updateStatistics(
+    id: string,
+    data: UpdateDataSourceStatisticsData,
+    options?: QueryOptions,
+  ): Promise<void>;
 }
 
 export type CreateDataSourceData = {
@@ -40,3 +46,5 @@ export type UpdateDataSourceData = {
   id: ProviderId;
   metadata?: object;
 };
+
+export type UpdateDataSourceStatisticsData = Partial<DataSourceStatistics>;

@@ -3,6 +3,7 @@ import {
   CreateDataSourceData,
   IDataSourceRepository,
   UpdateDataSourceData,
+  UpdateDataSourceStatisticsData,
 } from '../../classes/repositories';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import {
@@ -157,6 +158,58 @@ export class DataSourceRepository implements IDataSourceRepository {
       await processFunc();
     } else {
       await session.withTransaction(processFunc);
+    }
+  }
+
+  public async updateStatistics(
+    id: string,
+    data: UpdateDataSourceStatisticsData,
+    options?: QueryOptions,
+  ) {
+    let result;
+    const session = options?.session
+      ? options.session
+      : await this.connection.startSession();
+
+    const processFunc = async () => {
+      const dataSource = await this.dataSourceModel
+        .findOne({
+          _id: Utils.toObjectId(id),
+        })
+        .session(session);
+      if (!dataSource) {
+        throw new Error('DataSource not found');
+      }
+      const updates = {};
+      data.rowsNumber !== undefined &&
+        Object.assign(updates, { 'statistics.rowsNumber': data.rowsNumber });
+      data.storageUsage !== undefined &&
+        Object.assign(updates, {
+          'statistics.storageUsage': data.storageUsage,
+        });
+      await dataSource
+        .updateOne({
+          $set: updates,
+        })
+        .session(session);
+      if (options?.new) {
+        result = (
+          await this.dataSourceModel
+            .findOne({
+              _id: Utils.toObjectId(id),
+            })
+            .session(session)
+        ).toJSON();
+      }
+    };
+
+    if (options?.session) {
+      await processFunc();
+    } else {
+      await session.withTransaction(processFunc);
+    }
+    if (options?.new) {
+      return result;
     }
   }
 }
