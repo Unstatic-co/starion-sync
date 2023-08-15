@@ -22,6 +22,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8080
+      - LOG_LOKI_HOST=http://loki:3100
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
@@ -470,6 +471,41 @@ services:
     environment:
       - MINIO_ROOT_USER=admin
       - MINIO_ROOT_PASSWORD=abc123456
+  #--------------------------------- MONITORING ---------------------------------------#
+  loki:
+    image: grafana/loki:2.8.3
+    expose:
+      - 3100
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+  grafana:
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /etc/grafana/provisioning/datasources
+        cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml
+        apiVersion: 1
+        datasources:
+        - name: Loki
+          type: loki
+          access: proxy 
+          orgId: 1
+          url: http://loki:3100
+          basicAuth: false
+          isDefault: true
+          version: 1
+          editable: false
+        EOF
+        /run.sh
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
 volumes:
   mongo:
   mysql:
