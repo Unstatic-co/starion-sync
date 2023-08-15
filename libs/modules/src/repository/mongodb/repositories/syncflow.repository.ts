@@ -8,6 +8,7 @@ import {
   CreateSyncflowData,
   ISyncflowRepository,
   UpdateSyncflowData,
+  UpdateSyncflowStateData,
 } from '../../classes/repositories/syncflow.repository';
 import { SyncflowDocument, SyncflowModel } from '../models';
 import { SyncflowCursor, WorkflowStatus } from '@lib/core';
@@ -141,15 +142,10 @@ export class SyncflowRepository implements ISyncflowRepository {
 
   public async updateState(
     id: string,
-    state: {
-      status?: WorkflowStatus;
-      increaseVersion?: boolean;
-      prevVersion?: number;
-      cursor?: SyncflowCursor;
-    },
+    state: UpdateSyncflowStateData,
     options?: QueryOptions,
   ) {
-    const { status, increaseVersion, cursor, prevVersion } = state;
+    const { status, version, cursor, prevVersion } = state;
     const updatesSet = {};
     status !== undefined &&
       Object.assign(updatesSet, { 'state.status': status });
@@ -157,8 +153,8 @@ export class SyncflowRepository implements ISyncflowRepository {
       Object.assign(updatesSet, { 'state.prevVersion': prevVersion });
     cursor !== undefined &&
       Object.assign(updatesSet, { 'state.cursor': cursor });
-    const updateInc = {};
-    increaseVersion && Object.assign(updateInc, { 'state.version': 1 });
+    version !== undefined &&
+      Object.assign(updatesSet, { 'state.version': version });
     await this.syncflowModel.updateOne(
       {
         _id: Utils.toObjectId(id),
@@ -166,7 +162,6 @@ export class SyncflowRepository implements ISyncflowRepository {
       },
       {
         $set: updatesSet,
-        $inc: updateInc,
       },
     );
     if (options?.new) {

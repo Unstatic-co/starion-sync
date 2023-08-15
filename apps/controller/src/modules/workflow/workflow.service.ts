@@ -101,7 +101,6 @@ export class WorkflowService {
       syncflow.id,
       {
         status: WorkflowStatus.SCHEDULED,
-        increaseVersion: true,
       },
       { new: true },
     );

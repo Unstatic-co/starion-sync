@@ -18,7 +18,7 @@ type DownloadExcelRequest struct {
 	AccessToken  string `form:"accessToken" valid:"Required"`
 	SessionId    string `form:"sessionId"`
 	DataSourceId string `form:"dataSourceId" valid:"Required"`
-	SyncVersion  int    `form:"syncVersion" valid:"Required; Min(0)"`
+	SyncVersion  *int   `form:"syncVersion" binding:"required,number"`
 	Timezone     string `form:"timezone" valid:"Required"`
 }
 type DownloadExcelResponse struct {
@@ -45,7 +45,7 @@ func DownloadExcel(c *gin.Context) {
 		AccessToken:  body.AccessToken,
 		SessionId:    body.SessionId,
 		DataSourceId: body.DataSourceId,
-		SyncVersion:  body.SyncVersion,
+		SyncVersion:  *body.SyncVersion,
 		Timezone:     body.Timezone,
 	})
 

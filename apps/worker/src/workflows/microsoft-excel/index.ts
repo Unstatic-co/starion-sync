@@ -71,6 +71,7 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
       });
 
       await updateSyncflowState(data.syncflow.id, {
+        version: data.version + 1,
         prevVersion: data.version,
         status: WorkflowStatus.IDLING,
       });
