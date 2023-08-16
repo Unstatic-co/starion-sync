@@ -24,7 +24,6 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8080
-      - LOG_LOKI_HOST=http://loki:3100
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
@@ -470,6 +469,8 @@ services:
     ports:
       - 3100:3100
     command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki:/loki
   promtail:
     depends_on:
       - loki
@@ -483,9 +484,45 @@ services:
       - webhook-log:/logs/webhook:ro
       - cron-trigger-log:/logs/cron-trigger:ro
     command: -config.file=/etc/promtail/config.yaml
+  prometheus:
+    depends_on:
+      - node-exporter
+      - cadvisor
+    image: prom/prometheus:v2.46.0
+    expose:
+      - 9090
+    volumes:
+      - ./init/prometheus.yml:/etc/prometheus/prometheus.yml
+  node-exporter:
+    restart: always
+    image: prom/node-exporter:v1.6.1
+    command: 
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc' 
+      - '--path.sysfs=/host/sys'
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    expose:
+      - 9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /:/host:ro,rslave
+  cadvisor:
+    restart: always
+    image: gcr.io/cadvisor/cadvisor
+    expose:
+      - 8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
   grafana:
     depends_on:
       - loki
+      - prometheus
     image: grafana/grafana:latest
     ports:
       - 3004:3000
@@ -506,8 +543,14 @@ services:
           isDefault: true
           version: 1
           editable: false
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://prometheus:9090
         EOF
         /run.sh
+    volumes:
+      - /grafana:/var/lib/grafana
     environment:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -519,10 +562,10 @@ volumes:
   zookeeper-log:
   zookeeper-data:
   kafka:
-  elasticsearch:
   postgresql:
-  minio:
   pgadmin:
+  minio:
+  loki:
   configurator-log:
   controller-log:
   worker-log:

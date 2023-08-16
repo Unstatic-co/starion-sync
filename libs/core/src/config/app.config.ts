@@ -9,7 +9,6 @@ export interface AppConfig {
   swaggerUser: string;
   swaggerPassword: string;
   logLevel: string;
-  logLokiHost: string;
 }
 
 export const appConfigRegister = registerAs(ConfigName.APP, () => {
@@ -21,6 +20,5 @@ export const appConfigRegister = registerAs(ConfigName.APP, () => {
     swaggerUser: process.env.SWAGGER_USER || 'admin',
     swaggerPassword: process.env.SWAGGER_PASSWORD || 'admin',
     logLevel: process.env.LOG_LEVEL || 'debug',
-    logLokiHost: process.env.LOG_LOKI_HOST || 'http://localhost:3100',
   } as AppConfig;
 });
