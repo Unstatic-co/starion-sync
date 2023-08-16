@@ -19,6 +19,8 @@ services:
       - 8080
     ports:
       - 9000:8080
+    volumes:
+      - configurator-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -55,6 +57,8 @@ services:
       - 8080
     ports:
       - 9001:8080
+    volumes:
+      - controller-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -90,6 +94,8 @@ services:
       - 8080
     ports:
       - 9003:8080
+    volumes:
+      - worker-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=9000
@@ -127,6 +133,8 @@ services:
       - 8080
     ports:
       - 9004:8080
+    volumes:
+      - post-processor-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=9000
@@ -159,6 +167,8 @@ services:
       - 8080
     ports:
       - 9005:8080
+    volumes:
+      - webhook-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=9000
@@ -271,6 +281,8 @@ services:
       - 8080
     ports:
       - 8003:8080
+    volumes:
+      - cron-trigger-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -405,27 +417,9 @@ services:
     volumes:
       - redis:/data
   #--------------------------------- ORCHESTRATOR (TEMPORAL) ---------------------------------------#
-  elasticsearch:
-    container_name: temporal-elasticsearch
-    image: elasticsearch:7.17.10
-    expose:
-      - 9200
-    ports:
-      - 9200:9200
-    volumes:
-      - elasticsearch:/var/lib/elasticsearch/data
-    environment:
-      - cluster.routing.allocation.disk.threshold_enabled=true
-      - cluster.routing.allocation.disk.watermark.low=512mb
-      - cluster.routing.allocation.disk.watermark.high=256mb
-      - cluster.routing.allocation.disk.watermark.flood_stage=128mb
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms256m -Xmx256m
-      - xpack.security.enabled=false
   temporal:
     depends_on:
       - postgresql
-      - elasticsearch
     container_name: temporal
     image: temporalio/auto-setup:1.20.3.2
     expose:
@@ -443,9 +437,6 @@ services:
       - POSTGRES_PWD=abc123456
       - POSTGRES_SEEDS=postgresql
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
-      - ENABLE_ES=true
-      - ES_SEEDS=elasticsearch
-      - ES_VERSION=v7
   temporal-ui:
     depends_on:
       - temporal
@@ -479,11 +470,25 @@ services:
     ports:
       - 3100:3100
     command: -config.file=/etc/loki/local-config.yaml
+  promtail:
+    depends_on:
+      - loki
+    image: grafana/promtail:2.8.3
+    volumes:
+      - ./init/promtail-config.yaml:/etc/promtail/config.yaml
+      - configurator-log:/logs/configurator:ro
+      - controller-log:/logs/controller:ro
+      - worker-log:/logs/worker:ro
+      - post-processor-log:/logs/post-processor:ro
+      - webhook-log:/logs/webhook:ro
+      - cron-trigger-log:/logs/cron-trigger:ro
+    command: -config.file=/etc/promtail/config.yaml
   grafana:
-    environment:
-      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on:
+      - loki
+    image: grafana/grafana:latest
+    ports:
+      - 3004:3000
     entrypoint:
       - sh
       - -euc
@@ -503,9 +508,10 @@ services:
           editable: false
         EOF
         /run.sh
-    image: grafana/grafana:latest
-    ports:
-      - 3000:3000
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
 volumes:
   mongo:
   mysql:
@@ -517,3 +523,9 @@ volumes:
   postgresql:
   minio:
   pgadmin:
+  configurator-log:
+  controller-log:
+  worker-log:
+  post-processor-log:
+  webhook-log:
+  cron-trigger-log:

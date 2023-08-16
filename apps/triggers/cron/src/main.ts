@@ -20,9 +20,7 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionFilter(httpAdapter));
   app.useGlobalPipes(new ValidationPipe());
   app.useGlobalInterceptors(new LoggingInterceptor());
-  if (environment === 'production') {
-    app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
-  }
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   // Microservice Transports
   const brokerConfig = configService.get(ConfigName.BROKER) as BrokerConfig;
