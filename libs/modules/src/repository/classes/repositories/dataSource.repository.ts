@@ -24,7 +24,7 @@ export interface IDataSourceRepository extends IRepository {
     data: UpdateDataSourceData,
     options?: QueryOptions,
   ): Promise<DataSource | void>;
-  delete(id: string, options?: QueryOptions): Promise<void>;
+  delete(id: string, options?: QueryOptions): Promise<DataSource | void>;
   updateStatistics(
     id: string,
     data: UpdateDataSourceStatisticsData,

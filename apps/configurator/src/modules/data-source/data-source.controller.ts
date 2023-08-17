@@ -1,14 +1,25 @@
-import { Controller, Get, Post, Body, Param, Put } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+} from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 import { DataSourceService } from './data-source.service';
 import { CreateDataSourceDto } from './dto/createDataSource.dto';
-import { UpdateDataSourceData } from '@lib/modules';
+import { OrchestratorService, UpdateDataSourceData } from '@lib/modules';
 import { ApiError } from '../../common/exception/api.exception';
 import { ErrorCode } from '../../common/constants';
 import { CreateSyncConnectionFromDataSourceDto } from './dto/createSyncConnection.dto';
 import { SyncConnectionService } from '../sync-connection/syncConection.service';
 import { WorkflowService } from '../workflow/workflow.service';
 import { createSyncConnectionWf } from '../../workflows';
+import { deleteDataSourceWf } from '../../workflows/dataSource.workflows';
+import { DeleteResult } from '../../common/type/deleteResult';
+import { DataSource } from '@lib/core';
 
 @Controller('datasources')
 export class DataSourceController {
@@ -16,6 +27,7 @@ export class DataSourceController {
     private readonly workflowService: WorkflowService,
     private readonly dataSourceService: DataSourceService,
     private readonly syncConnectionService: SyncConnectionService,
+    private readonly orchestratorService: OrchestratorService,
   ) {}
 
   @Get('/test')
@@ -80,5 +92,24 @@ export class DataSourceController {
     @Body() data: UpdateDataSourceData,
   ) {
     return this.dataSourceService.update(id, data);
+  }
+
+  @Delete(':id')
+  async delete(@Param('id') id: string) {
+    const result = (await this.orchestratorService.executeWorkflow(
+      deleteDataSourceWf,
+      {
+        workflowId: `${id}`,
+        args: [id],
+        waitResult: true,
+      },
+    )) as DeleteResult<DataSource>;
+    if (result.isAlreadyDeleted) {
+      throw new ApiError(
+        ErrorCode.ALREADY_EXISTS,
+        'Data source is already deleted',
+      );
+    }
+    return result.data;
   }
 }

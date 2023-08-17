@@ -5,6 +5,7 @@ import { DataSourceService } from './data-source.service';
 import { DataProviderModule } from '../data-provider/data-provider.module';
 import { SyncConnectionModule } from '../sync-connection/syncConnection.module';
 import { WorkflowModule } from '../workflow/worflow.module';
+import { OrchestratorModule } from '@lib/modules';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { WorkflowModule } from '../workflow/worflow.module';
     WorkflowModule,
     DataProviderModule,
     forwardRef(() => SyncConnectionModule),
+    OrchestratorModule,
   ],
   controllers: [DataSourceController],
   providers: [DataSourceService],

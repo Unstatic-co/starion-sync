@@ -22,6 +22,7 @@ import { ApiError } from '../../common/exception/api.exception';
 import { ErrorCode } from '../../common/constants';
 import { ProviderConfigDto } from '../data-provider/dto/createProvider.dto';
 import { CreationResult } from '../../common/type';
+import { DeleteResult } from '../../common/type/deleteResult';
 
 @Injectable()
 /**
@@ -50,7 +51,7 @@ export class DataSourceService {
   }
 
   public async getById(id: DataSourceId) {
-    this.logger.debug(`Get data source by id: ${id}`);
+    this.logger.log(`Get data source by id: ${id}`);
     const dataSource = await this.dataSourceRepository.getById(id);
     if (!dataSource) {
       throw new ApiError(
@@ -62,20 +63,20 @@ export class DataSourceService {
   }
 
   async create(dto: CreateDataSourceDto): Promise<CreationResult<DataSource>> {
-    let isAlreadyCreated = false;
+    const isAlreadyCreated = false;
     const { type, config, metadata } = dto;
     const { externalId, externalLocalId } =
       this.getOrGenerateDataSourceExternalId(type, config);
-    const existingDataSource = await this.dataSourceRepository.getByExternalId(
-      externalId,
-    );
-    if (existingDataSource) {
-      isAlreadyCreated = true;
-      return {
-        data: existingDataSource,
-        isAlreadyCreated,
-      };
-    }
+    // const existingDataSource = await this.dataSourceRepository.getByExternalId(
+    // externalId,
+    // );
+    // if (existingDataSource) {
+    // isAlreadyCreated = true;
+    // return {
+    // data: existingDataSource,
+    // isAlreadyCreated,
+    // };
+    // }
     const dataProviderExternalId =
       this.dataProviderService.getOrGenerateProviderExternalId(
         type,
@@ -113,6 +114,7 @@ export class DataSourceService {
   }
 
   public async update(id: ProviderId, data: UpdateDataSourceData) {
+    this.logger.log(`Update data source: ${id}`);
     const { metadata } = data;
     let result;
     try {
@@ -131,6 +133,25 @@ export class DataSourceService {
     }
 
     return result;
+  }
+
+  async delete(id: DataSourceId): Promise<DeleteResult<DataSource>> {
+    this.logger.debug(`Delete ds with id: ${id}`);
+    let isAlreadyDeleted = false;
+    const existingDs = await this.dataSourceRepository.getById(id);
+    if (!existingDs) {
+      isAlreadyDeleted = true;
+      return {
+        isAlreadyDeleted,
+      };
+    }
+    const data = (await this.dataSourceRepository.delete(id, {
+      old: true,
+    })) as DataSource;
+    return {
+      isAlreadyDeleted,
+      data,
+    };
   }
 
   public getOrGenerateDataSourceExternalId(

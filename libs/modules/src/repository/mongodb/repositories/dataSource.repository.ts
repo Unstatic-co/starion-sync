@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   CreateDataSourceData,
   IDataSourceRepository,
+  ISyncConnectionRepository,
   UpdateDataSourceData,
   UpdateDataSourceStatisticsData,
 } from '../../classes/repositories';
@@ -20,6 +21,7 @@ import { Utils } from 'apps/configurator/src/common/utils';
 import { QueryOptions } from '../../classes';
 import mongoose from 'mongoose';
 import { mapKeys } from 'lodash';
+import { InjectTokens } from '@lib/modules/inject-tokens';
 
 @Injectable()
 export class DataSourceRepository implements IDataSourceRepository {
@@ -27,6 +29,8 @@ export class DataSourceRepository implements IDataSourceRepository {
     @InjectConnection() private readonly connection: mongoose.Connection,
     @InjectModel(DataSourceModel.name)
     private dataSourceModel: Model<DataSourceDocument>,
+    @Inject(InjectTokens.SYNC_CONNECTION_REPOSITORY)
+    private readonly syncConnectionRepository: ISyncConnectionRepository,
   ) {}
 
   public async getById(id: string, options?: QueryOptions) {
@@ -131,6 +135,8 @@ export class DataSourceRepository implements IDataSourceRepository {
   }
 
   public async delete(id: string, options?: QueryOptions): Promise<void> {
+    let result;
+
     const session = options?.session
       ? options.session
       : await this.connection.startSession();
@@ -152,12 +158,27 @@ export class DataSourceRepository implements IDataSourceRepository {
           },
         })
         .session(session);
+
+      const syncConnection =
+        await this.syncConnectionRepository.getByDataSourceId(id, { session });
+      if (syncConnection) {
+        await this.syncConnectionRepository.delete(syncConnection.id, {
+          session,
+        });
+      }
+
+      if (options?.old) {
+        result = dataSource.toJSON();
+      }
     };
 
     if (options?.session) {
       await processFunc();
     } else {
       await session.withTransaction(processFunc);
+    }
+    if (options?.old) {
+      return result;
     }
   }
 

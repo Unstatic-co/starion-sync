@@ -12,6 +12,7 @@ import { SyncConnectionActivities } from './syncConnection.activities';
 import { CommonModule } from '../common/common.module';
 import { TriggerModule } from '../trigger/trigger.module';
 import { TriggerActivities } from './trigger.activities';
+import { DataSourceActivities } from './dataSource.activities';
 
 @Module({
   imports: [
@@ -31,12 +32,14 @@ import { TriggerActivities } from './trigger.activities';
     CommonActivities,
     SyncConnectionActivities,
     TriggerActivities,
+    DataSourceActivities,
   ],
   exports: [
     BrokerActivities,
     CommonActivities,
     SyncConnectionActivities,
     TriggerActivities,
+    DataSourceActivities,
   ],
 })
 export class ActivityModule {}
