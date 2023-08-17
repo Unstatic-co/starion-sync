@@ -33,6 +33,9 @@ export class SyncConnectionController {
         args: [data],
         workflowExecutionTimeout: 5000,
         waitResult: true,
+        searchAttributes: {
+          dataSourceId: [data.sourceId],
+        },
       },
     )) as CreationResult<SyncConnection>;
     if (result.isAlreadyCreated) {
