@@ -6,12 +6,45 @@ import (
 	"loader/libs/schema"
 	"loader/pkg/config"
 	"strings"
+	"sync"
 
+	jsoniter "github.com/json-iterator/go"
 	pq "github.com/lib/pq"
 	"github.com/samber/lo"
 
 	log "github.com/sirupsen/logrus"
 )
+
+// DB Connection
+
+var lockCreatePostgresDbConn = &sync.Mutex{}
+var postgresDbConn *sql.DB
+
+func getPostgresDbConnection() (*sql.DB, error) {
+	if postgresDbConn == nil {
+		lockCreatePostgresDbConn.Lock()
+		defer lockCreatePostgresDbConn.Unlock()
+		if postgresDbConn == nil {
+			connStr := fmt.Sprintf(
+				"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+				config.AppConfig.DbHost,
+				config.AppConfig.DbPort,
+				config.AppConfig.DbUser,
+				config.AppConfig.DbPassword,
+				config.AppConfig.DbName,
+				config.AppConfig.DbSslMode,
+			)
+			db, err := sql.Open("postgres", connStr)
+			if err != nil {
+				log.Error("Error when connecting to postgres: ", err)
+				return nil, err
+			}
+			postgresDbConn = db
+		}
+	}
+	log.Info("Connected to postgres")
+	return postgresDbConn, nil
+}
 
 // UTILS
 func formatVariable(a interface{}) string {
@@ -25,10 +58,15 @@ func formatVariable(a interface{}) string {
 	}
 }
 
-//
+type PostgresTableDataColumnName string
+
+const (
+	PostgresTableDataIdColumn   PostgresTableDataColumnName = "id"
+	PostgresTableDataDataColumn PostgresTableDataColumnName = "data"
+)
 
 var (
-	ProgresTypeMap = map[schema.DataType]string{
+	PostgresTypeMap = map[schema.DataType]string{
 		schema.String:   "text",
 		schema.Number:   "decimal",
 		schema.DateTime: "timestamptz",
@@ -36,35 +74,31 @@ var (
 		schema.Array:    "text[]",
 		schema.Unknown:  "text",
 	}
+	PostgresTableDataColumns = map[PostgresTableDataColumnName]string{
+		PostgresTableDataIdColumn:   "text",
+		PostgresTableDataDataColumn: "jsonb",
+	}
 )
 
 type PostgreLoader struct {
 	DatasourceId string
 	SyncVersion  uint
 	PrevVersion  uint
-	conn         *sql.DB
 
 	tableName string
+
+	dbConn *sql.DB
 }
 
 func (l *PostgreLoader) Setup() error {
 	log.Debug("Setting up postgres loader")
 
-	connStr := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		config.AppConfig.DbHost,
-		config.AppConfig.DbPort,
-		config.AppConfig.DbUser,
-		config.AppConfig.DbPassword,
-		config.AppConfig.DbName,
-		config.AppConfig.DbSslMode,
-	)
-	db, err := sql.Open("postgres", connStr)
+	dbConn, err := getPostgresDbConnection()
 	if err != nil {
-		log.Error("Error when connecting to postgres: ", err)
+		log.Error("Error when getting db connection: ", err)
 		return err
 	}
-	l.conn = db
+	l.dbConn = dbConn
 
 	l.tableName = fmt.Sprintf("_%s", l.DatasourceId)
 
@@ -72,19 +106,12 @@ func (l *PostgreLoader) Setup() error {
 }
 
 func (l *PostgreLoader) Close() error {
-	if l.conn != nil {
-		err := l.conn.Close()
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
 func (l *PostgreLoader) Load(data *LoaderData) error {
 	log.Info("Loading data to postgres")
-
-	txn, err := l.conn.Begin()
+	txn, err := l.dbConn.Begin()
 	if err != nil {
 		return err
 	}
@@ -150,15 +177,11 @@ func (l *PostgreLoader) setTimezone(txn *sql.Tx) error {
 func (l *PostgreLoader) initTable(txn *sql.Tx, data *LoaderData) error {
 	log.Info("Initilizing table")
 
-	fields := strings.Join(lo.Map(data.AddedRows.Fields, func(fieldName string, _ int) string {
-		schemaField := data.Schema[fieldName]
-		result := fmt.Sprintf("%s %s", fieldName, ProgresTypeMap[schemaField.Type])
-		if schemaField.Primary {
-			result += " PRIMARY KEY"
-		}
-		return result
-	}), ",")
-	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s)", l.tableName, fields)
+	fields := make([]string, 0, len(PostgresTableDataColumns))
+	for fieldName, fieldType := range PostgresTableDataColumns {
+		fields = append(fields, fmt.Sprintf("%s %s", fieldName, fieldType))
+	}
+	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s)", l.tableName, strings.Join(fields, ","))
 	log.Debug("Query: ", query)
 	_, err := txn.Exec(query)
 	if err != nil {
@@ -193,7 +216,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 		log.Info("Adding fields")
 		addColumns := make([]string, 0, len(data.SchemaChanges.AddedFields))
 		for fieldName, field := range data.SchemaChanges.AddedFields {
-			addColumns = append(addColumns, fmt.Sprintf("ADD COLUMN %s %s", fieldName, ProgresTypeMap[field.Type]))
+			addColumns = append(addColumns, fmt.Sprintf("ADD COLUMN %s %s", fieldName, PostgresTypeMap[field.Type]))
 		}
 		query := fmt.Sprintf("ALTER TABLE %s %s", l.tableName, strings.Join(addColumns, ","))
 		log.Debug("Query: ", query)
@@ -222,7 +245,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 		}
 
 		addColumns := strings.Join(lo.Map(updatedTypeFields, func(field string, _ int) string {
-			return fmt.Sprintf("ADD COLUMN %s %s", field, ProgresTypeMap[data.SchemaChanges.UpdatedTypeFields[field]])
+			return fmt.Sprintf("ADD COLUMN %s %s", field, PostgresTypeMap[data.SchemaChanges.UpdatedTypeFields[field]])
 		}), ",")
 		query = fmt.Sprintf("ALTER TABLE %s %s", l.tableName, addColumns)
 		log.Debug("Query: ", query)
@@ -247,7 +270,7 @@ func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	log.Debug("Inserting data")
-	query := pq.CopyIn(l.tableName, data.AddedRows.Fields...)
+	query := pq.CopyIn(l.tableName, string(PostgresTableDataIdColumn), string(PostgresTableDataDataColumn))
 	log.Debug("Query: ", query)
 	stmt, err := txn.Prepare(query)
 	if err != nil {
@@ -256,7 +279,21 @@ func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *LoaderData) error {
 	}
 	defer stmt.Close()
 	for _, row := range data.AddedRows.Rows {
-		_, err = stmt.Exec(row...)
+		dataInsert := make(map[string]interface{}, len(data.AddedRows.Fields))
+		var id string
+		for index, field := range data.AddedRows.Fields {
+			if field == schema.HashedPrimaryField {
+				id = row[index].(string)
+			} else {
+				dataInsert[field] = row[index]
+			}
+		}
+		dataInsertJson, err := jsoniter.MarshalToString(dataInsert)
+		if err != nil {
+			log.Error("Error when marshaling data: ", err)
+			return err
+		}
+		_, err = stmt.Exec(id, dataInsertJson)
 		if err != nil {
 			log.Debug("Error when inserting data: ", err)
 			return err
