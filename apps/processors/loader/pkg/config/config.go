@@ -40,7 +40,7 @@ var AppConfig = &IAppConfig{}
 
 func Setup() {
 	if err := godotenv.Load(); err != nil {
-		log.Info("Error loading .env file")
+		log.Info("Can not loading .env file")
 	}
 
 	if err := env.Parse(AppConfig); err != nil {

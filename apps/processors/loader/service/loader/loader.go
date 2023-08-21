@@ -42,6 +42,14 @@ type Loader interface {
 	Close() error
 }
 
+func Setup() {
+	err := setupPostgresDbLoader()
+	if err != nil {
+		log.Fatalf("Fail to setup loader: %v", err)
+		panic(err)
+	}
+}
+
 func New(loaderType LoaderType, dataSourceId string, syncVersion uint, prevVersion uint) (Loader, error) {
 	var loader Loader
 	switch loaderType {

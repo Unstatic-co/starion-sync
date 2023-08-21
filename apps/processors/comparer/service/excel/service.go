@@ -105,7 +105,7 @@ func (s *CompareService) CompareData(ctx context.Context) error {
 	queryContext.Setup()
 
 	var query string
-	if s.syncVersion == 1 || s.prevVersion == 0 {
+	if s.prevVersion == 0 {
 		query = queryContext.GetFirstVersionCompareQuery()
 	} else {
 		query = queryContext.GetFullCompareQuery()

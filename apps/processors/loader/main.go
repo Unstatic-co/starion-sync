@@ -5,6 +5,7 @@ import (
 	"loader/pkg/config"
 	"loader/pkg/logging"
 	"loader/routers"
+	"loader/service/loader"
 	"log"
 	"net/http"
 	"time"
@@ -15,6 +16,7 @@ import (
 func init() {
 	config.Setup()
 	logging.Setup()
+	loader.Setup()
 }
 
 func main() {

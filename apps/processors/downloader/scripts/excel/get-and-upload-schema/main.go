@@ -60,7 +60,7 @@ func getSchemaFromJsonSchemaFile(filePath string) (schema.TableSchema, []string)
 
 	for fieldName, property := range _baseSchema.Properties {
 		var fieldSchema schema.FieldSchema
-		hashedFieldName := "_" + util.GetMD5Hash(fieldName)
+		hashedFieldName := util.GetMD5Hash(fieldName)
 
 		// If field is primary key
 		if hashedFieldName == schema.HashedPrimaryField {

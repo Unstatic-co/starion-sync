@@ -15,6 +15,32 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// const
+
+type PostgresTableDataColumnName string
+
+const (
+	PostgresTableDataIdColumn    PostgresTableDataColumnName = "id"
+	PostgresTableDataDataColumn  PostgresTableDataColumnName = "data"
+	PostgresTableSchemaName      string                      = "schema"
+	PostgresTableSchemaFieldName string                      = "schema_field"
+)
+
+var (
+	PostgresTypeMap = map[schema.DataType]string{
+		schema.String:   "text",
+		schema.Number:   "decimal",
+		schema.DateTime: "timestamptz",
+		schema.Boolean:  "boolean",
+		schema.Array:    "text[]",
+		schema.Unknown:  "text",
+	}
+	PostgresTableDataColumns = map[PostgresTableDataColumnName]string{
+		PostgresTableDataIdColumn:   "text",
+		PostgresTableDataDataColumn: "jsonb",
+	}
+)
+
 // DB Connection
 
 var lockCreatePostgresDbConn = &sync.Mutex{}
@@ -46,39 +72,66 @@ func getPostgresDbConnection() (*sql.DB, error) {
 	return postgresDbConn, nil
 }
 
+func setupPostgresDbLoader() error {
+	log.Info("Setting up postgres loader")
+
+	dbConn, err := getPostgresDbConnection()
+	if err != nil {
+		log.Error("Error when getting db connection: ", err)
+		return err
+	}
+
+	// create schema tables
+	log.Info("Initilizing schema tables")
+	query := fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s (id serial PRIMARY KEY, data_source_id text, version integer DEFAULT 1);
+		CREATE INDEX IF NOT EXISTS idx_data_source_id ON schema (data_source_id)`,
+		PostgresTableSchemaName,
+	)
+	log.Debug("Query: ", query)
+	_, err = dbConn.Exec(query)
+	if err != nil {
+		return err
+	}
+	query = fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s (
+			id serial PRIMARY KEY,
+			schema_id serial,
+			name text NOT NULL,
+			type text NOT NULL,
+			original_type text NOT NULL,
+			nullable boolean DEFAULT true NOT NULL,
+			enum jsonb,
+			readonly boolean DEFAULT false NOT NULL,
+			is_primary boolean DEFAULT false NOT NULL,
+			FOREIGN KEY (schema_id) REFERENCES schema (id) ON DELETE CASCADE
+		);
+		CREATE INDEX IF NOT EXISTS Sidx_schema_id ON schema_field (schema_id)`,
+		PostgresTableSchemaFieldName,
+	)
+	log.Debug("Query: ", query)
+	_, err = dbConn.Exec(query)
+	if err != nil {
+		return err
+	}
+	log.Info("Initialized schema tables")
+
+	log.Info("Initialized postgres")
+
+	return nil
+}
+
 // UTILS
-func formatVariable(a interface{}) string {
+func formatVariableToPostgresStatementValue(a interface{}) string {
 	switch v := a.(type) {
 	case string:
-		return fmt.Sprintf("'%v'", v)
+		return fmt.Sprintf("\"%v\"", v)
 	case nil:
-		return "NULL"
+		return "null"
 	default:
 		return fmt.Sprintf("%v", v)
 	}
 }
-
-type PostgresTableDataColumnName string
-
-const (
-	PostgresTableDataIdColumn   PostgresTableDataColumnName = "id"
-	PostgresTableDataDataColumn PostgresTableDataColumnName = "data"
-)
-
-var (
-	PostgresTypeMap = map[schema.DataType]string{
-		schema.String:   "text",
-		schema.Number:   "decimal",
-		schema.DateTime: "timestamptz",
-		schema.Boolean:  "boolean",
-		schema.Array:    "text[]",
-		schema.Unknown:  "text",
-	}
-	PostgresTableDataColumns = map[PostgresTableDataColumnName]string{
-		PostgresTableDataIdColumn:   "text",
-		PostgresTableDataDataColumn: "jsonb",
-	}
-)
 
 type PostgreLoader struct {
 	DatasourceId string
@@ -119,7 +172,11 @@ func (l *PostgreLoader) Load(data *LoaderData) error {
 
 	l.setTimezone(txn)
 
-	if l.SyncVersion == 1 || l.PrevVersion == 0 {
+	if l.PrevVersion == 0 {
+		err = l.loadSchema(txn, data)
+		if err != nil {
+			return err
+		}
 		err = l.initTable(txn, data)
 		if err != nil {
 			return err
@@ -193,66 +250,145 @@ func (l *PostgreLoader) initTable(txn *sql.Tx, data *LoaderData) error {
 	return nil
 }
 
+func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
+	log.Info("Loading schema")
+
+	// create schema
+	log.Info("Creating schema")
+	query := fmt.Sprintf("INSERT INTO %s (data_source_id) VALUES ($1) RETURNING id", PostgresTableSchemaName)
+	log.Debug("Query: ", query)
+	var schemaId int
+	err := txn.QueryRow(query, l.DatasourceId).Scan(&schemaId)
+	if err != nil {
+		return err
+	}
+
+	// create schema fields
+	log.Info("Creating schema fields")
+	query = pq.CopyIn(PostgresTableSchemaFieldName, "schema_id", "name", "type", "original_type", "nullable", "enum", "readonly", "is_primary")
+	log.Debug("Query: ", query)
+	stmt, err := txn.Prepare(query)
+	if err != nil {
+		log.Debug("Error when preparing statement: ", err)
+		return err
+	}
+	defer stmt.Close()
+	for fieldName, field := range data.Schema {
+		enum, err := jsoniter.MarshalToString(field.Enum)
+		if err != nil {
+			log.Error("Error when marshaling enum: ", err)
+			return err
+		}
+		_, err = stmt.Exec(schemaId, fieldName, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary)
+		if err != nil {
+			log.Debug("Error when inserting field: ", err)
+			return err
+		}
+	}
+	_, err = stmt.Exec()
+	if err != nil {
+		return err
+	}
+	err = stmt.Close()
+	if err != nil {
+		return err
+	}
+
+	log.Info("Loaded schema")
+
+	return nil
+}
+
 func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 	log.Info("Loading schema changes")
+
+	// get schema id
+	var schemaId int
+	query := fmt.Sprintf("SELECT id FROM %s WHERE data_source_id = $1", PostgresTableSchemaName)
+	log.Debug("Query: ", query)
+	err := txn.QueryRow(query, l.DatasourceId).Scan(&schemaId)
+	if err != nil {
+		return err
+	}
 
 	// deleted fields
 	if len(data.SchemaChanges.DeletedFields) > 0 {
 		log.Info("Deleting fields")
-		dropColumns := strings.Join(lo.Map(data.SchemaChanges.DeletedFields, func(field string, _ int) string {
-			return fmt.Sprintf("DROP COLUMN %s", field)
-		}), ",")
-		query := fmt.Sprintf("ALTER TABLE %s %s", l.tableName, dropColumns)
+		// delete from schema fields
+		query = fmt.Sprintf("DELETE FROM %s WHERE schema_id = %d AND name IN ('%s')", PostgresTableSchemaFieldName, schemaId, strings.Join(data.SchemaChanges.DeletedFields, "','"))
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			log.Error("Error when deleting fields: ", err)
 			return err
 		}
+		// delete from table data
+		query = fmt.Sprintf("UPDATE %s SET %s = %s - ARRAY[%s]", l.tableName, PostgresTableDataDataColumn, PostgresTableDataDataColumn, strings.Join(
+			lo.Map(data.SchemaChanges.DeletedFields, func(field string, _ int) string {
+				return fmt.Sprintf("'%s'", field)
+			}), ","),
+		)
+		log.Debug("Query: ", query)
+		_, err = txn.Exec(query)
+		if err != nil {
+			log.Error("Error when deleting fields from table data: ", err)
+			return err
+		}
 	}
 
 	// added fields
 	if len(data.SchemaChanges.AddedFields) > 0 {
-		log.Info("Adding fields")
-		addColumns := make([]string, 0, len(data.SchemaChanges.AddedFields))
-		for fieldName, field := range data.SchemaChanges.AddedFields {
-			addColumns = append(addColumns, fmt.Sprintf("ADD COLUMN %s %s", fieldName, PostgresTypeMap[field.Type]))
-		}
-		query := fmt.Sprintf("ALTER TABLE %s %s", l.tableName, strings.Join(addColumns, ","))
+		log.Info("Adding schema fields")
+		query = pq.CopyIn(PostgresTableSchemaFieldName, "schema_id", "name", "type", "original_type", "nullable", "enum", "readonly", "is_primary")
 		log.Debug("Query: ", query)
-		_, err := txn.Exec(query)
+		stmt, err := txn.Prepare(query)
 		if err != nil {
-			log.Error("Error when adding fields: ", err)
+			log.Debug("Error when preparing statement: ", err)
+			return err
+		}
+		defer stmt.Close()
+		for fieldName, field := range data.SchemaChanges.AddedFields {
+			enum, err := jsoniter.MarshalToString(field.Enum)
+			if err != nil {
+				log.Error("Error when marshaling enum: ", err)
+				return err
+			}
+			_, err = stmt.Exec(schemaId, fieldName, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary)
+			if err != nil {
+				log.Debug("Error when inserting field: ", err)
+				return err
+			}
+		}
+		_, err = stmt.Exec()
+		if err != nil {
+			return err
+		}
+		err = stmt.Close()
+		if err != nil {
 			return err
 		}
 	}
 
-	// updated type fields
-	if len(data.SchemaChanges.UpdatedTypeFields) > 0 {
-		log.Info("Updating type fields")
-		updatedTypeFields := lo.Keys(data.SchemaChanges.UpdatedTypeFields)
+	// updated fields
+	if len(data.SchemaChanges.UpdatedFields) > 0 {
+		log.Info("Updating fields")
 
-		// TODO: delete columns first then add columns with null values
-		dropColumns := strings.Join(lo.Map(updatedTypeFields, func(field string, _ int) string {
-			return fmt.Sprintf("DROP COLUMN %s", field)
-		}), ",")
-		query := fmt.Sprintf("ALTER TABLE %s %s", l.tableName, dropColumns)
-		log.Debug("Query: ", query)
-		_, err := txn.Exec(query)
-		if err != nil {
-			log.Error("Error when updating type fields (drop column): ", err)
-			return err
-		}
-
-		addColumns := strings.Join(lo.Map(updatedTypeFields, func(field string, _ int) string {
-			return fmt.Sprintf("ADD COLUMN %s %s", field, PostgresTypeMap[data.SchemaChanges.UpdatedTypeFields[field]])
-		}), ",")
-		query = fmt.Sprintf("ALTER TABLE %s %s", l.tableName, addColumns)
-		log.Debug("Query: ", query)
-		_, err = txn.Exec(query)
-		if err != nil {
-			log.Error("Error when updating type fields (add column): ", err)
-			return err
+		for fieldName, field := range data.SchemaChanges.UpdatedFields {
+			enum, err := jsoniter.MarshalToString(field.Enum)
+			if err != nil {
+				log.Error("Error when marshaling enum: ", err)
+				return err
+			}
+			query := fmt.Sprintf(
+				"UPDATE %s SET type = '%s', original_type = '%s', nullable = %t, enum = '%s', readonly = %t, is_primary = %t WHERE schema_id = %d AND name = '%s'",
+				PostgresTableSchemaFieldName, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary, schemaId, fieldName,
+			)
+			log.Debug("Query: ", query)
+			_, err = txn.Exec(query)
+			if err != nil {
+				log.Error("Error when updating fields: ", err)
+				return err
+			}
 		}
 	}
 
@@ -322,7 +458,7 @@ func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	for _, id := range data.DeletedRows {
-		query := fmt.Sprintf("DELETE FROM %s WHERE %s = '%s'", l.tableName, data.PrimaryField, id)
+		query := fmt.Sprintf("DELETE FROM %s WHERE %s = '%s'", l.tableName, PostgresTableDataIdColumn, id)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -344,11 +480,16 @@ func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	for rowId, fieldUpdateData := range data.UpdatedFields {
+		var jsonbSet string
 		updatedFields := lo.Keys(fieldUpdateData)
-		setUpdatedFields := strings.Join(lo.Map(updatedFields, func(fieldName string, _ int) string {
-			return fmt.Sprintf("%s = %s", fieldName, formatVariable(fieldUpdateData[fieldName]))
-		}), ", ")
-		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = '%s'", l.tableName, setUpdatedFields, data.PrimaryField, rowId)
+		for i, fieldName := range updatedFields {
+			if i == 0 {
+				jsonbSet = fmt.Sprintf("jsonb_set(%s, '{%s}', '%s'::jsonb)", PostgresTableDataDataColumn, fieldName, formatVariableToPostgresStatementValue(fieldUpdateData[fieldName]))
+			} else {
+				jsonbSet = fmt.Sprintf("jsonb_set(%s, '{%s}', '%s'::jsonb)", jsonbSet, fieldName, formatVariableToPostgresStatementValue(fieldUpdateData[fieldName]))
+			}
+		}
+		query := fmt.Sprintf("UPDATE %s SET %s = %s WHERE %s = '%s'", l.tableName, PostgresTableDataDataColumn, jsonbSet, PostgresTableDataIdColumn, rowId)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -370,11 +511,16 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	for rowId, fieldAddData := range data.AddedFields {
+		var jsonbSet string
 		addedFields := lo.Keys(fieldAddData)
-		setAddedFields := strings.Join(lo.Map(addedFields, func(fieldName string, _ int) string {
-			return fmt.Sprintf("%s = %s", fieldName, formatVariable(fieldAddData[fieldName]))
-		}), ", ")
-		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = '%s'", l.tableName, setAddedFields, data.PrimaryField, rowId)
+		for i, fieldName := range addedFields {
+			if i == 0 {
+				jsonbSet = fmt.Sprintf("jsonb_set(%s, '{%s}', '%s'::jsonb)", PostgresTableDataDataColumn, fieldName, formatVariableToPostgresStatementValue(fieldAddData[fieldName]))
+			} else {
+				jsonbSet = fmt.Sprintf("jsonb_set(%s, '{%s}', '%s'::jsonb)", jsonbSet, fieldName, formatVariableToPostgresStatementValue(fieldAddData[fieldName]))
+			}
+		}
+		query := fmt.Sprintf("UPDATE %s SET %s = %s WHERE %s = '%s'", l.tableName, PostgresTableDataDataColumn, jsonbSet, PostgresTableDataIdColumn, rowId)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -396,10 +542,15 @@ func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	for rowId, fieldsToDelete := range data.DeletedFields {
-		setDeletedFields := strings.Join(lo.Map(fieldsToDelete, func(fieldName string, _ int) string {
-			return fmt.Sprintf("%s = NULL", fieldName)
-		}), ", ")
-		query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = '%s'", l.tableName, setDeletedFields, data.PrimaryField, rowId)
+		var jsonbSet string
+		for i, fieldName := range fieldsToDelete {
+			if i == 0 {
+				jsonbSet = fmt.Sprintf("jsonb_set(%s, '{%s}', '%s'::jsonb)", PostgresTableDataDataColumn, fieldName, "null")
+			} else {
+				jsonbSet = fmt.Sprintf("jsonb_set(%s, '{%s}', '%s'::jsonb)", jsonbSet, fieldName, "null")
+			}
+		}
+		query := fmt.Sprintf("UPDATE %s SET %s = %s WHERE %s = '%s'", l.tableName, PostgresTableDataDataColumn, jsonbSet, PostgresTableDataIdColumn, rowId)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
