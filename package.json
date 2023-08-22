@@ -41,6 +41,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.391.0",
     "@azure/msal-node": "^1.17.3",
+    "@googleapis/sheets": "^5.0.3",
     "@microsoft/microsoft-graph-client": "^3.0.5",
     "@nestjs/bull": "^10.0.0",
     "@nestjs/cache-manager": "^1.0.0",
@@ -75,6 +76,7 @@
     "dotenv": "^16.0.0",
     "env-cmd": "^10.1.0",
     "express-basic-auth": "^1.2.1",
+    "google-auth-library": "^8.9.0",
     "isomorphic-fetch": "^3.0.0",
     "jsonwebtoken": "^8.5.1",
     "kafkajs": "^2.2.4",

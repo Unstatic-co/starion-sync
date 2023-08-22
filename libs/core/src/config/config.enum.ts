@@ -10,4 +10,5 @@ export enum ConfigName {
   PROCESSOR = 'processor',
   WEBHOOK = 'webhook',
   MICROSOFT = 'microsoft',
+  GOOGLE = 'google',
 }
