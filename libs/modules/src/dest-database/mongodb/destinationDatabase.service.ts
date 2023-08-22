@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { connectionName } from '../constants';
-import { DestinationDatabaseService as IDestinationDatabaseService } from '../destinationDatabase.service';
+import { IDestinationDatabaseService } from '../destinationDatabase.service';
 import { DataSourceDataModel, DataSourceModel } from './models';
 
 @Injectable()
@@ -22,4 +22,8 @@ export class DestinationDatabaseService implements IDestinationDatabaseService {
     const db = client.db();
     db.collection('test').insertOne({ test: 'test' });
   }
+
+  async getSchema(id: string) {}
+
+  async getData(id: string) {}
 }

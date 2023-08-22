@@ -37,8 +37,18 @@ export class DataSourceController {
   }
 
   @Get(':dataSourceId')
-  get(@Param('dataSourceId') providerId: string) {
-    return this.dataSourceService.getById(providerId);
+  get(@Param('dataSourceId') id: string) {
+    return this.dataSourceService.getById(id);
+  }
+
+  @Get(':dataSourceId/schema')
+  getSchema(@Param('dataSourceId') id: string) {
+    return this.dataSourceService.getSchema(id);
+  }
+
+  @Get(':dataSourceId/data')
+  getData(@Param('dataSourceId') id: string) {
+    return this.dataSourceService.getData(id);
   }
 
   @Get()

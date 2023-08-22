@@ -83,32 +83,40 @@ func getSchemaFromJsonSchemaFile(filePath string) (schema.TableSchema, []string)
 			enum := lo.Filter(property.Enum, func(item any, _ int) bool { return item != "" && item != nil })
 
 			var detectedType schema.DataType
+			var originalType exceltype.ExcelDataType
 
 			switch fieldType {
 			case "string":
 				switch format {
 				case "date-time":
-					detectedType = schema.DateTime
+					detectedType = schema.Date
+					originalType = exceltype.Number
 				case "date":
-					detectedType = schema.DateTime
+					detectedType = schema.Date
+					originalType = exceltype.Number
 				default:
 					// detect enum
 					if inferBooleanType(enum) {
 						detectedType = schema.Boolean
+						originalType = exceltype.Logical
 						enum = []interface{}{true, false}
 					} else {
 						detectedType = schema.String
+						originalType = exceltype.String
 					}
 				}
 			case "null":
 				// If column does not have data
 				log.Printf("Field %s has unprocessable data type `null`, using string datatype to sync...\n", fieldName)
 				detectedType = schema.String
+				originalType = exceltype.String
 				nullBecomeStringFields = append(nullBecomeStringFields, hashedFieldName)
 			case "integer":
 				detectedType = schema.Number
+				originalType = exceltype.Number
 			case "number":
 				detectedType = schema.Number
+				originalType = exceltype.Number
 			case "array":
 				log.Fatalf(
 					"Encountered unsupported type: %s (with detected subtype %+v)\n",
@@ -135,7 +143,7 @@ func getSchemaFromJsonSchemaFile(filePath string) (schema.TableSchema, []string)
 			fieldSchema = schema.FieldSchema{
 				Name:         fieldName,
 				Type:         detectedType,
-				OriginalType: string(detectedType),
+				OriginalType: string(originalType),
 				Nullable:     true,
 				Enum:         fieldEnum,
 			}

@@ -27,14 +27,6 @@ const (
 )
 
 var (
-	PostgresTypeMap = map[schema.DataType]string{
-		schema.String:   "text",
-		schema.Number:   "decimal",
-		schema.DateTime: "timestamptz",
-		schema.Boolean:  "boolean",
-		schema.Array:    "text[]",
-		schema.Unknown:  "text",
-	}
 	PostgresTableDataColumns = map[PostgresTableDataColumnName]string{
 		PostgresTableDataIdColumn:   "text",
 		PostgresTableDataDataColumn: "jsonb",
@@ -95,7 +87,7 @@ func setupPostgresDbLoader() error {
 	}
 	query = fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s (
-			id serial PRIMARY KEY,
+			id text PRIMARY KEY,
 			schema_id serial,
 			name text NOT NULL,
 			type text NOT NULL,
@@ -265,7 +257,7 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
 
 	// create schema fields
 	log.Info("Creating schema fields")
-	query = pq.CopyIn(PostgresTableSchemaFieldName, "schema_id", "name", "type", "original_type", "nullable", "enum", "readonly", "is_primary")
+	query = pq.CopyIn(PostgresTableSchemaFieldName, "id", "schema_id", "name", "type", "original_type", "nullable", "enum", "readonly", "is_primary")
 	log.Debug("Query: ", query)
 	stmt, err := txn.Prepare(query)
 	if err != nil {
@@ -273,13 +265,13 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
 		return err
 	}
 	defer stmt.Close()
-	for fieldName, field := range data.Schema {
+	for fieldId, field := range data.Schema {
 		enum, err := jsoniter.MarshalToString(field.Enum)
 		if err != nil {
 			log.Error("Error when marshaling enum: ", err)
 			return err
 		}
-		_, err = stmt.Exec(schemaId, fieldName, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary)
+		_, err = stmt.Exec(fieldId, schemaId, field.Name, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary)
 		if err != nil {
 			log.Debug("Error when inserting field: ", err)
 			return err
@@ -339,7 +331,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 	// added fields
 	if len(data.SchemaChanges.AddedFields) > 0 {
 		log.Info("Adding schema fields")
-		query = pq.CopyIn(PostgresTableSchemaFieldName, "schema_id", "name", "type", "original_type", "nullable", "enum", "readonly", "is_primary")
+		query = pq.CopyIn(PostgresTableSchemaFieldName, "id", "schema_id", "name", "type", "original_type", "nullable", "enum", "readonly", "is_primary")
 		log.Debug("Query: ", query)
 		stmt, err := txn.Prepare(query)
 		if err != nil {
@@ -347,13 +339,13 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 			return err
 		}
 		defer stmt.Close()
-		for fieldName, field := range data.SchemaChanges.AddedFields {
+		for fieldId, field := range data.SchemaChanges.AddedFields {
 			enum, err := jsoniter.MarshalToString(field.Enum)
 			if err != nil {
 				log.Error("Error when marshaling enum: ", err)
 				return err
 			}
-			_, err = stmt.Exec(schemaId, fieldName, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary)
+			_, err = stmt.Exec(fieldId, schemaId, field.Name, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary)
 			if err != nil {
 				log.Debug("Error when inserting field: ", err)
 				return err
@@ -373,15 +365,15 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 	if len(data.SchemaChanges.UpdatedFields) > 0 {
 		log.Info("Updating fields")
 
-		for fieldName, field := range data.SchemaChanges.UpdatedFields {
+		for fieldId, field := range data.SchemaChanges.UpdatedFields {
 			enum, err := jsoniter.MarshalToString(field.Enum)
 			if err != nil {
 				log.Error("Error when marshaling enum: ", err)
 				return err
 			}
 			query := fmt.Sprintf(
-				"UPDATE %s SET type = '%s', original_type = '%s', nullable = %t, enum = '%s', readonly = %t, is_primary = %t WHERE schema_id = %d AND name = '%s'",
-				PostgresTableSchemaFieldName, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary, schemaId, fieldName,
+				"UPDATE %s SET name = '%s' type = '%s', original_type = '%s', nullable = %t, enum = '%s', readonly = %t, is_primary = %t WHERE schema_id = %d AND id = '%s'",
+				PostgresTableSchemaFieldName, field.Name, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary, schemaId, fieldId,
 			)
 			log.Debug("Query: ", query)
 			_, err = txn.Exec(query)
@@ -420,9 +412,8 @@ func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *LoaderData) error {
 		for index, field := range data.AddedRows.Fields {
 			if field == schema.HashedPrimaryField {
 				id = row[index].(string)
-			} else {
-				dataInsert[field] = row[index]
 			}
+			dataInsert[field] = row[index]
 		}
 		dataInsertJson, err := jsoniter.MarshalToString(dataInsert)
 		if err != nil {

@@ -25,12 +25,12 @@ const (
 )
 
 var ClickHouseTypeMap = map[schema.DataType]ClickHouseType{
-	schema.String:   String,
-	schema.Number:   Float64,
-	schema.DateTime: String,
-	schema.Boolean:  Bool,
-	schema.Array:    Array,
-	schema.Unknown:  String,
+	schema.String:  String,
+	schema.Number:  Float64,
+	schema.Date:    String,
+	schema.Boolean: Bool,
+	schema.Array:   Array,
+	schema.Unknown: String,
 }
 
 // ######################################

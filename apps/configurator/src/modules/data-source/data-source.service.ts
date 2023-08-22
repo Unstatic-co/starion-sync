@@ -15,6 +15,7 @@ import {
 import {
   IDataProviderRepository,
   IDataSourceRepository,
+  IDestinationDatabaseService,
   InjectTokens,
   UpdateDataSourceData,
 } from '@lib/modules';
@@ -37,6 +38,8 @@ export class DataSourceService {
     private readonly dataProviderRepository: IDataProviderRepository,
     @Inject(InjectTokens.DATA_SOURCE_REPOSITORY)
     private readonly dataSourceRepository: IDataSourceRepository,
+    @Inject(InjectTokens.DESTINATION_DATABASE_SERVICE)
+    private readonly destinationDatabaseService: IDestinationDatabaseService,
   ) {}
   /**
    * Hello world
@@ -46,9 +49,7 @@ export class DataSourceService {
     return 'Hello World !';
   }
 
-  async test() {
-    throw new Error('demo loi');
-  }
+  async test() {}
 
   public async getById(id: DataSourceId) {
     this.logger.log(`Get data source by id: ${id}`);
@@ -60,6 +61,16 @@ export class DataSourceService {
       );
     }
     return dataSource;
+  }
+
+  public async getSchema(id: DataSourceId) {
+    const schema = await this.destinationDatabaseService.getSchema(id);
+    return schema;
+  }
+
+  public async getData(id: DataSourceId) {
+    const res = await this.destinationDatabaseService.getData(id);
+    return res;
   }
 
   async create(dto: CreateDataSourceDto): Promise<CreationResult<DataSource>> {

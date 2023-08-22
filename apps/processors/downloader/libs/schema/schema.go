@@ -7,12 +7,12 @@ const PrimaryFieldName = "id"
 type DataType string
 
 const (
-	String   DataType = "String"
-	Number   DataType = "Number"
-	DateTime DataType = "DateTime"
-	Boolean  DataType = "Boolean"
-	Array    DataType = "Array"
-	Unknown  DataType = "Unknown"
+	String  DataType = "String"
+	Number  DataType = "Number"
+	Date    DataType = "Date"
+	Boolean DataType = "Boolean"
+	Array   DataType = "Array"
+	Unknown DataType = "Unknown"
 )
 
 type TableSchema map[string]FieldSchema

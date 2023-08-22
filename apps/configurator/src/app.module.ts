@@ -7,11 +7,16 @@ import { CommonModule } from './modules/common/common.module';
 import {
   appConfigRegister,
   databaseConfigRegister,
+  destinationDatabaseConfigRegister,
   microsoftConfigRegister,
   orchestratorConfigRegister,
+  brokerConfigRegister,
 } from '@lib/core/config';
-import { DatabaseModule, LoggerModule } from '@lib/modules';
-import { brokerConfigRegister } from '@lib/core/config/broker.config';
+import {
+  DatabaseModule,
+  DestinationDatabaseModule,
+  LoggerModule,
+} from '@lib/modules';
 import { BrokerModule } from './modules/broker/broker.module';
 import { DataProviderModule } from './modules/data-provider/data-provider.module';
 import { DataSourceModule } from './modules/data-source/data-source.module';
@@ -27,6 +32,7 @@ import { WebhookModule } from './modules/webhook/webhook.module';
       load: [
         appConfigRegister,
         databaseConfigRegister,
+        destinationDatabaseConfigRegister,
         brokerConfigRegister,
         orchestratorConfigRegister,
         microsoftConfigRegister,
@@ -34,6 +40,7 @@ import { WebhookModule } from './modules/webhook/webhook.module';
     }),
     LoggerModule,
     DatabaseModule.forRootAsync(),
+    DestinationDatabaseModule.forRoot(),
     BrokerModule,
     ScheduleModule.forRoot(),
     CommonModule,
