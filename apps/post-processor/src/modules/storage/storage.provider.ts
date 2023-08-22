@@ -8,9 +8,11 @@ export const StorageProvider = {
   inject: [ConfigService],
   useFactory: (configService: ConfigService) => {
     const storageConfig = configService.get<StorageConfig>(ConfigName.STORAGE);
-    const { s3AccessKey, s3SecretKey, s3Region } = storageConfig;
+    const { s3AccessKey, s3SecretKey, s3Region, s3Url } = storageConfig;
     const storageClient = new S3Client({
+      endpoint: s3Url,
       region: s3Region,
+      forcePathStyle: true,
       credentials: {
         accessKeyId: s3AccessKey,
         secretAccessKey: s3SecretKey,

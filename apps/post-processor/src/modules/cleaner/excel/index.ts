@@ -32,7 +32,9 @@ export class MicrosoftExcelCleanerService implements WorkflowCleaner {
   }
 
   private async cleanDiffData(dataSourceId: string, syncVersion: number) {
-    this.logger.log(`Cleaning diff data for version ${syncVersion}`);
+    this.logger.log(
+      `Cleaning diff data for ds ${dataSourceId}, version ${syncVersion}`,
+    );
 
     const res = await this.storageClient.send(
       new DeleteObjectsCommand({

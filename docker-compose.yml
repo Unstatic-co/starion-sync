@@ -147,6 +147,11 @@ services:
       - ORCHESTRATOR_ADDRESS=temporal:7233
       - ORCHESTRATOR_WORKER_TASKQUEUE=post-processor
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=post-processor
+      - S3_URL=http://minio:9000
+      - S3_REGION=us-east-1
+      - S3_DIFF_DATA_BUCKET=diff-data
+      - S3_ACCESS_KEY=admin
+      - S3_SECRET_KEY=abc123456
   webhook:
     depends_on:
       - mongodb
