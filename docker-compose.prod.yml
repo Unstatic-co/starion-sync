@@ -581,6 +581,8 @@ services:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_SERVER_DOMAIN=${GF_DOMAIN}
+      - GF_SERVER_ROOT_URL=https://${GF_DOMAIN}/monitor
 volumes:
   mongodb:
     driver: local
