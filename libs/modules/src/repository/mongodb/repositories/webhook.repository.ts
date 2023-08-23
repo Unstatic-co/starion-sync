@@ -10,7 +10,7 @@ import { Utils } from 'apps/configurator/src/common/utils';
 import { QueryOptions } from '../../classes';
 import mongoose from 'mongoose';
 import { WebhookDocument, WebhookModel } from '../models';
-import { WebhookStatus } from '@lib/core';
+import { Webhook, WebhookStatus } from '@lib/core';
 
 @Injectable()
 export class WebhookRepository implements IWebhookRepository {
@@ -55,13 +55,30 @@ export class WebhookRepository implements IWebhookRepository {
     return result.map((result) => result.toJSON());
   }
 
-  public async create(data: CreateWebhookData) {
-    const doc = new this.webhookModel({
+  public async create(data: CreateWebhookData, options?: QueryOptions) {
+    const webhook = new this.webhookModel({
       ...data,
       status: WebhookStatus.ACTIVE,
     });
-    const result = await doc.save();
-    return result;
+    const query = options?.session
+      ? webhook.save({ session: options.session })
+      : webhook.save();
+    await query;
+    return webhook.toJSON() as Webhook;
+  }
+
+  public async bulkCreate(data: CreateWebhookData[], options?: QueryOptions) {
+    const webhooks = data.map(
+      (webhookData) =>
+        new this.webhookModel({
+          ...webhookData,
+          status: WebhookStatus.ACTIVE,
+        }),
+    );
+    const query = options?.session
+      ? this.webhookModel.bulkSave(webhooks, { session: options.session })
+      : this.webhookModel.bulkSave(webhooks);
+    await query;
   }
 
   public async update(data: UpdateWebhookData, options?: QueryOptions) {

@@ -9,6 +9,7 @@ export enum WebhookStatus {
 
 export enum WebhookType {
   SYNC_CONNECTION_CREATED = 'sync-connection-created',
+  DATA_SOURCE_DELETED = 'data-source-deleted',
 }
 
 export class Webhook {

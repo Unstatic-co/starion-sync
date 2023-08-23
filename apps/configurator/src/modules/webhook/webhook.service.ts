@@ -1,7 +1,7 @@
 import { IWebhookRepository, InjectTokens } from '@lib/modules';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CreateWebhookDto } from './dto/createWebhook.dto';
+import { CreateWebhookDto, CreateWebhooksDto } from './dto/createWebhook.dto';
 
 @Injectable()
 export class WebhookService {
@@ -15,5 +15,9 @@ export class WebhookService {
 
   async create(data: CreateWebhookDto) {
     await this.webhookRepository.create(data);
+  }
+
+  async bulkCreate(data: CreateWebhooksDto) {
+    await this.webhookRepository.bulkCreate(data.webhooks);
   }
 }

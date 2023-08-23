@@ -1,5 +1,12 @@
 import { WebhookType } from '@lib/core';
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  Validate,
+  ValidateNested,
+} from 'class-validator';
 
 export class CreateWebhookDto {
   @IsNotEmpty()
@@ -9,4 +16,11 @@ export class CreateWebhookDto {
   @IsNotEmpty()
   @IsString()
   url: string;
+}
+
+export class CreateWebhooksDto {
+  @IsNotEmpty()
+  @Type(() => CreateWebhookDto)
+  @ValidateNested({ each: true })
+  webhooks: CreateWebhookDto[];
 }

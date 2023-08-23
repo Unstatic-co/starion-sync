@@ -9,6 +9,7 @@ export interface IWebhookRepository extends IRepository {
     options?: QueryOptions,
   ): Promise<Webhook[]>;
   create(data: CreateWebhookData, options?: QueryOptions): Promise<Webhook>;
+  bulkCreate(data: CreateWebhookData[], options?: QueryOptions): Promise<void>;
   update(
     data: UpdateWebhookData,
     options?: QueryOptions,
