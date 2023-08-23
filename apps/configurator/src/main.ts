@@ -17,6 +17,7 @@ async function bootstrap() {
   const { environment, port } = appConfig;
 
   const { httpAdapter } = app.get(HttpAdapterHost);
+  app.enableCors();
   app.useGlobalFilters(new AllExceptionFilter(httpAdapter));
   app.useGlobalPipes(new ValidationPipe());
   app.useGlobalInterceptors(new LoggingInterceptor());
