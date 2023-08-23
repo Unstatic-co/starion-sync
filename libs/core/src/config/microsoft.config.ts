@@ -14,8 +14,10 @@ export const microsoftConfigRegister = registerAs(ConfigName.MICROSOFT, () => {
     scopes: process.env.MICROSOFT_PERMISSION_SCOPES?.split(',') || [
       'offline_access',
       'openid',
+      'profile',
       'User.Read.All',
       'https://graph.microsoft.com/Files.ReadWrite.All',
+      'Files.ReadWrite.All',
     ],
   } as MicrosoftConfig;
 });

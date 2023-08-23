@@ -36,7 +36,6 @@ services:
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=configurator
       - MICROSOFT_CLIENT_ID=cf0e88e2-566f-4c81-abb5-2ae0111251fe
       - MICROSOFT_CLIENT_SECRET=PTw8Q~A3IFhv~FuckTAfR.nYtoMMxVMoS_Oi3bxd
-      - MICROSOFT_PERMISSION_SCOPES=offline_access,openid,User.Read.All,https://graph.microsoft.com/Files.ReadWrite.All
   controller:
     depends_on:
       - mongodb

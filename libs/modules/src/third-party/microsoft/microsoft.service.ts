@@ -28,10 +28,10 @@ export class MicrosoftService {
   ) {}
 
   async getAccessToken(refreshToken: string) {
-    this.logger.debug(`getAccessToken(): refreshToken = ${refreshToken}`);
     const scopes = this.configService.get<string[]>(
       `${ConfigName.MICROSOFT}.scopes`,
     );
+    this.logger.debug(`getAccessToken(): scopes = ${scopes}`);
     const byRefreshTokenRequest = {
       scopes,
       refreshToken,
