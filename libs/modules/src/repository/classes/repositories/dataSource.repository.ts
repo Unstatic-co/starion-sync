@@ -6,6 +6,7 @@ import {
   Metadata,
   ProviderId,
   ProviderType,
+  SyncConnection,
 } from '@lib/core';
 import { IRepository } from '../baseRepository';
 import { QueryOptions } from '../common';
@@ -24,7 +25,13 @@ export interface IDataSourceRepository extends IRepository {
     data: UpdateDataSourceData,
     options?: QueryOptions,
   ): Promise<DataSource | void>;
-  delete(id: string, options?: QueryOptions): Promise<DataSource | void>;
+  delete(
+    id: string,
+    options?: QueryOptions,
+  ): Promise<{
+    dataSource: DataSource;
+    syncConnection?: SyncConnection;
+  } | void>;
   updateStatistics(
     id: string,
     data: UpdateDataSourceStatisticsData,

@@ -8,7 +8,10 @@ import {
   Delete,
 } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
-import { DataSourceService } from './data-source.service';
+import {
+  DataSourceService,
+  DeleteDataSourceResult,
+} from './data-source.service';
 import { CreateDataSourceDto } from './dto/createDataSource.dto';
 import { OrchestratorService, UpdateDataSourceData } from '@lib/modules';
 import { ApiError } from '../../common/exception/api.exception';
@@ -113,7 +116,7 @@ export class DataSourceController {
         args: [id],
         waitResult: true,
       },
-    )) as DeleteResult<DataSource>;
+    )) as DeleteResult<DeleteDataSourceResult>;
     if (result.isAlreadyDeleted) {
       throw new ApiError(
         ErrorCode.ALREADY_EXISTS,

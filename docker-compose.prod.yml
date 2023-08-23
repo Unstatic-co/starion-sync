@@ -448,12 +448,18 @@ services:
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
     volumes:
       - kafka_2:/bitnami/kafka
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    ports:
-      - 3000:8080
-    environment:
-      DYNAMIC_CONFIG_ENABLED: true
+  # kafka-ui:
+    # depends_on:
+      # - kafka-0
+      # - kafka-1
+      # - kafka-2
+    # image: provectuslabs/kafka-ui:latest
+    # ports:
+      # - 3001:8080
+    # volumes:
+      # - ./init/kui-config.yml:/etc/kafkaui/dynamic_config.yaml
+    # environment:
+      # DYNAMIC_CONFIG_ENABLED: false
   #--------------------------------- ORCHESTRATOR (TEMPORAL) ---------------------------------------#
   temporal:
     restart: on-failure

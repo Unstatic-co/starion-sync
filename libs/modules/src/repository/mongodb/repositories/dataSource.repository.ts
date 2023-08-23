@@ -14,6 +14,7 @@ import {
 import { Model } from 'mongoose';
 import {
   DataSource,
+  SyncConnection,
   defaultDataSourceLimitation,
   defaultDataSourceStatistics,
 } from '@lib/core';
@@ -134,7 +135,13 @@ export class DataSourceRepository implements IDataSourceRepository {
     }
   }
 
-  public async delete(id: string, options?: QueryOptions): Promise<void> {
+  public async delete(
+    id: string,
+    options?: QueryOptions,
+  ): Promise<{
+    dataSource: DataSource;
+    syncConnection?: SyncConnection;
+  } | void> {
     let result;
 
     const session = options?.session
@@ -168,7 +175,10 @@ export class DataSourceRepository implements IDataSourceRepository {
       }
 
       if (options?.old) {
-        result = dataSource.toJSON();
+        result = { dataSource: dataSource.toJSON() };
+        if (syncConnection) {
+          result.syncConnection = syncConnection;
+        }
       }
     };
 

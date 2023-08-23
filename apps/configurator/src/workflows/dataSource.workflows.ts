@@ -1,6 +1,7 @@
 import { proxyActivities } from '@temporalio/workflow';
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import {
+  ConnectionDeletedPayload,
   DataSourceDeletedPayload,
   EventNames,
   SyncConnectionId,
@@ -18,10 +19,17 @@ const { emitEvent } = proxyActivities<BrokerActivities>({
 export async function deleteDataSourceWf(id: SyncConnectionId) {
   const result = await deleteDataSource(id);
   if (result.isAlreadyDeleted === false) {
+    const payload: DataSourceDeletedPayload = {
+      dataSourceId: id,
+    };
+    if (result.data?.syncConnection) {
+      payload.syncConnectionId = result.data.syncConnection.id;
+      await emitEvent(EventNames.CONNECTION_DELETED, {
+        payload: result.data.syncConnection as ConnectionDeletedPayload,
+      });
+    }
     await emitEvent(EventNames.DATA_SOURCE_DELETED, {
-      payload: {
-        dataSourceId: id,
-      } as DataSourceDeletedPayload,
+      payload,
     });
   }
   return result;

@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Delete } from '@nestjs/common';
 import { DataProviderService } from '../data-provider/data-provider.service';
 import {
   DataSource,
@@ -7,6 +7,7 @@ import {
   ProviderConfig,
   ProviderId,
   ProviderType,
+  SyncConnection,
 } from '@lib/core';
 import {
   CreateDataSourceDto,
@@ -24,6 +25,11 @@ import { ErrorCode } from '../../common/constants';
 import { ProviderConfigDto } from '../data-provider/dto/createProvider.dto';
 import { CreationResult } from '../../common/type';
 import { DeleteResult } from '../../common/type/deleteResult';
+
+export type DeleteDataSourceResult = {
+  dataSource: DataSource;
+  syncConnection?: SyncConnection;
+};
 
 @Injectable()
 /**
@@ -146,7 +152,9 @@ export class DataSourceService {
     return result;
   }
 
-  async delete(id: DataSourceId): Promise<DeleteResult<DataSource>> {
+  async delete(
+    id: DataSourceId,
+  ): Promise<DeleteResult<DeleteDataSourceResult>> {
     this.logger.debug(`Delete ds with id: ${id}`);
     let isAlreadyDeleted = false;
     const existingDs = await this.dataSourceRepository.getById(id);
@@ -158,7 +166,7 @@ export class DataSourceService {
     }
     const data = (await this.dataSourceRepository.delete(id, {
       old: true,
-    })) as DataSource;
+    })) as DeleteDataSourceResult;
     return {
       isAlreadyDeleted,
       data,

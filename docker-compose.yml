@@ -396,7 +396,7 @@ services:
     volumes:
       - ./init/kui-config.yml:/etc/kafkaui/dynamic_config.yaml
     environment:
-      DYNAMIC_CONFIG_ENABLED: false
+      DYNAMIC_CONFIG_ENABLED: true
   #----------------------------------- REDIS ----------------------------------------#
   redis:
     image: redis:6.2-alpine
