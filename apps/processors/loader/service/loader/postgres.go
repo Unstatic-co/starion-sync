@@ -87,8 +87,9 @@ func setupPostgresDbLoader() error {
 	}
 	query = fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s (
-			id text PRIMARY KEY,
-			schema_id serial,
+			id serial PRIMARY KEY NOT NULL,
+			hashed_name text NOT NULL,
+			schema_id serial NOT NULL,
 			name text NOT NULL,
 			type text NOT NULL,
 			original_type text NOT NULL,
@@ -98,7 +99,7 @@ func setupPostgresDbLoader() error {
 			is_primary boolean DEFAULT false NOT NULL,
 			FOREIGN KEY (schema_id) REFERENCES schema (id) ON DELETE CASCADE
 		);
-		CREATE INDEX IF NOT EXISTS Sidx_schema_id ON schema_field (schema_id)`,
+		CREATE INDEX IF NOT EXISTS idx_schema_id ON schema_field (schema_id)`,
 		PostgresTableSchemaFieldName,
 	)
 	log.Debug("Query: ", query)
@@ -245,19 +246,29 @@ func (l *PostgreLoader) initTable(txn *sql.Tx, data *LoaderData) error {
 func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
 	log.Info("Loading schema")
 
-	// create schema
-	log.Info("Creating schema")
-	query := fmt.Sprintf("INSERT INTO %s (data_source_id) VALUES ($1) RETURNING id", PostgresTableSchemaName)
-	log.Debug("Query: ", query)
+	// get schema id if exists
 	var schemaId int
+	query := fmt.Sprintf("SELECT id FROM %s WHERE data_source_id = $1", PostgresTableSchemaName)
+	log.Debug("Query: ", query)
 	err := txn.QueryRow(query, l.DatasourceId).Scan(&schemaId)
 	if err != nil {
-		return err
+		if err == sql.ErrNoRows {
+			// create schema
+			log.Info("Creating schema")
+			query = fmt.Sprintf("INSERT INTO %s (data_source_id) VALUES ($1) RETURNING id", PostgresTableSchemaName)
+			log.Debug("Query: ", query)
+			err = txn.QueryRow(query, l.DatasourceId).Scan(&schemaId)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	// create schema fields
 	log.Info("Creating schema fields")
-	query = pq.CopyIn(PostgresTableSchemaFieldName, "id", "schema_id", "name", "type", "original_type", "nullable", "enum", "readonly", "is_primary")
+	query = pq.CopyIn(PostgresTableSchemaFieldName, "hashed_name", "schema_id", "name", "type", "original_type", "nullable", "enum", "readonly", "is_primary")
 	log.Debug("Query: ", query)
 	stmt, err := txn.Prepare(query)
 	if err != nil {
@@ -307,7 +318,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 	if len(data.SchemaChanges.DeletedFields) > 0 {
 		log.Info("Deleting fields")
 		// delete from schema fields
-		query = fmt.Sprintf("DELETE FROM %s WHERE schema_id = %d AND name IN ('%s')", PostgresTableSchemaFieldName, schemaId, strings.Join(data.SchemaChanges.DeletedFields, "','"))
+		query = fmt.Sprintf("DELETE FROM %s WHERE schema_id = %d AND hashed_name IN ('%s')", PostgresTableSchemaFieldName, schemaId, strings.Join(data.SchemaChanges.DeletedFields, "','"))
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -331,7 +342,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 	// added fields
 	if len(data.SchemaChanges.AddedFields) > 0 {
 		log.Info("Adding schema fields")
-		query = pq.CopyIn(PostgresTableSchemaFieldName, "id", "schema_id", "name", "type", "original_type", "nullable", "enum", "readonly", "is_primary")
+		query = pq.CopyIn(PostgresTableSchemaFieldName, "hashed_name", "schema_id", "name", "type", "original_type", "nullable", "enum", "readonly", "is_primary")
 		log.Debug("Query: ", query)
 		stmt, err := txn.Prepare(query)
 		if err != nil {
@@ -372,7 +383,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 				return err
 			}
 			query := fmt.Sprintf(
-				"UPDATE %s SET name = '%s' type = '%s', original_type = '%s', nullable = %t, enum = '%s', readonly = %t, is_primary = %t WHERE schema_id = %d AND id = '%s'",
+				"UPDATE %s SET name = '%s', type = '%s', original_type = '%s', nullable = %t, enum = '%s', readonly = %t, is_primary = %t WHERE schema_id = %d AND hashed_name = '%s'",
 				PostgresTableSchemaFieldName, field.Name, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary, schemaId, fieldId,
 			)
 			log.Debug("Query: ", query)

@@ -24,7 +24,7 @@ export class DestinationDatabaseService implements IDestinationDatabaseService {
 
   async getSchema(id: DataSourceId) {
     const schema = await this.entityManager.query(
-      `SELECT sf.id as id, name, type, original_type as originalType, nullable, enum, readonly, is_primary as primary FROM schema_field sf JOIN schema s ON sf.schema_id = s.id WHERE s.data_source_id = '${id}'`,
+      `SELECT sf.hashed_name as id, name, type, original_type as originalType, nullable, enum, readonly, is_primary as primary FROM schema_field sf JOIN schema s ON sf.schema_id = s.id WHERE s.data_source_id = '${id}'`,
     );
     return schema;
   }
