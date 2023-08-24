@@ -26,20 +26,22 @@ export const LoggerModule = WinstonModule.forRootAsync({
       }),
     ];
 
-    transports.push(
-      new winston.transports.File({
-        filename: '/logs/combine.log',
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.errors({ stack: true }),
-          winston.format.json(),
-        ),
-        handleExceptions: true,
-        maxsize: 5242880, // 5MB
-        maxFiles: 5,
-        level: logLevel,
-      }),
-    );
+    if (environment === 'production') {
+      transports.push(
+        new winston.transports.File({
+          filename: '/logs/combine.log',
+          format: winston.format.combine(
+            winston.format.timestamp(),
+            winston.format.errors({ stack: true }),
+            winston.format.json(),
+          ),
+          handleExceptions: true,
+          maxsize: 5242880, // 5MB
+          maxFiles: 5,
+          level: logLevel,
+        }),
+      );
+    }
 
     return {
       level: logLevel,

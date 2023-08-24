@@ -4,6 +4,7 @@ import {
   DataSource,
   DataSourceId,
   ExcelDataSourceConfig,
+  GoogleSheetsDataSourceConfig,
   ProviderConfig,
   ProviderId,
   ProviderType,
@@ -190,6 +191,12 @@ export class DataSourceService {
           externalId = `${driveId}-${workbookId}`;
           externalLocalId = `${worksheetId}`;
         }
+        break;
+      case ProviderType.GOOGLE_SHEETS:
+        const { spreadsheetId, sheetId } =
+          config as unknown as GoogleSheetsDataSourceConfig;
+        externalId = `${spreadsheetId}`;
+        externalLocalId = `${sheetId}`;
         break;
       default:
         throw new Error(`Unknown provider type ${type}`);

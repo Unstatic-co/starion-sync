@@ -6,10 +6,10 @@ import {
 } from '../dataSourceConfig.interface';
 
 export interface GoogleSheetsProviderConfig extends ProviderConfig {
-  spreadSheetsId: string;
+  spreadsheetId: string;
 }
 export interface GoogleSheetsDataSourceConfig extends DataSourceConfig {
-  spreadSheetsId: string;
+  spreadsheetId: string;
   sheetId: string;
 }
 

@@ -4,3 +4,4 @@ export * from './syncflow.attributes';
 export * from './syncflowExecution.entity';
 export * from './syncflow.registry';
 export * from './microsoft-excel';
+export * from './google-sheets';

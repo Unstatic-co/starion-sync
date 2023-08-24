@@ -11,11 +11,13 @@ export class GoogleService {
   constructor(private readonly configService: ConfigService) {}
 
   async createAuthClient(refreshToken: string) {
-    const client = new UserRefreshClient(
-      this.configService.get<string>(`${ConfigName.GOOGLE}.clientId`),
-      this.configService.get<string>(`${ConfigName.GOOGLE}.clientSecret`),
-      refreshToken,
+    const clientId = this.configService.get<string>(
+      `${ConfigName.GOOGLE}.clientId`,
     );
+    const clientSecret = this.configService.get<string>(
+      `${ConfigName.GOOGLE}.clientSecret`,
+    );
+    const client = new UserRefreshClient(clientId, clientSecret, refreshToken);
     return client;
   }
 }

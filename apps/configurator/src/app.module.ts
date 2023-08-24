@@ -11,6 +11,7 @@ import {
   microsoftConfigRegister,
   orchestratorConfigRegister,
   brokerConfigRegister,
+  googleConfigRegister,
 } from '@lib/core/config';
 import {
   DatabaseModule,
@@ -36,6 +37,7 @@ import { WebhookModule } from './modules/webhook/webhook.module';
         brokerConfigRegister,
         orchestratorConfigRegister,
         microsoftConfigRegister,
+        googleConfigRegister,
       ],
     }),
     LoggerModule,

@@ -1,5 +1,5 @@
 import { InjectTokens } from '@lib/modules/inject-tokens';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { sheets } from '@googleapis/sheets';
 import { OAuth2Client } from 'google-auth-library';
@@ -10,14 +10,24 @@ export class GoogleSheetsService {
 
   constructor(private readonly configService: ConfigService) {}
 
-  async getSpreadSheets(
-    client: OAuth2Client,
-    spreadSheetId: string,
-  ): Promise<any> {
+  async getSpreadSheets(data: {
+    client: OAuth2Client;
+    spreadsheetId: string;
+    fields?: string[];
+  }) {
+    const { client, spreadsheetId, fields } = data;
     const s = sheets({ version: 'v4', auth: client });
-    const res = await s.spreadsheets.get({
-      spreadsheetId: spreadSheetId,
-    });
-    return res;
+    const params = {
+      spreadsheetId,
+      includeGridData: false,
+    };
+    if (fields?.length) {
+      Object.assign(params, { fields: fields.join(',') });
+    }
+    const res = await s.spreadsheets.get(params);
+    if (res.status !== HttpStatus.OK) {
+      throw new Error(`Error getting spreadsheet: ${res.statusText}`);
+    }
+    return res.data;
   }
 }

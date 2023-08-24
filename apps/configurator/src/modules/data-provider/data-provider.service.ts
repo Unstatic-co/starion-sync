@@ -9,6 +9,7 @@ import {
   DataProvider,
   ExcelProviderConfig,
   ProviderConfig,
+  GoogleSheetsProviderConfig,
   ProviderId,
   ProviderType,
 } from '@lib/core';
@@ -136,6 +137,9 @@ export class DataProviderService implements IDataProviderService {
         } else {
           return `${driveId}-${workbookId}`;
         }
+      case ProviderType.GOOGLE_SHEETS:
+        const { spreadsheetId } = config as GoogleSheetsProviderConfig;
+        return spreadsheetId;
       default:
         throw new Error(`Unknown provider type ${type}`);
     }

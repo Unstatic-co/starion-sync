@@ -19,8 +19,6 @@ services:
       - 8080
     ports:
       - 9000:8080
-    volumes:
-      - configurator-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -34,8 +32,10 @@ services:
       - ORCHESTRATOR_ADDRESS=temporal:7233
       - ORCHESTRATOR_WORKER_TASKQUEUE=configurator
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=configurator
-      - MICROSOFT_CLIENT_ID=cf0e88e2-566f-4c81-abb5-2ae0111251fe
-      - MICROSOFT_CLIENT_SECRET=PTw8Q~A3IFhv~FuckTAfR.nYtoMMxVMoS_Oi3bxd
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
   controller:
     depends_on:
       - mongodb
@@ -55,8 +55,6 @@ services:
       - 8080
     ports:
       - 9001:8080
-    volumes:
-      - controller-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -70,9 +68,8 @@ services:
       - ORCHESTRATOR_ADDRESS=temporal:7233
       - ORCHESTRATOR_WORKER_TASKQUEUE=controller
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=controller
-      - MICROSOFT_CLIENT_ID=cf0e88e2-566f-4c81-abb5-2ae0111251fe
-      - MICROSOFT_CLIENT_SECRET=PTw8Q~A3IFhv~FuckTAfR.nYtoMMxVMoS_Oi3bxd
-      - MICROSOFT_PERMISSION_SCOPES=offline_access,openid,User.Read.All,https://graph.microsoft.com/Files.ReadWrite.All
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
   worker:
     depends_on:
       - mongodb
@@ -92,8 +89,6 @@ services:
       - 8080
     ports:
       - 9003:8080
-    volumes:
-      - worker-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=9000
@@ -110,8 +105,8 @@ services:
       - DOWNLOADER_URL=http://downloader:8080
       - COMPARER_URL=http://comparer:8080
       - LOADER_URL=http://loader:8080
-      - MICROSOFT_CLIENT_ID=cf0e88e2-566f-4c81-abb5-2ae0111251fe
-      - MICROSOFT_CLIENT_SECRET=PTw8Q~A3IFhv~FuckTAfR.nYtoMMxVMoS_Oi3bxd
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
   post-processor:
     depends_on:
       - mongodb
@@ -131,8 +126,6 @@ services:
       - 8080
     ports:
       - 9004:8080
-    volumes:
-      - post-processor-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=9000
@@ -170,8 +163,6 @@ services:
       - 8080
     ports:
       - 9005:8080
-    volumes:
-      - webhook-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=9000
@@ -284,8 +275,6 @@ services:
       - 8080
     ports:
       - 8003:8080
-    volumes:
-      - cron-trigger-log:/logs
     environment:
       - NODE_ENV=development
       - PORT=8080
@@ -462,9 +451,3 @@ volumes:
   postgresql:
   pgadmin:
   minio:
-  configurator-log:
-  controller-log:
-  worker-log:
-  post-processor-log:
-  webhook-log:
-  cron-trigger-log:
