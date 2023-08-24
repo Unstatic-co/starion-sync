@@ -15,7 +15,9 @@ export class BrokerController {
 
   @EventPattern(EventNames.SYNCFLOW_SCHEDULED)
   async handleSyncflowScheduledEvent(payload: SyncflowScheduledPayload) {
-    this.logger.debug('handleSyncflowScheduledEvent', payload);
+    this.logger.log(
+      `handleSyncflowScheduledEvent: syncflowId = ${payload.syncflow.id}`,
+    );
     return this.orchestratorService.executeWorkflow(payload.syncflow.name, {
       workflowId: `${payload.syncflow.id}-${payload.version}`,
       args: [payload],

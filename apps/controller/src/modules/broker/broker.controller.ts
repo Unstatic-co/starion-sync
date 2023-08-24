@@ -16,7 +16,7 @@ export class BrokerController {
 
   @EventPattern(EventNames.WORKFLOW_TRIGGERED)
   async handleWorkflowTriggeredEvent(payload: WorkflowTriggeredPayload) {
-    this.logger.debug('handleWorkflowTriggeredEvent', payload);
+    this.logger.log(`handleWorkflowTriggeredEvent: triggerId = ${payload.id}`);
     return this.orchestratorService.executeWorkflow(handleWorkflowTriggeredWf, {
       workflowId: `${payload.id}`,
       args: [payload],
