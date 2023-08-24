@@ -23,5 +23,8 @@ func InitRouter() *gin.Engine {
 	apiV1Excel := apiV1.Group("/excel")
 	apiV1Excel.POST("/download", v1.DownloadExcel)
 
+	apiV1GoogleSheets := apiV1.Group("/google-sheets")
+	apiV1GoogleSheets.POST("/download", v1.DownloadGoogleSheets)
+
 	return r
 }
