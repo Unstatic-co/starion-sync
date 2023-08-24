@@ -26,3 +26,5 @@ export class Trigger {
 }
 
 export class SyncTrigger extends Trigger {}
+
+export const DEFAULT_CRON_TRIGGER_FREQUENCY = 4; // minutes
