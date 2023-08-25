@@ -33,10 +33,11 @@ CURRENT_DIR="$(cd -P "$(dirname -- "$SOURCE")" &>/dev/null && pwd 3>/dev/null)"
 DIR="$(realpath "$CURRENT_DIR"/..)"
 mkdir -p "$OUT_DIR"
 
-declare -a SERVICES=(excel)
+declare -a SERVICES=(excel google-sheets)
 declare -a COMMON_BINARY_DEPENDENCIES=(generate-id get-csv-header)
 declare -A SERVICE_BINARY_DEPENDENCIES=(
     [excel]="get-and-normalize-date-column update-id-column get-and-upload-schema"
+    [google-sheets]="get-and-normalize-date-column update-id-column get-and-upload-schema"
 )
 
 function buildCommon() {

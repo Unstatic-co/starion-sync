@@ -161,6 +161,10 @@ func (s *MicrosoftExcelService) GetWorksheetInfo() error {
 	return nil
 }
 
+func (source *MicrosoftExcelService) Setup(ctx context.Context) error {
+	return nil
+}
+
 func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 	if err := source.CreateSessionId(true); err != nil {
 		source.logger.Error("Error creating session id", err)

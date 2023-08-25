@@ -42,7 +42,15 @@ func DownloadGoogleSheets(c *gin.Context) {
 	})
 
 	requestContext := c.Request.Context()
-	err := service.Download(requestContext)
+
+	err := service.Setup(requestContext)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error running setup google sheets for ds %s: ", body.DataSourceId), err)
+		appG.Response(e.ERROR, e.DOWNLOAD_ERROR, nil)
+		return
+	}
+
+	err = service.Download(requestContext)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error running download google sheets for ds %s: ", body.DataSourceId), err)
 		appG.Response(e.ERROR, e.DOWNLOAD_ERROR, nil)
