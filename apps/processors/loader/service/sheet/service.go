@@ -1,4 +1,4 @@
-package excel
+package sheet
 
 import (
 	"context"
@@ -16,13 +16,13 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type MicrosoftExcelServiceInitParams struct {
+type SheetServiceInitParams struct {
 	DataSourceId string `json:"dataSourceId"`
 	SyncVersion  uint   `json:"syncVersion"`
 	PrevVersion  uint   `json:"prevVersion"`
 }
 
-type MicrosoftExcelService struct {
+type SheetService struct {
 	// info
 	syncflowId   string
 	dataSourceId string
@@ -36,8 +36,8 @@ type MicrosoftExcelService struct {
 	s3DiffDataHandler *s3.S3Handler
 }
 
-func NewService(params MicrosoftExcelServiceInitParams) (*MicrosoftExcelService, error) {
-	var s MicrosoftExcelService
+func NewService(params SheetServiceInitParams) (*SheetService, error) {
+	var s SheetService
 	s.dataSourceId = params.DataSourceId
 	s.syncVersion = params.SyncVersion
 	s.prevVersion = params.PrevVersion
@@ -70,26 +70,26 @@ func NewService(params MicrosoftExcelServiceInitParams) (*MicrosoftExcelService,
 	return &s, nil
 }
 
-func (s *MicrosoftExcelService) getS3ResultAddedRowsFileKey() string {
+func (s *SheetService) getS3ResultAddedRowsFileKey() string {
 	return fmt.Sprintf(`result/%s-%d-addedRows.json`, s.dataSourceId, s.syncVersion)
 }
-func (s *MicrosoftExcelService) getS3ResultDeletedRowsFileKey() string {
+func (s *SheetService) getS3ResultDeletedRowsFileKey() string {
 	return fmt.Sprintf(`result/%s-%d-deletedRows.json`, s.dataSourceId, s.syncVersion)
 }
-func (s *MicrosoftExcelService) getS3ResultDeletedFieldsFileKey() string {
+func (s *SheetService) getS3ResultDeletedFieldsFileKey() string {
 	return fmt.Sprintf(`result/%s-%d-deletedFields.json`, s.dataSourceId, s.syncVersion)
 }
-func (s *MicrosoftExcelService) getS3ResultUpdatedFieldsFileKey() string {
+func (s *SheetService) getS3ResultUpdatedFieldsFileKey() string {
 	return fmt.Sprintf(`result/%s-%d-updatedFields.json`, s.dataSourceId, s.syncVersion)
 }
-func (s *MicrosoftExcelService) getS3ResultAddedFieldsFileKey() string {
+func (s *SheetService) getS3ResultAddedFieldsFileKey() string {
 	return fmt.Sprintf(`result/%s-%d-addedFields.json`, s.dataSourceId, s.syncVersion)
 }
-func (s *MicrosoftExcelService) getS3ResultSchemaFileKey() string {
+func (s *SheetService) getS3ResultSchemaFileKey() string {
 	return fmt.Sprintf(`result/%s-%d-schema.json`, s.dataSourceId, s.syncVersion)
 }
 
-func (s *MicrosoftExcelService) GetSchema() (sch.TableSchema, error) {
+func (s *SheetService) GetSchema() (sch.TableSchema, error) {
 	s.logger.Info("Getting schema")
 	var schema sch.TableSchema
 	schemaFileKey := fmt.Sprintf("schema/%s-%d.json", s.dataSourceId, s.syncVersion)
@@ -106,7 +106,7 @@ func (s *MicrosoftExcelService) GetSchema() (sch.TableSchema, error) {
 	return schema, nil
 }
 
-func (s *MicrosoftExcelService) GetDiffData() (loader.LoaderData, error) {
+func (s *SheetService) GetDiffData() (loader.LoaderData, error) {
 	s.logger.Info("Start getting diff data")
 
 	var data loader.LoaderData
@@ -296,8 +296,8 @@ func (s *MicrosoftExcelService) GetDiffData() (loader.LoaderData, error) {
 	return data, nil
 }
 
-func (s *MicrosoftExcelService) Load(ctx context.Context) (*loader.LoadedDataStatistics, error) {
-	s.logger.Info("Start load data from excel")
+func (s *SheetService) Load(ctx context.Context) (*loader.LoadedDataStatistics, error) {
+	s.logger.Info("Start load data")
 
 	// get diff data
 	s.logger.Debug("Getting diff data")

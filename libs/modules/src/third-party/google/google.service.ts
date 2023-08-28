@@ -18,6 +18,13 @@ export class GoogleService {
       `${ConfigName.GOOGLE}.clientSecret`,
     );
     const client = new UserRefreshClient(clientId, clientSecret, refreshToken);
+
     return client;
+  }
+
+  async getAccessToken(refreshToken: string) {
+    const client = await this.createAuthClient(refreshToken);
+    const token = await client.getAccessToken();
+    return token.token;
   }
 }

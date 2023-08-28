@@ -1,11 +1,8 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DataDiscoverer } from '../data-discoverer.factory';
 import { GoogleService, GoogleSheetsService } from '@lib/modules/third-party';
-import {
-  DiscoveredExcelDataSource,
-  DiscoveredGoogleSheetsDataSource,
-} from '../discoverer.interface';
-import { ExcelProviderConfig, GoogleSheetsProviderConfig } from '@lib/core';
+import { DiscoveredGoogleSheetsDataSource } from '../discoverer.interface';
+import { GoogleSheetsProviderConfig } from '@lib/core';
 
 @Injectable()
 export class GoogleSheetsDiscoverer implements DataDiscoverer {
@@ -37,7 +34,7 @@ export class GoogleSheetsDiscoverer implements DataDiscoverer {
       .getSpreadSheets({
         client,
         spreadsheetId: config.spreadsheetId,
-        fields: ['sheets'],
+        fields: ['sheets.properties'],
       })
       .then((res) =>
         res.sheets.map((sheet) => ({

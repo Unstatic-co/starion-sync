@@ -1,4 +1,4 @@
-package excel
+package sheet
 
 type DiffResultMeta struct {
 	Name string `json:"name"`

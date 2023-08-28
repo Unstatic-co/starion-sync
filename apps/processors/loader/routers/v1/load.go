@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"loader/pkg/app"
 	"loader/pkg/e"
-	"loader/service/excel"
+	"loader/service/sheet"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -19,7 +19,7 @@ type LoadResponse struct {
 	Message string `json:"message"`
 }
 
-func LoadExcel(c *gin.Context) {
+func LoadSheet(c *gin.Context) {
 	var (
 		appG = app.Gin{C: c}
 		body LoadRequest
@@ -31,7 +31,7 @@ func LoadExcel(c *gin.Context) {
 		return
 	}
 
-	excelService, err := excel.NewService(excel.MicrosoftExcelServiceInitParams{
+	excelService, err := sheet.NewService(sheet.SheetServiceInitParams{
 		DataSourceId: body.DataSourceId,
 		SyncVersion:  *body.SyncVersion,
 		PrevVersion:  *body.PrevVersion,

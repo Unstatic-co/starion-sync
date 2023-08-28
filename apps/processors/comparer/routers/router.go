@@ -20,7 +20,8 @@ func InitRouter() *gin.Engine {
 	apiV1.GET("/", v1.HelloWorld)
 	apiV1.GET("/test", v1.Test)
 
-	apiV1.POST("/excel/compare", v1.ExcelCompare)
+	apiV1.POST("/excel/compare", v1.Compare)
+	apiV1.POST("/google-sheets/compare", v1.Compare)
 
 	return r
 }

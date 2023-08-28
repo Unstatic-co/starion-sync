@@ -6,6 +6,7 @@ import { CommonModule } from './modules/common/common.module';
 import {
   appConfigRegister,
   databaseConfigRegister,
+  googleConfigRegister,
   microsoftConfigRegister,
   orchestratorConfigRegister,
 } from '@lib/core/config';
@@ -25,6 +26,7 @@ import { OrchestratorWorkerModule } from './modules/orchestrator-worker/orchestr
         brokerConfigRegister,
         orchestratorConfigRegister,
         microsoftConfigRegister,
+        googleConfigRegister,
       ],
     }),
     LoggerModule,

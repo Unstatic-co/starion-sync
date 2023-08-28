@@ -3,7 +3,7 @@ package v1
 import (
 	"comparer/pkg/app"
 	"comparer/pkg/e"
-	excelService "comparer/service/excel"
+	compareService "comparer/service"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +19,7 @@ type CompareResponse struct {
 	Message string `json:"message"`
 }
 
-func ExcelCompare(c *gin.Context) {
+func Compare(c *gin.Context) {
 	var (
 		appG = app.Gin{C: c}
 		body CompareRequest
@@ -31,7 +31,7 @@ func ExcelCompare(c *gin.Context) {
 		return
 	}
 
-	compareService := excelService.New(excelService.CompareServiceInitParams{
+	compareService := compareService.New(compareService.CompareServiceInitParams{
 		DataSourceId: body.DataSourceId,
 		SyncVersion:  *body.SyncVersion,
 		PrevVersion:  *body.PrevVersion,
