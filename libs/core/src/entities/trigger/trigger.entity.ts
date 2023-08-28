@@ -10,7 +10,7 @@ export enum TriggerType {
   MANUAL = 'MANUAL',
   SCHEDULE = 'SCHEDULE',
   CRON = 'CRON',
-  EVENT = 'EVENT',
+  EVENT_WEBHOOK = 'EVENT_WEBHOOK',
 }
 
 export class Trigger {

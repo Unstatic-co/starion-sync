@@ -46,6 +46,9 @@ export class DataSourceRepository implements IDataSourceRepository {
     if (options?.session) {
       query = query.session(options.session);
     }
+    if (options?.select?.length) {
+      query = query.select(options.select.join(' '));
+    }
     const result = await query;
     if (!result) return null;
     return result.toJSON();

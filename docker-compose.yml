@@ -295,6 +295,41 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=abc123456
+  webhook-trigger:
+    depends_on:
+      - mongodb
+      - zookeeper
+      - kafka
+      - redis
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
+    build:
+      context: .
+      dockerfile: ./apps/triggers/webhook/Dockerfile
+    expose:
+      - 8080
+    ports:
+      - 8004:8080
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - DB_TYPE=mongodb
+      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - BROKER_TYPE=kafka
+      - BROKER_URIS=kafka:29092
+      - KAFKA_CLIENT_ID=webhook-trigger
+      - KAFKA_CONSUMER_GROUP_ID=webhook-trigger
+      - KAFKA_SSL_ENABLED=false
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=abc123456
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - WEBHOOK_TRIGGER_BASE_URL=${WEBHOOK_TRIGGER_BASE_URL}
   #--------------------------------- DATABASE ---------------------------------------#
   mongodb:
     restart: on-failure

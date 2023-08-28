@@ -14,6 +14,9 @@ importers:
       '@azure/msal-node':
         specifier: ^1.17.3
         version: 1.17.3
+      '@googleapis/drive':
+        specifier: ^8.0.0
+        version: 8.0.0
       '@googleapis/sheets':
         specifier: ^5.0.3
         version: 5.0.3
@@ -281,6 +284,8 @@ importers:
   apps/post-processor: {}
 
   apps/triggers/cron: {}
+
+  apps/triggers/webhook: {}
 
   apps/webhook: {}
 
@@ -1315,6 +1320,16 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: true
+
+  /@googleapis/drive@8.0.0:
+    resolution: {integrity: sha512-RMa1gto0Dwmy3pi7o8IkqAXiDUHl9ENn/VPm5kPfCl3lxa/oRRzhHlbQ7DAeJz+ukIaVm0lbtS7wYcT7jxAA1g==}
+    engines: {node: '>=12.0.0'}
+    dependencies:
+      googleapis-common: 6.0.4
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    dev: false
 
   /@googleapis/sheets@5.0.3:
     resolution: {integrity: sha512-aP/CJw3pu+k9TAPTG8iM5p26t4XJOX9+33lddVT/37GzJFcOR+rjIXmOne+lqipb8VGpJE8E4jGjWSKLb59H1Q==}

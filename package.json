@@ -31,6 +31,8 @@
     "start:webhook:prod": "node dist/apps/webhook/main",
     "start:cron-trigger:dev": "env-cmd -f ./apps/triggers/cron/.env nest start @app/trigger/cron --watch",
     "start:cron-trigger:prod": "node dist/apps/triggers/cron/main",
+    "start:webhook-trigger:dev": "env-cmd -f ./apps/triggers/webhook/.env nest start @app/trigger/webhook --watch",
+    "start:webhook-trigger:prod": "node dist/apps/triggers/webhook/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -41,6 +43,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.391.0",
     "@azure/msal-node": "^1.17.3",
+    "@googleapis/drive": "^8.0.0",
     "@googleapis/sheets": "^5.0.3",
     "@microsoft/microsoft-graph-client": "^3.0.5",
     "@nestjs/bull": "^10.0.0",

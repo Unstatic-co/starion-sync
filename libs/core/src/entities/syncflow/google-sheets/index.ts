@@ -46,8 +46,8 @@ const GoogleSheetsSyncflowDefinitions: Array<{
       .setSyncType(SyncflowSyncType.FULL)
       .build(),
     trigger: {
-      name: TriggerNames.GOOGLE_SHEETS_CRON,
-      type: TriggerType.CRON,
+      name: TriggerNames.GOOGLE_SHEETS_WEBHOOK,
+      type: TriggerType.EVENT_WEBHOOK,
     },
   },
 ];

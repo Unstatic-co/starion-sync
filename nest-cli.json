@@ -93,6 +93,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/triggers/cron/tsconfig.app.json"
       }
+    },
+    "@app/trigger/webhook": {
+      "type": "application",
+      "root": "apps/triggers/webhook",
+      "entryFile": "main",
+      "sourceRoot": "apps/triggers/webhook/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/triggers/webhook/tsconfig.app.json"
+      }
     }
   }
 }
