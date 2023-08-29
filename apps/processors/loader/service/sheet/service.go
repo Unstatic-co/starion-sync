@@ -315,7 +315,7 @@ func (s *SheetService) Load(ctx context.Context) (*loader.LoadedDataStatistics, 
 		return nil, err
 	}
 	defer loaderInstance.Close()
-	err = loaderInstance.Load(&data)
+	err = loaderInstance.Load(ctx, &data)
 	if err != nil {
 		s.logger.Error("Error when loading data: ", err)
 		return nil, err

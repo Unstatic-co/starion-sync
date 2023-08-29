@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"context"
 	"loader/libs/schema"
 	"loader/pkg/config"
 	"loader/service"
@@ -38,7 +39,7 @@ type LoadedDataStatistics struct {
 
 type Loader interface {
 	Setup() error
-	Load(data *LoaderData) error
+	Load(ctx context.Context, data *LoaderData) error
 	Close() error
 }
 

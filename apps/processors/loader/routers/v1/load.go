@@ -31,7 +31,7 @@ func LoadSheet(c *gin.Context) {
 		return
 	}
 
-	excelService, err := sheet.NewService(sheet.SheetServiceInitParams{
+	service, err := sheet.NewService(sheet.SheetServiceInitParams{
 		DataSourceId: body.DataSourceId,
 		SyncVersion:  *body.SyncVersion,
 		PrevVersion:  *body.PrevVersion,
@@ -43,7 +43,7 @@ func LoadSheet(c *gin.Context) {
 	}
 
 	requestContext := c.Request.Context()
-	statistics, err := excelService.Load(requestContext)
+	statistics, err := service.Load(requestContext)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error running load data for ds %s: ", body.DataSourceId), err)
 		appG.Response(e.ERROR, e.LOADER_ERROR, nil)
