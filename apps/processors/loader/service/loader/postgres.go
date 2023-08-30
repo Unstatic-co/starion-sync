@@ -13,7 +13,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	pq "github.com/lib/pq"
 	"github.com/samber/lo"
-	"golang.org/x/sync/errgroup"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -191,37 +190,29 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 	l.setTimezone(txn)
 
 	if l.PrevVersion == 0 {
-		eg, _ := errgroup.WithContext(ctx)
-		eg.Go(func() error {
-			return l.loadSchema(txn, data)
-		})
-		eg.Go(func() error {
-			err = l.initTable(txn, data)
-			if err != nil {
-				return err
-			}
-			err = l.loadAddedRows(txn, data)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-		if err := eg.Wait(); err != nil {
-			return err
-		}
-	} else {
-		err = l.loadSchemaChange(txn, data)
+		err := l.loadSchema(txn, data)
 		if err != nil {
 			return err
 		}
-		eg, _ := errgroup.WithContext(ctx)
-		eg.Go(func() error {
-			return l.loadRemovedRows(txn, data)
-		})
-		eg.Go(func() error {
-			return l.loadAddedRows(txn, data)
-		})
-		if err := eg.Wait(); err != nil {
+		err = l.initTable(txn, data)
+		if err != nil {
+			return err
+		}
+		err = l.loadAddedRows(txn, data)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := l.loadSchemaChange(txn, data)
+		if err != nil {
+			return err
+		}
+		err = l.loadRemovedRows(txn, data)
+		if err != nil {
+			return err
+		}
+		err = l.loadAddedRows(txn, data)
+		if err != nil {
 			return err
 		}
 		err = l.loadUpdateFields(txn, data)
@@ -479,7 +470,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 }
 
 func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *LoaderData) error {
-	log.Info("Loading added rows to postgres")
+	log.Info("Loading added rows to postgres, count: ", len(data.AddedRows.Rows))
 
 	if len(data.AddedRows.Rows) == 0 {
 		log.Info("No added rows to load")
