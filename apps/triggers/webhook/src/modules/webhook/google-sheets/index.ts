@@ -26,6 +26,7 @@ import {
 } from '@nestjs/bull';
 import { QUEUES } from '../../../common/queues';
 import { Job, Queue } from 'bull';
+import { ConfigName } from '@lib/core/config';
 
 type GoogleSheetsWebhookRefreshmentJobData = {
   triggerId: TriggerId;
@@ -51,7 +52,13 @@ export class GoogleSheetsWebhookService implements WebhookService {
     await this.create(data);
 
     this.logger.debug(`add refreshment job, triggerId = ${trigger.id}`);
-    const refreshInterval = (GOOGLE_SHEETS_WEBHOOK_EXPIRATION - 1800) * 1000;
+    let refreshInterval = (GOOGLE_SHEETS_WEBHOOK_EXPIRATION - 1800) * 1000;
+    if (
+      this.configService.get<string>(`${ConfigName.APP}.environment`) ==
+      'development'
+    ) {
+      refreshInterval = 1600 * 1000;
+    }
     await this.refreshmentQueue.add(
       {
         triggerId: trigger.id,
@@ -81,7 +88,13 @@ export class GoogleSheetsWebhookService implements WebhookService {
     dataSource: DataSource;
   }): Promise<void> {
     const { trigger } = data;
-    await this.stop(data);
+    try {
+      await this.stop(data);
+    } catch (error) {
+      this.logger.warn(
+        `failed to stop google sheets webhook, triggerId = ${trigger.id}, error = ${error.message}`,
+      );
+    }
 
     this.logger.log(`remove refreshment job, jobId = ${trigger.id}`);
     await this.refreshmentQueue.removeRepeatable({
@@ -99,6 +112,13 @@ export class GoogleSheetsWebhookService implements WebhookService {
     const webhookBaseUrl = this.configService.get<string>('webhook.baseUrl');
 
     const webhookId = uuidv4();
+    let expiration = Date.now() + GOOGLE_SHEETS_WEBHOOK_EXPIRATION * 1000;
+    if (
+      this.configService.get<string>(`${ConfigName.APP}.environment`) ==
+      'development'
+    ) {
+      expiration = Date.now() + 1800 * 1000;
+    }
     const client = await this.googleService.createAuthClient(refreshToken);
     const { channelId, resourceId } =
       await this.googleSheetsService.registerFileChangeWebhook({
@@ -106,7 +126,7 @@ export class GoogleSheetsWebhookService implements WebhookService {
         webhookId,
         fileId: dataSourceConfig.spreadsheetId,
         webhookUrl: `${webhookBaseUrl}/triggers/google-sheets/${trigger.id}`,
-        expiration: Date.now() + GOOGLE_SHEETS_WEBHOOK_EXPIRATION * 1000,
+        expiration,
         params: {
           triggerId: trigger.id,
         },

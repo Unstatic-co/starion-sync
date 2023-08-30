@@ -54,14 +54,22 @@ export class TriggerService {
 
   async deleteTriggerFromSyncConnection(syncConnection: SyncConnection) {
     for (const syncflow of syncConnection.syncflows) {
-      if (syncflow.trigger.type === TriggerType.CRON) {
-        const trigger = await this.triggerRepository.getByWorkflowId(
-          syncflow.id,
-          { includeDeleted: true },
-        );
+      if (syncflow.trigger.type === TriggerType.EVENT_WEBHOOK) {
+        const [trigger, dataSource] = await Promise.all([
+          this.triggerRepository.getByWorkflowId(syncflow.id, {
+            includeDeleted: true,
+          }),
+          this.dataSourceRepository.getById(syncConnection.sourceId, {
+            includeDeleted: true,
+          }),
+        ]);
         if (trigger) {
           this.logger.debug('delete trigger', trigger);
-          const { cron, jobId } = trigger.config as CronTriggerConfig;
+          const webhookService = this.webhookFactoryService.get(trigger.name);
+          await webhookService.stopWebhook({
+            trigger,
+            dataSource,
+          });
           this.logger.debug('deleted trigger', trigger.id);
         }
       }
