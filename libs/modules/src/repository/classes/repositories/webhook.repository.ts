@@ -1,11 +1,21 @@
-import { Webhook, WebhookId, WebhookType } from '@lib/core';
+import {
+  DataSourceId,
+  Webhook,
+  WebhookId,
+  WebhookScope,
+  WebhookType,
+} from '@lib/core';
 import { IRepository } from '../baseRepository';
 import { QueryOptions } from '../common';
 
 export interface IWebhookRepository extends IRepository {
   getById(id: WebhookId, options?: QueryOptions): Promise<Webhook | null>;
   getActiveWebhooksByType(
-    type: WebhookType,
+    data: {
+      type: WebhookType;
+      scope?: WebhookScope;
+      dataSourceId?: DataSourceId;
+    },
     options?: QueryOptions,
   ): Promise<Webhook[]>;
   create(data: CreateWebhookData, options?: QueryOptions): Promise<Webhook>;
@@ -20,6 +30,10 @@ export interface IWebhookRepository extends IRepository {
 export type CreateWebhookData = {
   type: WebhookType;
   url: string;
+  scope: WebhookScope;
+  dataSourceId?: DataSourceId;
+  assure?: boolean;
+  metadata?: Record<string, any>;
 };
 
 export type UpdateWebhookData = any;

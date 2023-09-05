@@ -1,7 +1,11 @@
 import { Controller, Logger, Post } from '@nestjs/common';
 import { EventPattern } from '@nestjs/microservices';
 import { BrokerService } from './broker.service';
-import { ConnectionCreatedPayload, EventNames } from '@lib/core';
+import {
+  ConnectionCreatedPayload,
+  EventNames,
+  SyncflowScheduledPayload,
+} from '@lib/core';
 import { WebhookService } from '../webhook/webhook.service';
 
 @Controller('broker')
@@ -17,6 +21,24 @@ export class BrokerController {
     this.logger.log(`connection ${data.id} created`);
     return this.webhookService.addWebhookExecution(
       EventNames.CONNECTION_CREATED,
+      data,
+    );
+  }
+
+  @EventPattern(EventNames.SYNCFLOW_SCHEDULED)
+  async syncflowScheduled(data: SyncflowScheduledPayload) {
+    this.logger.log(`syncflow ${data.syncflow.id} scheduled`);
+    return this.webhookService.addWebhookExecution(
+      EventNames.SYNCFLOW_SCHEDULED,
+      data,
+    );
+  }
+
+  @EventPattern(EventNames.SYNCFLOW_SUCCEED)
+  async syncflowSucceed(data: SyncflowScheduledPayload) {
+    this.logger.log(`syncflow ${data.syncflowId} succeed`);
+    return this.webhookService.addWebhookExecution(
+      EventNames.SYNCFLOW_SUCCEED,
       data,
     );
   }

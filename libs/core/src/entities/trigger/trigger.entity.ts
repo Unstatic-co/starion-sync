@@ -1,3 +1,4 @@
+import { DataSourceId } from '../data-source';
 import { WorkflowId, WorkflowName } from '../workflow';
 import { WorkflowType } from '../workflow/workflow.type';
 import { TriggerConfig } from './trigger.config';
@@ -22,6 +23,7 @@ export class Trigger {
     name: WorkflowName;
     type: WorkflowType;
   };
+  sourceId: DataSourceId;
   config?: TriggerConfig;
 }
 

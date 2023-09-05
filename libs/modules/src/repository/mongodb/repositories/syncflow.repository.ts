@@ -27,7 +27,7 @@ export class SyncflowRepository implements ISyncflowRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.syncflowModel.findOne(conditions);
     if (options?.session) {
@@ -44,7 +44,7 @@ export class SyncflowRepository implements ISyncflowRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.syncflowModel.findOne(conditions);
     if (options?.session) {

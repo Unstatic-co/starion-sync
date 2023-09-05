@@ -1,6 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { Webhook, WebhookStatus, WebhookType } from '@lib/core';
+import {
+  Metadata,
+  Webhook,
+  WebhookScope,
+  WebhookStatus,
+  WebhookType,
+} from '@lib/core';
 
 export type WebhookDocument = WebhookModel & Document;
 
@@ -25,6 +31,20 @@ export class WebhookModel extends Webhook {
 
   @Prop()
   type: WebhookType;
+
+  @Prop({ default: false })
+  assure: boolean;
+
+  @Prop({ default: WebhookScope.GLOBAL })
+  scope: WebhookScope;
+
+  @Prop()
+  dataSourceId?: string;
+
+  @Prop({
+    type: Object,
+  })
+  metadata?: Metadata;
 
   @Prop({
     type: Boolean,

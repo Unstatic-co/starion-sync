@@ -28,7 +28,7 @@ export class TriggerRepository implements ITriggerRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.triggerModel.findOne(conditions);
     if (options?.session) {
@@ -45,7 +45,7 @@ export class TriggerRepository implements ITriggerRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.triggerModel.findOne(conditions);
     if (options?.session) {
@@ -72,7 +72,7 @@ export class TriggerRepository implements ITriggerRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.triggerModel.findOne(conditions);
     if (options?.session) {

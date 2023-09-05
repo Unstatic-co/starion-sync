@@ -9,10 +9,14 @@ import { ConfigService } from '@nestjs/config';
 import { BrokerService } from '../broker/broker.service';
 import {
   ConnectionCreatedPayload,
+  DataSourceId,
   EventName,
   EventNames,
   EventPayload,
+  SyncflowScheduledPayload,
+  SyncflowSucceedPayload,
   WebhookPayload,
+  WebhookScope,
   WebhookStatus,
   WebhookType,
 } from '@lib/core';
@@ -23,7 +27,10 @@ import { InjectQueue } from '@nestjs/bull';
 import { QUEUES } from '../../common/queues';
 import Bull, { Queue } from 'bull';
 import { WebhookExecutionData } from './webhook.job';
-import { SyncConnectionCreatedWebhookPayload } from './webhook.payload';
+import {
+  SyncConnectionCreatedWebhookPayload,
+  SyncflowScheduledWebhookPayload,
+} from './webhook.payload';
 
 @Injectable()
 export class WebhookService {
@@ -40,35 +47,75 @@ export class WebhookService {
     private readonly brokerService: BrokerService,
   ) {}
 
-  async addWebhookExecution(eventName: EventName, eventPayload: EventPayload) {
+  async addWebhookExecution(
+    eventName: EventName,
+    eventPayload: EventPayload,
+    options?: {
+      assure?: boolean;
+    },
+  ) {
     this.logger.log(`add webhook execution for event ${eventName}`);
     let webhookType: WebhookType;
     let webhookPayload: WebhookPayload;
+    let dataSourceId: DataSourceId;
     switch (eventName) {
       case EventNames.CONNECTION_CREATED:
         webhookType = WebhookType.SYNC_CONNECTION_CREATED;
-        const dataSourceId = (eventPayload as ConnectionCreatedPayload)
-          .sourceId;
+        dataSourceId = (eventPayload as ConnectionCreatedPayload).sourceId;
         const dataSource = await this.dataSourceRepository.getById(
           dataSourceId,
+          { includeDeleted: true },
         );
-        if (!dataSource) {
-          this.logger.warn(`Data source not found: ${dataSourceId}`);
-          return;
-        }
         webhookPayload = {
           dataProvider: dataSource.provider.type,
-          dataSourceId: dataSource.id,
+          dataSourceId,
           dataSourceConfig: dataSource.config,
         } as SyncConnectionCreatedWebhookPayload;
         break;
+
+      case EventNames.SYNCFLOW_SCHEDULED:
+        const synflowScheduledPayload =
+          eventPayload as SyncflowScheduledPayload;
+        webhookType = WebhookType.SYNCFLOW_SCHEDULED;
+        dataSourceId = synflowScheduledPayload.syncflow.sourceId;
+        webhookPayload = {
+          syncflowId: synflowScheduledPayload.syncflow.id,
+          dataSourceId,
+        } as SyncflowScheduledWebhookPayload;
+        break;
+
+      case EventNames.SYNCFLOW_SUCCEED:
+        const syncflowSucceedPayload = eventPayload as SyncflowSucceedPayload;
+        webhookType = WebhookType.SYNCFLOW_SUCCEED;
+        const { syncflowId, loadedDataStatistics } = syncflowSucceedPayload;
+        dataSourceId = syncflowSucceedPayload.dataSourceId;
+        webhookPayload = {
+          syncflowId,
+          dataSourceId,
+          loadedDataStatistics,
+        } as SyncflowScheduledWebhookPayload;
+        break;
+
       default:
         throw new Error(`Unsupported event: ${eventName}`);
     }
 
-    const webhooks = await this.webhookRepository.getActiveWebhooksByType(
-      webhookType,
-    );
+    const globalWebhookQuery = this.webhookRepository.getActiveWebhooksByType({
+      type: webhookType,
+      scope: WebhookScope.GLOBAL,
+    });
+    const dataSourceWebhookQuery =
+      this.webhookRepository.getActiveWebhooksByType({
+        type: webhookType,
+        scope: WebhookScope.DATA_SOURCE,
+        dataSourceId,
+      });
+    const [globalWebhooks, dataSourceWebhooks] = await Promise.all([
+      globalWebhookQuery,
+      dataSourceWebhookQuery,
+    ]);
+    const webhooks = [...globalWebhooks, ...dataSourceWebhooks];
+
     if (!webhooks.length) {
       this.logger.debug(`no webhooks found for event ${eventName}`);
       return;
@@ -84,7 +131,7 @@ export class WebhookService {
           opts: {
             jobId: webhook.id,
             timeout: 10000,
-            attempts: 5,
+            attempts: options?.assure ? 100000 : 5,
             removeOnComplete: true,
             removeOnFail: true,
             backoff: {
@@ -112,8 +159,11 @@ export class WebhookService {
       return;
     }
 
-    // add timestamp
+    // add timestamp & metadata
     payload.timestamp = new Date();
+    if (webhook.metadata) {
+      payload.metadata = webhook.metadata;
+    }
 
     try {
       await axios.post(webhook.url, payload, {

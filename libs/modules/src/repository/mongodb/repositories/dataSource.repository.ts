@@ -40,7 +40,7 @@ export class DataSourceRepository implements IDataSourceRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.dataSourceModel.findOne(conditions);
     if (options?.session) {
@@ -60,7 +60,7 @@ export class DataSourceRepository implements IDataSourceRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.dataSourceModel.findOne(conditions);
     if (options?.session) {

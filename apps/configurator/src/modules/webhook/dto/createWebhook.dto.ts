@@ -1,8 +1,10 @@
 import { WebhookType } from '@lib/core';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Validate,
   ValidateNested,
@@ -16,6 +18,17 @@ export class CreateWebhookDto {
   @IsNotEmpty()
   @IsString()
   url: string;
+
+  @IsOptional()
+  @IsBoolean()
+  assure?: boolean;
+
+  @IsOptional()
+  @IsString()
+  dataSourceId?: string;
+
+  @IsOptional()
+  metadata?: Record<string, any>;
 }
 
 export class CreateWebhooksDto {

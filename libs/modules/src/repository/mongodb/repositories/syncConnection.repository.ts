@@ -51,7 +51,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.syncConnectionModel.findOne(conditions);
     if (options?.session) {
@@ -68,7 +68,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.syncConnectionModel.findOne(conditions);
     if (options?.session) {
@@ -119,6 +119,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
               name: syncflow.name,
               type: WorkflowType.SYNCFLOW,
             },
+            sourceId: Utils.toObjectId(data.sourceId),
             config: syncflowData.trigger.config,
           });
           await trigger.save({ session });

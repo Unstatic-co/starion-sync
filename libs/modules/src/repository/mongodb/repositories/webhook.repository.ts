@@ -10,7 +10,7 @@ import { Utils } from 'apps/configurator/src/common/utils';
 import { QueryOptions } from '../../classes';
 import mongoose from 'mongoose';
 import { WebhookDocument, WebhookModel } from '../models';
-import { Webhook, WebhookStatus } from '@lib/core';
+import { Webhook, WebhookScope, WebhookStatus } from '@lib/core';
 
 @Injectable()
 export class WebhookRepository implements IWebhookRepository {
@@ -26,7 +26,7 @@ export class WebhookRepository implements IWebhookRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.webhookModel.findOne(conditions);
     if (options?.session) {
@@ -37,14 +37,29 @@ export class WebhookRepository implements IWebhookRepository {
     return result.toJSON();
   }
 
-  public async getActiveWebhooksByType(type: string, options?: QueryOptions) {
+  public async getActiveWebhooksByType(
+    data: {
+      type: string;
+      scope?: string;
+      dataSourceId?: string;
+    },
+    options?: QueryOptions,
+  ) {
+    const { type, scope, dataSourceId } = data;
     const conditions = {
       type,
       status: WebhookStatus.ACTIVE,
       isDeleted: false,
     };
+    if (scope) {
+      if (scope === WebhookScope.DATA_SOURCE) {
+        Object.assign(conditions, { scope, dataSourceId });
+      } else {
+        Object.assign(conditions, { scope });
+      }
+    }
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.webhookModel.find(conditions);
     if (options?.session) {

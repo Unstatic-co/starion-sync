@@ -5,7 +5,13 @@ import {
   TriggerConfig,
   TriggerType,
 } from '@lib/core/entities/trigger';
-import { WorkflowId, WorkflowName, WorkflowType } from '@lib/core';
+import {
+  DataSourceId,
+  WorkflowId,
+  WorkflowName,
+  WorkflowType,
+} from '@lib/core';
+import mongoose from 'mongoose';
 
 export type TriggerDocument = TriggerModel & Document;
 
@@ -33,6 +39,11 @@ export class TriggerModel extends Trigger {
     name: WorkflowName;
     type: WorkflowType;
   };
+
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+  })
+  sourceId: DataSourceId;
 
   @Prop()
   type: TriggerType;
