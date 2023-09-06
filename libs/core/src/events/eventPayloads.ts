@@ -30,3 +30,8 @@ export type SyncflowSucceedPayload = EventPayload & {
     deletedRowsCount: number;
   };
 };
+export type SyncflowCompletedPayload = EventPayload & {
+  dataSourceId: string;
+  syncflowId: string;
+  rowsNumber: number;
+};

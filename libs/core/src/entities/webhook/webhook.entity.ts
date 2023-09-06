@@ -13,6 +13,7 @@ export enum WebhookType {
   DATA_SOURCE_DELETED = 'data-source-deleted',
   SYNCFLOW_SCHEDULED = 'syncflow-scheduled',
   SYNCFLOW_SUCCEED = 'syncflow-succeed',
+  SYNCFLOW_COMPLETED = 'syncflow-completed',
 }
 
 export enum WebhookScope {

@@ -43,6 +43,15 @@ export class BrokerController {
     );
   }
 
+  @EventPattern(EventNames.SYNCFLOW_COMPLETED)
+  async syncflowCompleted(data: SyncflowScheduledPayload) {
+    this.logger.log(`syncflow ${data.syncflowId} completed`);
+    return this.webhookService.addWebhookExecution(
+      EventNames.SYNCFLOW_COMPLETED,
+      data,
+    );
+  }
+
   @EventPattern('test-event-to-webhook')
   async testEvent(message: any) {
     this.logger.debug('test-event-to-webhook', message);

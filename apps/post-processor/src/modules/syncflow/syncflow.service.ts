@@ -5,7 +5,12 @@ import {
 } from '@lib/modules';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CleanerFactory } from '../cleaner/cleaner.factory';
-import { SyncflowId, SyncflowSucceedPayload } from '@lib/core';
+import {
+  EventNames,
+  SyncflowCompletedPayload,
+  SyncflowSucceedPayload,
+} from '@lib/core';
+import { BrokerService } from '../broker/broker.service';
 
 @Injectable()
 export class SyncflowService {
@@ -17,6 +22,7 @@ export class SyncflowService {
     @Inject(InjectTokens.DATA_SOURCE_REPOSITORY)
     private readonly dataSourceRepository: IDataSourceRepository,
     private readonly cleanerFactory: CleanerFactory,
+    private readonly brokerService: BrokerService,
   ) {}
 
   async handleSyncflowSucceed(data: SyncflowSucceedPayload): Promise<void> {
@@ -24,8 +30,8 @@ export class SyncflowService {
     this.logger.log(`Handling syncflow succeeded for ${syncflowId}`);
 
     const [syncflow, dataSource] = await Promise.all([
-      this.syncflowRepository.getById(syncflowId),
-      this.dataSourceRepository.getById(dataSourceId),
+      this.syncflowRepository.getById(syncflowId, { includeDeleted: true }),
+      this.dataSourceRepository.getById(dataSourceId, { includeDeleted: true }),
     ]);
     if (!syncflow) {
       this.logger.warn(`Syncflow not found: ${syncflowId}`);
@@ -38,11 +44,21 @@ export class SyncflowService {
     const cleaner = this.cleanerFactory.get(dataSource.provider.type);
 
     await cleaner.run(syncflow, { syncVersion, prevSyncVersion });
+
+    const rowsNumber =
+      dataSource.statistics.rowsNumber +
+      (data.loadedDataStatistics.addedRowsCount -
+        data.loadedDataStatistics.deletedRowsCount);
     await this.dataSourceRepository.updateStatistics(dataSourceId, {
-      rowsNumber:
-        dataSource.statistics.rowsNumber +
-        (data.loadedDataStatistics.addedRowsCount -
-          data.loadedDataStatistics.deletedRowsCount),
+      rowsNumber,
+    });
+
+    await this.brokerService.emitEvent(EventNames.SYNCFLOW_COMPLETED, {
+      payload: {
+        syncflowId,
+        dataSourceId,
+        rowsNumber,
+      } as SyncflowCompletedPayload,
     });
   }
 }

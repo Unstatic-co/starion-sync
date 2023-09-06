@@ -13,6 +13,7 @@ import {
   EventName,
   EventNames,
   EventPayload,
+  SyncflowCompletedPayload,
   SyncflowScheduledPayload,
   SyncflowSucceedPayload,
   WebhookPayload,
@@ -29,7 +30,9 @@ import Bull, { Queue } from 'bull';
 import { WebhookExecutionData } from './webhook.job';
 import {
   SyncConnectionCreatedWebhookPayload,
+  SyncflowCompletedWebhookPayload,
   SyncflowScheduledWebhookPayload,
+  SyncflowSucceedWebhookPayload,
 } from './webhook.payload';
 
 @Injectable()
@@ -93,7 +96,19 @@ export class WebhookService {
           syncflowId,
           dataSourceId,
           loadedDataStatistics,
-        } as SyncflowScheduledWebhookPayload;
+        } as SyncflowSucceedWebhookPayload;
+        break;
+
+      case EventNames.SYNCFLOW_COMPLETED:
+        const syncflowCompletedPayload =
+          eventPayload as SyncflowCompletedPayload;
+        webhookType = WebhookType.SYNCFLOW_COMPLETED;
+        dataSourceId = syncflowCompletedPayload.dataSourceId;
+        webhookPayload = {
+          syncflowId: syncflowCompletedPayload.syncflowId,
+          dataSourceId,
+          rowsNumber: syncflowCompletedPayload.rowsNumber,
+        } as SyncflowCompletedWebhookPayload;
         break;
 
       default:
