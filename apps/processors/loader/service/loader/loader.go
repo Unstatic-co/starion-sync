@@ -23,7 +23,8 @@ type LoaderData struct {
 	Schema       schema.TableSchema
 	PrimaryField string
 
-	SchemaChanges service.SchemaDiffResult
+	IsSchemaChanged bool
+	SchemaChanges   service.SchemaDiffResult
 
 	AddedRows     AddedRowsData
 	DeletedRows   DeletedRowsData
@@ -32,9 +33,10 @@ type LoaderData struct {
 	DeletedFields DeletedFieldsData
 }
 
-type LoadedDataStatistics struct {
-	AddedRowsCount   int `json:"addedRowsCount"`
-	DeletedRowsCount int `json:"deletedRowsCount"`
+type LoadedResult struct {
+	AddedRowsCount   int  `json:"addedRowsCount"`
+	DeletedRowsCount int  `json:"deletedRowsCount"`
+	IsSchemaChanged  bool `json:"isSchemaChanged"`
 }
 
 type Loader interface {

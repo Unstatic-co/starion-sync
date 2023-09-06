@@ -16,7 +16,8 @@ type LoadRequest struct {
 	PrevVersion  *uint  `form:"prevVersion" binding:"required,number"`
 }
 type LoadResponse struct {
-	Message string `json:"message"`
+	IsSchemaChanged bool   `json:"isSchemaChanged"`
+	Message         string `json:"message"`
 }
 
 func LoadSheet(c *gin.Context) {
@@ -43,12 +44,12 @@ func LoadSheet(c *gin.Context) {
 	}
 
 	requestContext := c.Request.Context()
-	statistics, err := service.Load(requestContext)
+	result, err := service.Load(requestContext)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error running load data for ds %s: ", body.DataSourceId), err)
 		appG.Response(e.ERROR, e.LOADER_ERROR, nil)
 		return
 	}
 
-	appG.Response(e.SUCCESS, e.SUCCESS, &statistics)
+	appG.Response(e.SUCCESS, e.SUCCESS, &result)
 }

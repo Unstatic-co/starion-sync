@@ -106,6 +106,7 @@ export class MicrosoftExcelActivities {
       return res.data.data as {
         addedRowsCount: number;
         deletedRowsCount: number;
+        isSchemaChanged: boolean;
       };
     } catch (err) {
       throw new UnacceptableActivityError(

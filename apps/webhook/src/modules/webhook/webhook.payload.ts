@@ -15,14 +15,17 @@ export interface SyncConnectionCreatedWebhookPayload extends WebhookPayload {
 export interface SyncflowScheduledWebhookPayload extends WebhookPayload {
   syncflowId: SyncflowId;
   dataSourceId: DataSourceId;
+  syncVersion: number;
 }
 
 export interface SyncflowSucceedWebhookPayload extends WebhookPayload {
   syncflowId: SyncflowId;
   dataSourceId: DataSourceId;
-  loadedDataStatistics: {
+  syncVersion: number;
+  statistics: {
     addedRowsCount: number;
     deletedRowsCount: number;
+    isSchemaChanged: boolean;
   };
 }
 
@@ -30,4 +33,5 @@ export interface SyncflowCompletedWebhookPayload extends WebhookPayload {
   syncflowId: SyncflowId;
   dataSourceId: DataSourceId;
   rowsNumber: number;
+  syncVersion: number;
 }

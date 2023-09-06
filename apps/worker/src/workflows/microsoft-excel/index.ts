@@ -71,7 +71,7 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
           syncflowId: data.syncflow.id,
           syncVersion,
           prevSyncVersion,
-          loadedDataStatistics,
+          statistics: loadedDataStatistics,
         } as SyncflowSucceedPayload,
       });
 

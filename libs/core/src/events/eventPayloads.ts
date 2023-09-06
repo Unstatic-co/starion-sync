@@ -3,7 +3,6 @@ import {
   SyncConnection,
   SyncConnectionId,
   Syncflow,
-  Workflow,
 } from '../entities';
 import { Trigger } from '../entities/trigger';
 import { EventPayload } from './baseEvent';
@@ -25,13 +24,15 @@ export type SyncflowSucceedPayload = EventPayload & {
   syncflowId: string;
   syncVersion: number;
   prevSyncVersion: number;
-  loadedDataStatistics: {
+  statistics: {
     addedRowsCount: number;
     deletedRowsCount: number;
+    isSchemaChanged: boolean;
   };
 };
 export type SyncflowCompletedPayload = EventPayload & {
   dataSourceId: string;
+  syncVersion: number;
   syncflowId: string;
   rowsNumber: number;
 };

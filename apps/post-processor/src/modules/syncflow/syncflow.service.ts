@@ -57,6 +57,7 @@ export class SyncflowService {
       payload: {
         syncflowId,
         dataSourceId,
+        syncVersion,
         rowsNumber,
       } as SyncflowCompletedPayload,
     });

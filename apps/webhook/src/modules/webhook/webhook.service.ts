@@ -83,6 +83,7 @@ export class WebhookService {
         dataSourceId = synflowScheduledPayload.syncflow.sourceId;
         webhookPayload = {
           syncflowId: synflowScheduledPayload.syncflow.id,
+          syncVersion: synflowScheduledPayload.syncflow.state.version,
           dataSourceId,
         } as SyncflowScheduledWebhookPayload;
         break;
@@ -90,12 +91,13 @@ export class WebhookService {
       case EventNames.SYNCFLOW_SUCCEED:
         const syncflowSucceedPayload = eventPayload as SyncflowSucceedPayload;
         webhookType = WebhookType.SYNCFLOW_SUCCEED;
-        const { syncflowId, loadedDataStatistics } = syncflowSucceedPayload;
+        const { syncflowId, statistics } = syncflowSucceedPayload;
         dataSourceId = syncflowSucceedPayload.dataSourceId;
         webhookPayload = {
           syncflowId,
           dataSourceId,
-          loadedDataStatistics,
+          syncVersion: syncflowSucceedPayload.syncVersion,
+          statistics,
         } as SyncflowSucceedWebhookPayload;
         break;
 
@@ -106,6 +108,7 @@ export class WebhookService {
         dataSourceId = syncflowCompletedPayload.dataSourceId;
         webhookPayload = {
           syncflowId: syncflowCompletedPayload.syncflowId,
+          syncVersion: syncflowCompletedPayload.syncVersion,
           dataSourceId,
           rowsNumber: syncflowCompletedPayload.rowsNumber,
         } as SyncflowCompletedWebhookPayload;

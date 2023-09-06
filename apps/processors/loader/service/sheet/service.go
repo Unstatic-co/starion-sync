@@ -296,7 +296,7 @@ func (s *SheetService) GetDiffData() (loader.LoaderData, error) {
 	return data, nil
 }
 
-func (s *SheetService) Load(ctx context.Context) (*loader.LoadedDataStatistics, error) {
+func (s *SheetService) Load(ctx context.Context) (*loader.LoadedResult, error) {
 	s.logger.Info("Start load data")
 
 	// get diff data
@@ -323,10 +323,11 @@ func (s *SheetService) Load(ctx context.Context) (*loader.LoadedDataStatistics, 
 
 	// caculate statistic
 	s.logger.Debug("Caculating statistic")
-	statistics := loader.LoadedDataStatistics{
+	result := loader.LoadedResult{
 		AddedRowsCount:   len(data.AddedRows.Rows),
 		DeletedRowsCount: len(data.DeletedRows),
+		IsSchemaChanged:  loader.IsSchemaChanged(data.SchemaChanges),
 	}
 
-	return &statistics, nil
+	return &result, nil
 }
