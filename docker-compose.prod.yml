@@ -29,6 +29,7 @@ services:
       - NODE_ENV=production
       - PORT=8080
       - LOG_LEVEL=${LOG_LEVEL}
+      - API_KEYS=${API_KEYS}
       - DB_TYPE=mongodb
       - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
@@ -131,6 +132,7 @@ services:
       - DOWNLOADER_URL=${DOWNLOADER_URL}
       - COMPARER_URL=${COMPARER_URL}
       - LOADER_URL=${LOADER_URL}
+      - PROCESSOR_API_KEY=${WORKER_PROCESSOR_API_KEY}
       - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
       - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
@@ -239,6 +241,7 @@ services:
     environment:
       - PORT=8080
       - PRODUCTION=true
+      - API_KEYS=${PROCESSOR_API_KEYS}
       - S3_URL=${S3_URL}
       - S3_REGION=${S3_REGION}
       - S3_DIFF_DATA_BUCKET=${S3_DIFF_DATA_BUCKET}
@@ -261,6 +264,7 @@ services:
     environment:
       - PORT=8080
       - PRODUCTION=true
+      - API_KEYS=${PROCESSOR_API_KEYS}
       - S3_URL=${S3_URL}
       - S3_REGION=${S3_REGION}
       - S3_DIFF_DATA_BUCKET=${S3_DIFF_DATA_BUCKET}
@@ -284,6 +288,7 @@ services:
     environment:
       - PORT=8080
       - PRODUCTION=true
+      - API_KEYS=${PROCESSOR_API_KEYS}
       - S3_URL=${S3_URL}
       - S3_REGION=${S3_REGION}
       - S3_DIFF_DATA_BUCKET=${S3_DIFF_DATA_BUCKET}

@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"loader/pkg/auth"
 	"loader/pkg/logging"
 	v1 "loader/routers/v1"
 
@@ -14,6 +15,7 @@ func InitRouter() *gin.Engine {
 
 	r.Use(logging.LoggingMiddleware())
 	r.Use(gin.Recovery())
+	r.Use(auth.ApiKeyMiddleware())
 
 	apiV1 := r.Group("/api/v1")
 

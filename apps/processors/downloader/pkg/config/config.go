@@ -12,6 +12,7 @@ type IAppConfig struct {
 	ReadTimeout  int    `env:"READ_TIMEOUT" envDefault:"60"`
 	WriteTimeout int    `env:"WRITE_TIMEOUT" envDefault:"90"`
 	LogLevel     string `env:"LOG_LEVEL" envDefault:"debug"`
+	ApiKeys      string `env:"API_KEYS" envDefault:"api-keys"`
 
 	S3Url            string `env:"S3_URL" envDefault:"http://minio:9000"`
 	S3Region         string `env:"S3_REGION" envDefault:"us-east-1"`

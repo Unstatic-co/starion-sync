@@ -9,6 +9,7 @@ export interface AppConfig {
   swaggerUser: string;
   swaggerPassword: string;
   logLevel: string;
+  apiKeys: string[];
 }
 
 export const appConfigRegister = registerAs(ConfigName.APP, () => {
@@ -20,5 +21,6 @@ export const appConfigRegister = registerAs(ConfigName.APP, () => {
     swaggerUser: process.env.SWAGGER_USER || 'admin',
     swaggerPassword: process.env.SWAGGER_PASSWORD || 'admin',
     logLevel: process.env.LOG_LEVEL || 'debug',
+    apiKeys: process.env.API_KEYS ? process.env.API_KEYS?.split(',') : [],
   } as AppConfig;
 });

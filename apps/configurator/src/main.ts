@@ -9,6 +9,7 @@ import { BrokerConfig, TRANSPORT_MAP } from '@lib/core/config/broker.config';
 import { Logger } from '@nestjs/common';
 import { AggregateByDataProvidertTypeContextIdStrategy } from '@lib/microservice';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { ApiKeyGuard } from './common/guard/apiKey.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -18,6 +19,7 @@ async function bootstrap() {
 
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.enableCors();
+  app.useGlobalGuards(new ApiKeyGuard(configService));
   app.useGlobalFilters(new AllExceptionFilter(httpAdapter));
   app.useGlobalPipes(new ValidationPipe());
   app.useGlobalInterceptors(new LoggingInterceptor());

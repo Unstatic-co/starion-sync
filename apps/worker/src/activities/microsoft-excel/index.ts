@@ -60,7 +60,11 @@ export class MicrosoftExcelActivities {
       const downloaderUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.downloaderUrl`,
       );
-      await axios.post(`${downloaderUrl}/api/v1/excel/download`, data);
+      await axios.post(`${downloaderUrl}/api/v1/excel/download`, data, {
+        headers: {
+          'X-API-Key': this.configService.get(`${ConfigName.PROCESSOR}.apiKey`),
+        },
+      });
     } catch (err) {
       throw new UnacceptableActivityError(
         `Error when executing downloader: ${err.message}`,
@@ -81,7 +85,11 @@ export class MicrosoftExcelActivities {
       const comparerUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.comparerUrl`,
       );
-      await axios.post(`${comparerUrl}/api/v1/excel/compare`, data);
+      await axios.post(`${comparerUrl}/api/v1/excel/compare`, data, {
+        headers: {
+          'X-API-Key': this.configService.get(`${ConfigName.PROCESSOR}.apiKey`),
+        },
+      });
     } catch (err) {
       throw new UnacceptableActivityError(
         `Error when executing comparer: ${err.message}`,
@@ -102,7 +110,11 @@ export class MicrosoftExcelActivities {
       const loaderUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.loaderUrl`,
       );
-      const res = await axios.post(`${loaderUrl}/api/v1/excel/load`, data);
+      const res = await axios.post(`${loaderUrl}/api/v1/excel/load`, data, {
+        headers: {
+          'X-API-Key': this.configService.get(`${ConfigName.PROCESSOR}.apiKey`),
+        },
+      });
       return res.data.data as {
         addedRowsCount: number;
         deletedRowsCount: number;

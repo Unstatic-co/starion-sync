@@ -59,7 +59,11 @@ export class GoogleSheetsActivities {
       const downloaderUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.downloaderUrl`,
       );
-      await axios.post(`${downloaderUrl}/api/v1/google-sheets/download`, data);
+      await axios.post(`${downloaderUrl}/api/v1/google-sheets/download`, data, {
+        headers: {
+          'X-API-Key': this.configService.get(`${ConfigName.PROCESSOR}.apiKey`),
+        },
+      });
     } catch (err) {
       throw new UnacceptableActivityError(
         `Error when executing downloader: ${err.message}`,
@@ -80,7 +84,11 @@ export class GoogleSheetsActivities {
       const comparerUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.comparerUrl`,
       );
-      await axios.post(`${comparerUrl}/api/v1/google-sheets/compare`, data);
+      await axios.post(`${comparerUrl}/api/v1/google-sheets/compare`, data, {
+        headers: {
+          'X-API-Key': this.configService.get(`${ConfigName.PROCESSOR}.apiKey`),
+        },
+      });
     } catch (err) {
       throw new UnacceptableActivityError(
         `Error when executing comparer: ${err.message}`,
@@ -104,6 +112,13 @@ export class GoogleSheetsActivities {
       const res = await axios.post(
         `${loaderUrl}/api/v1/google-sheets/load`,
         data,
+        {
+          headers: {
+            'X-API-Key': this.configService.get(
+              `${ConfigName.PROCESSOR}.apiKey`,
+            ),
+          },
+        },
       );
       return res.data.data as {
         addedRowsCount: number;
