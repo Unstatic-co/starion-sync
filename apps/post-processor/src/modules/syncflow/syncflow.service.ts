@@ -26,7 +26,13 @@ export class SyncflowService {
   ) {}
 
   async handleSyncflowSucceed(data: SyncflowSucceedPayload): Promise<void> {
-    const { syncflowId, dataSourceId, syncVersion, prevSyncVersion } = data;
+    const {
+      syncflowId,
+      dataSourceId,
+      syncVersion,
+      prevSyncVersion,
+      statistics,
+    } = data;
     this.logger.log(`Handling syncflow succeeded for ${syncflowId}`);
 
     const [syncflow, dataSource] = await Promise.all([
@@ -47,8 +53,7 @@ export class SyncflowService {
 
     const rowsNumber =
       dataSource.statistics.rowsNumber +
-      (data.loadedDataStatistics.addedRowsCount -
-        data.loadedDataStatistics.deletedRowsCount);
+      (statistics.addedRowsCount - statistics.deletedRowsCount);
     await this.dataSourceRepository.updateStatistics(dataSourceId, {
       rowsNumber,
     });
