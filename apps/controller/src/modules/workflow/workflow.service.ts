@@ -80,6 +80,13 @@ export class WorkflowService {
     const dataSource = await this.dataSourceRepository.getById(
       syncflow.sourceId,
     );
+    if (!dataSource) {
+      this.logger.warn(`DataSource not found: ${syncflow.sourceId}`);
+      throw new UnacceptableActivityError(
+        `DataSource not found: ${syncflow.sourceId}`,
+        { shouldWorkflowFail: false },
+      );
+    }
 
     // check status (to avoid idempotency)
     if (syncflow.state.status === WorkflowStatus.SCHEDULED) {

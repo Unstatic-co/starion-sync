@@ -69,6 +69,12 @@ export class WebhookService {
           dataSourceId,
           { includeDeleted: true },
         );
+        if (!dataSource) {
+          this.logger.warn(
+            `DataSource not found: ${dataSourceId}, event ${eventName}`,
+          );
+          return;
+        }
         webhookPayload = {
           dataProvider: dataSource.provider.type,
           dataSourceId,

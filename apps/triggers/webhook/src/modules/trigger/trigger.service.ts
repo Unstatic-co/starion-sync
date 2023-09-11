@@ -36,7 +36,7 @@ export class TriggerService {
           this.triggerRepository.getByWorkflowId(syncflow.id),
           this.dataSourceRepository.getById(syncConnection.sourceId),
         ]);
-        if (trigger) {
+        if (trigger && dataSource) {
           this.logger.log(`add webhook trigger ${trigger.id}`);
           const webhookService = this.webhookFactoryService.get(trigger.name);
           await webhookService.createWebhook({
@@ -63,7 +63,7 @@ export class TriggerService {
             includeDeleted: true,
           }),
         ]);
-        if (trigger) {
+        if (trigger && dataSource) {
           this.logger.debug('delete trigger', trigger);
           const webhookService = this.webhookFactoryService.get(trigger.name);
           await webhookService.stopWebhook({
@@ -74,16 +74,6 @@ export class TriggerService {
         }
       }
     }
-  }
-
-  async deleteTrigger(data: DeleteTriggerDto) {
-    this.logger.debug('delete trigger', data);
-    const { cron, jobId } = data;
-    // await this.cronTriggerQueue.removeRepeatable({
-    // jobId,
-    // cron,
-    // });
-    this.logger.debug('deleted trigger', { jobId });
   }
 
   async handleReceivedWebhook(triggerId: TriggerId) {
