@@ -29,6 +29,7 @@ type IAppConfig struct {
 
 	// Dest DB
 	DbType     DbType `env:"DB_TYPE" envDefault:"postgres"`
+	DbUri      string `env:"DB_URI" envDefault:""`
 	DbHost     string `env:"DB_HOST" envDefault:"postgresql"`
 	DbPort     int    `env:"DB_PORT" envDefault:"5432"`
 	DbUser     string `env:"DB_USER" envDefault:"admin"`

@@ -20,6 +20,7 @@ type SheetServiceInitParams struct {
 	DataSourceId string `json:"dataSourceId"`
 	SyncVersion  uint   `json:"syncVersion"`
 	PrevVersion  uint   `json:"prevVersion"`
+	TableName    string `json:"tableName"`
 }
 
 type SheetService struct {
@@ -28,6 +29,7 @@ type SheetService struct {
 	dataSourceId string
 	syncVersion  uint
 	prevVersion  uint
+	tableName    string
 
 	// loger
 	logger *log.Entry
@@ -41,6 +43,7 @@ func NewService(params SheetServiceInitParams) (*SheetService, error) {
 	s.dataSourceId = params.DataSourceId
 	s.syncVersion = params.SyncVersion
 	s.prevVersion = params.PrevVersion
+	s.tableName = params.TableName
 
 	// logger
 	logger := log.New()
@@ -309,7 +312,12 @@ func (s *SheetService) Load(ctx context.Context) (*loader.LoadedResult, error) {
 
 	// execute loader
 	s.logger.Debug("Executing loader")
-	loaderInstance, err := loader.NewDefaultLoader(s.dataSourceId, s.syncVersion, s.prevVersion)
+	loaderInstance, err := loader.NewDefaultLoader(loader.LoaderParams{
+		DataSourceId: s.dataSourceId,
+		SyncVersion:  s.syncVersion,
+		PrevVersion:  s.prevVersion,
+		TableName:    s.tableName,
+	})
 	if err != nil {
 		s.logger.Error("Error when creating loader: ", err)
 		return nil, err

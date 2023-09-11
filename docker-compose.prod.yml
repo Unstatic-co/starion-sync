@@ -32,6 +32,7 @@ services:
       - API_KEYS=${API_KEYS}
       - DB_TYPE=mongodb
       - DB_URI=${DB_URI}
+      - DEST_DB_URI=${DEST_DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=configurator
@@ -295,12 +296,13 @@ services:
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - DB_TYPE=postgres
-      - DB_HOST=${DEST_DB_HOST}
-      - DB_PORT=${DEST_DB_PORT}
-      - DB_USER=${DEST_DB_USER}
-      - DB_PASSWORD=${DEST_DB_PASSWORD}
-      - DB_NAME=${DEST_DB_NAME}
-      - DB_SSL_MODE=disable
+      # - DB_HOST=postgresql
+      # - DB_PORT=5432
+      # - DB_USER=admin
+      # - DB_PASSWORD=abc123456
+      # - DB_NAME=starion-sync
+      # - DB_SSL_MODE=disable
+      - DB_URI=${DEST_DB_URI}
   #--------------------------------- TRIGGERS --------------------------------------#
   cron-trigger:
     depends_on:

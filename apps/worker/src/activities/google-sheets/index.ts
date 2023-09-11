@@ -36,14 +36,15 @@ export class GoogleSheetsActivities {
     const accessToken = await this.googleService.getAccessToken(
       (dataSource.config.auth as GoogleSheetsDataSourceAuthConfig).refreshToken,
     );
+    const config = dataSource.config as GoogleSheetsDataSourceConfig;
     return {
       dataSourceId: syncflow.sourceId,
       syncVersion: syncflow.state.version,
       prevVersion: syncflow.state.prevVersion,
-      spreadsheetId: (dataSource.config as GoogleSheetsDataSourceConfig)
-        .spreadsheetId,
-      sheetId: (dataSource.config as GoogleSheetsDataSourceConfig).sheetId,
+      spreadsheetId: config.spreadsheetId,
+      sheetId: config.sheetId,
       accessToken,
+      destTableName: config.dest?.tableName || `_${dataSource.id}`,
     };
   }
 
@@ -103,6 +104,7 @@ export class GoogleSheetsActivities {
     dataSourceId: string;
     syncVersion: number;
     prevVersion: number;
+    tableName?: string;
   }) {
     this.logger.debug(`Loading for ds: ${data.dataSourceId}`);
     try {

@@ -65,15 +65,18 @@ func getPostgresDbConnection() (*sql.DB, error) {
 		lockCreatePostgresDbConn.Lock()
 		defer lockCreatePostgresDbConn.Unlock()
 		if postgresDbConn == nil {
-			connStr := fmt.Sprintf(
-				"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-				config.AppConfig.DbHost,
-				config.AppConfig.DbPort,
-				config.AppConfig.DbUser,
-				config.AppConfig.DbPassword,
-				config.AppConfig.DbName,
-				config.AppConfig.DbSslMode,
-			)
+			connStr := config.AppConfig.DbUri
+			if connStr == "" {
+				connStr = fmt.Sprintf(
+					"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+					config.AppConfig.DbHost,
+					config.AppConfig.DbPort,
+					config.AppConfig.DbUser,
+					config.AppConfig.DbPassword,
+					config.AppConfig.DbName,
+					config.AppConfig.DbSslMode,
+				)
+			}
 			db, err := sql.Open("postgres", connStr)
 			if err != nil {
 				log.Error("Error when connecting to postgres: ", err)
@@ -168,7 +171,9 @@ func (l *PostgreLoader) Setup() error {
 	}
 	l.dbConn = dbConn
 
-	l.tableName = fmt.Sprintf("_%s", l.DatasourceId)
+	if (l.tableName == "") || (l.tableName == "null") {
+		l.tableName = fmt.Sprintf("_%s", l.DatasourceId)
+	}
 
 	return nil
 }
@@ -255,7 +260,7 @@ func (l *PostgreLoader) initTable(txn *sql.Tx, data *LoaderData) error {
 	for fieldName, fieldType := range dataTableColumns {
 		fields = append(fields, fmt.Sprintf("%s %s", fieldName, fieldType))
 	}
-	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s)", l.tableName, strings.Join(fields, ","))
+	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS \"%s\" (%s)", l.tableName, strings.Join(fields, ","))
 	log.Debug("Query: ", query)
 	_, err := txn.Exec(query)
 	if err != nil {
@@ -369,7 +374,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 		}
 		// delete from table data
 		query = fmt.Sprintf(
-			"UPDATE %s SET %s = %s - ARRAY[%s]",
+			"UPDATE \"%s\" SET %s = %s - ARRAY[%s]",
 			l.tableName,
 			name.TableDataDataColumn,
 			name.TableDataDataColumn,
@@ -529,7 +534,7 @@ func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	for _, id := range data.DeletedRows {
-		query := fmt.Sprintf("DELETE FROM %s WHERE %s = '%s'", l.tableName, name.IdColumn, id)
+		query := fmt.Sprintf("DELETE FROM \"%s\" WHERE %s = '%s'", l.tableName, name.IdColumn, id)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -571,7 +576,7 @@ func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *LoaderData) error {
 			}
 		}
 		query := fmt.Sprintf(
-			"UPDATE %s SET %s = %s, %s = %s WHERE %s = '%s'",
+			"UPDATE \"%s\" SET %s = %s, %s = %s WHERE %s = '%s'",
 			l.tableName,
 			name.TableDataDataColumn, jsonbSet,
 			name.UpdatedAtColumn, "NOW()",
@@ -618,7 +623,7 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *LoaderData) error {
 			}
 		}
 		query := fmt.Sprintf(
-			"UPDATE %s SET %s = %s, %s = %s WHERE %s = '%s'",
+			"UPDATE \"%s\" SET %s = %s, %s = %s WHERE %s = '%s'",
 			l.tableName,
 			name.TableDataDataColumn, jsonbSet,
 			name.UpdatedAtColumn, "NOW()",
@@ -654,7 +659,7 @@ func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *LoaderData) error {
 			}
 		}
 		query := fmt.Sprintf(
-			"UPDATE %s SET %s = %s, %s = %s WHERE %s = '%s'",
+			"UPDATE \"%s\" SET %s = %s, %s = %s WHERE %s = '%s'",
 			l.tableName,
 			name.TableDataDataColumn, jsonbSet,
 			name.UpdatedAtColumn, "NOW()",

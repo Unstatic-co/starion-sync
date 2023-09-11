@@ -39,6 +39,13 @@ type LoadedResult struct {
 	IsSchemaChanged  bool `json:"isSchemaChanged"`
 }
 
+type LoaderParams struct {
+	DataSourceId string
+	SyncVersion  uint
+	PrevVersion  uint
+	TableName    string
+}
+
 type Loader interface {
 	Setup() error
 	Load(ctx context.Context, data *LoaderData) error
@@ -53,14 +60,15 @@ func Setup() {
 	}
 }
 
-func New(loaderType LoaderType, dataSourceId string, syncVersion uint, prevVersion uint) (Loader, error) {
+func New(loaderType LoaderType, params LoaderParams) (Loader, error) {
 	var loader Loader
 	switch loaderType {
 	case LoaderType(config.DbTypePostgres):
 		loader = &PostgreLoader{
-			DatasourceId: dataSourceId,
-			SyncVersion:  syncVersion,
-			PrevVersion:  prevVersion,
+			DatasourceId: params.DataSourceId,
+			SyncVersion:  params.SyncVersion,
+			PrevVersion:  params.PrevVersion,
+			tableName:    params.TableName,
 		}
 	}
 	if loader != nil {
@@ -73,7 +81,7 @@ func New(loaderType LoaderType, dataSourceId string, syncVersion uint, prevVersi
 	return loader, nil
 }
 
-func NewDefaultLoader(dataSourceId string, syncVersion uint, prevVersion uint) (Loader, error) {
+func NewDefaultLoader(params LoaderParams) (Loader, error) {
 	log.Debug("Initializing default loader")
-	return New(LoaderType(config.AppConfig.DbType), dataSourceId, syncVersion, prevVersion)
+	return New(LoaderType(config.AppConfig.DbType), params)
 }

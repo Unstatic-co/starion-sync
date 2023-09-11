@@ -36,14 +36,16 @@ export class MicrosoftExcelActivities {
     const accessToken = await this.microsoftService.getAccessToken(
       (dataSource.config.auth as ExcelDataSourceAuthConfig).refreshToken,
     );
+    const config = dataSource.config as ExcelDataSourceConfig;
     return {
       dataSourceId: syncflow.sourceId,
       syncVersion: syncflow.state.version,
       prevVersion: syncflow.state.prevVersion,
-      workbookId: (dataSource.config as ExcelDataSourceConfig).workbookId,
-      worksheetId: (dataSource.config as ExcelDataSourceConfig).worksheetId,
-      timezone: (dataSource.config as ExcelDataSourceConfig).timezone,
+      workbookId: config.workbookId,
+      worksheetId: config.worksheetId,
+      timezone: config.timezone,
       accessToken,
+      destTableName: config.dest?.tableName || `_${dataSource.id}`,
     };
   }
 
@@ -104,6 +106,7 @@ export class MicrosoftExcelActivities {
     dataSourceId: string;
     syncVersion: number;
     prevVersion: number;
+    tableName?: string;
   }) {
     this.logger.debug(`Loading for ds: ${data.dataSourceId}`);
     try {

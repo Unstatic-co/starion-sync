@@ -63,6 +63,7 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
         dataSourceId: syncData.dataSourceId,
         syncVersion,
         prevVersion: prevSyncVersion,
+        tableName: syncData.destTableName,
       });
 
       await emitEvent(EventNames.SYNCFLOW_SUCCEED, {

@@ -40,6 +40,7 @@ export class DestinationDatabaseModule {
       case DatabaseType.POSTGRES:
         return TypeOrmModule.forRoot({
           type: 'postgres',
+          url: uri,
           host,
           port,
           username: user,
