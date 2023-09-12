@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { BrokerService } from '../broker/broker.service';
 import {
   ConnectionCreatedPayload,
+  DataSourceDeletedPayload,
   DataSourceId,
   EventName,
   EventNames,
@@ -29,6 +30,7 @@ import { QUEUES } from '../../common/queues';
 import Bull, { Queue } from 'bull';
 import { WebhookExecutionData } from './webhook.job';
 import {
+  DataSourceDeletedWebhookPayload,
   SyncConnectionCreatedWebhookPayload,
   SyncflowCompletedWebhookPayload,
   SyncflowScheduledWebhookPayload,
@@ -118,6 +120,17 @@ export class WebhookService {
           dataSourceId,
           rowsNumber: syncflowCompletedPayload.rowsNumber,
         } as SyncflowCompletedWebhookPayload;
+        break;
+
+      case EventNames.DATA_SOURCE_DELETED:
+        const dataSourceDeletedPayload =
+          eventPayload as DataSourceDeletedPayload;
+        webhookType = WebhookType.DATA_SOURCE_DELETED;
+        dataSourceId = dataSourceDeletedPayload.dataSourceId;
+        webhookPayload = {
+          dataSourceId,
+          syncConnectionId: dataSourceDeletedPayload.syncConnectionId,
+        } as DataSourceDeletedWebhookPayload;
         break;
 
       default:

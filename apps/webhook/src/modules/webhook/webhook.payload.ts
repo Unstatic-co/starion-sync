@@ -35,3 +35,8 @@ export interface SyncflowCompletedWebhookPayload extends WebhookPayload {
   rowsNumber: number;
   syncVersion: number;
 }
+
+export interface DataSourceDeletedWebhookPayload extends WebhookPayload {
+  syncConnectionId?: SyncflowId;
+  dataSourceId: DataSourceId;
+}

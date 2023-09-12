@@ -3,6 +3,7 @@ import { EventPattern } from '@nestjs/microservices';
 import { BrokerService } from './broker.service';
 import {
   ConnectionCreatedPayload,
+  DataSourceDeletedPayload,
   EventNames,
   SyncflowScheduledPayload,
 } from '@lib/core';
@@ -39,6 +40,15 @@ export class BrokerController {
     this.logger.log(`syncflow ${data.syncflowId} succeed`);
     return this.webhookService.addWebhookExecution(
       EventNames.SYNCFLOW_SUCCEED,
+      data,
+    );
+  }
+
+  @EventPattern(EventNames.DATA_SOURCE_DELETED)
+  async dataSourceDeleted(data: DataSourceDeletedPayload) {
+    this.logger.log(`data source ${data.dataSourceId} deleted`);
+    return this.webhookService.addWebhookExecution(
+      EventNames.DATA_SOURCE_DELETED,
       data,
     );
   }
