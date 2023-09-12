@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
@@ -195,11 +196,13 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 		"--dataSourceId", source.dataSourceId,
 		"--syncVersion", fmt.Sprintf("%d", source.syncVersion),
 		"--timezone", source.timezone,
+		"--s3Endpoint", config.AppConfig.S3Endpoint,
 		"--s3Url", config.AppConfig.S3Url,
 		"--s3Region", config.AppConfig.S3Region,
 		"--s3Bucket", config.AppConfig.S3DiffDataBucket,
 		"--s3AccessKey", config.AppConfig.S3AccessKey,
 		"--s3SecretKey", config.AppConfig.S3SecretKey,
+		"--s3Ssl", strconv.FormatBool(config.AppConfig.S3Ssl),
 		"--debug", debugParam,
 	)
 

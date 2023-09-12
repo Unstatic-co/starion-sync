@@ -13,6 +13,10 @@ import (
 	"crypto/sha256"
 )
 
+func HashFieldName(fieldName string) string {
+	return "f_" + GetMD5Hash(fieldName)
+}
+
 func GetMD5Hash(text string) string {
 	hash := md5.Sum([]byte(text))
 	return hex.EncodeToString(hash[:])
