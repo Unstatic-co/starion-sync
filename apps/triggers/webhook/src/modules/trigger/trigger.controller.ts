@@ -41,9 +41,4 @@ export class TriggerController {
     }
     return this.triggerService.handleReceivedWebhook(triggerId);
   }
-
-  @Delete()
-  async deleteTrigger(@Body() data: DeleteTriggerDto) {
-    return this.triggerService.deleteTrigger(data);
-  }
 }
