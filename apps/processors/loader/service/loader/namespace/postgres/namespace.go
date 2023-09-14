@@ -4,9 +4,9 @@ type TableColumn string
 
 const (
 	// table
-	DataSourceTable  string = "datasource"
-	SchemaTable      string = "schema"
-	SchemaFieldTable string = "schema_field"
+	DataSourceTable  string = "datasources"
+	SchemaTable      string = "schemas"
+	SchemaFieldTable string = "schema_fields"
 
 	// common column
 	IdColumn        TableColumn = "id"
@@ -22,10 +22,10 @@ const (
 
 	// schema field table column
 	SchemaIdColumn     = "schema_id"
-	HashedNameColumn   = "hashed_name"
+	HashedNameColumn   = "hash_name"
 	NameColumn         = "name"
 	TypeColumn         = "type"
-	OriginalTypeColumn = "original_type"
+	OriginalTypeColumn = "origin_type"
 	NullableColumn     = "nullable"
 	EnumColumn         = "enum"
 	ReadonlyColumn     = "readonly"
