@@ -29,9 +29,9 @@ export class DestinationDatabaseService implements IDestinationDatabaseService {
     return schema;
   }
 
-  async getData(id: DataSourceId) {
+  async getData(dataTableName: string) {
     const data = await this.entityManager
-      .query(`SELECT data FROM _${id}`)
+      .query(`SELECT data FROM "${dataTableName}"`)
       .then((res) => res.map((r) => r.data));
     return data;
   }

@@ -76,7 +76,10 @@ export class DataSourceService {
   }
 
   public async getData(id: DataSourceId) {
-    const res = await this.destinationDatabaseService.getData(id);
+    const dataSource = await this.getById(id);
+    const dataTableName =
+      dataSource.config.dest?.tableName || `_${dataSource.id}`;
+    const res = await this.destinationDatabaseService.getData(dataTableName);
     return res;
   }
 
