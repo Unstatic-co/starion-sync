@@ -73,6 +73,10 @@ function parse-arguments() {
                 sync_version="$2"
                 shift
                 ;;
+            --s3Endpoint)
+                s3_endpoint="$2"
+                shift
+                ;;
             --s3Url)
                 s3_url="$2"
                 shift
@@ -91,6 +95,10 @@ function parse-arguments() {
                 ;;
             --s3SecretKey)
                 s3_secret_key="$2"
+                shift
+                ;;
+            --s3Ssl)
+                s3_ssl="$2"
                 shift
                 ;;
             --debug)
@@ -400,7 +408,7 @@ info-log "Uploading schema..."
 duckdb_schema_file="$TEMP_DIR/null_become_string_fields"
 ./excel/get-and-upload-schema \
     --schemaFile "$detected_schema_file" \
-    --s3Url "$s3_url" \
+    --s3Endpoint "$s3_endpoint" \
     --s3Region "$s3_region" \
     --s3Bucket "$s3_bucket" \
     --s3AccessKey "$s3_access_key" \

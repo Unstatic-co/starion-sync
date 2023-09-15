@@ -21,11 +21,12 @@ const (
 )
 
 type S3HandlerConfig struct {
-	Url       string
+	Endpoint  string
 	Region    string
 	Bucket    string
 	AccessKey string
 	SecretKey string
+	SSl       bool
 }
 
 type S3Handler struct {
@@ -35,8 +36,10 @@ type S3Handler struct {
 
 func NewHandler(bucket string) (*S3Handler, error) {
 	sess, err := session.NewSession(&aws.Config{
-		Endpoint: aws.String(config.AppConfig.S3Url),
-		Region:   aws.String(config.AppConfig.S3Region),
+		Endpoint:    aws.String(config.AppConfig.S3Endpoint),
+		Region:      aws.String(config.AppConfig.S3Region),
+		DisableSSL:  aws.Bool(config.AppConfig.S3Ssl),
+		Credentials: credentials.NewStaticCredentials(config.AppConfig.S3AccessKey, config.AppConfig.S3SecretKey, ""),
 	})
 	if err != nil {
 		return nil, err
@@ -51,10 +54,11 @@ func NewHandler(bucket string) (*S3Handler, error) {
 func NewHandlerWithConfig(config *S3HandlerConfig) (*S3Handler, error) {
 	fmt.Println("NewHandlerWithConfig", config)
 	sess, err := session.NewSession(&aws.Config{
-		Endpoint:         aws.String(config.Url),
+		Endpoint:         aws.String(config.Endpoint),
 		Region:           aws.String(config.Region),
 		Credentials:      credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
 		S3ForcePathStyle: aws.Bool(true),
+		DisableSSL:       aws.Bool(config.SSl == false),
 	})
 	if err != nil {
 		return nil, err

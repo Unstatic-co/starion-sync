@@ -179,7 +179,7 @@ func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSo
 
 func main() {
 	schemaFile := flag.String("schemaFile", "", "schema")
-	s3Url := flag.String("s3Url", "", "s3 url")
+	s3Endpoint := flag.String("s3Endpoint", "", "s3 url")
 	s3Region := flag.String("s3Region", "", "s3 region")
 	s3Bucket := flag.String("s3Bucket", "", "s3 bucket")
 	s3AccessKey := flag.String("s3AccessKey", "", "s3 access key")
@@ -194,7 +194,7 @@ func main() {
 	err := uploadSchema(
 		schema,
 		s3.S3HandlerConfig{
-			Url:       *s3Url,
+			Endpoint:  *s3Endpoint,
 			Region:    *s3Region,
 			Bucket:    *s3Bucket,
 			AccessKey: *s3AccessKey,
