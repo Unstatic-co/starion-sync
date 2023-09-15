@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -179,11 +180,13 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 		"--accessToken", s.accessToken,
 		"--dataSourceId", s.dataSourceId,
 		"--syncVersion", fmt.Sprintf("%d", s.syncVersion),
+		"--s3Endpoint", config.AppConfig.S3Endpoint,
 		"--s3Url", config.AppConfig.S3Url,
 		"--s3Region", config.AppConfig.S3Region,
 		"--s3Bucket", config.AppConfig.S3DiffDataBucket,
 		"--s3AccessKey", config.AppConfig.S3AccessKey,
 		"--s3SecretKey", config.AppConfig.S3SecretKey,
+		"--s3Ssl", strconv.FormatBool(config.AppConfig.S3Ssl),
 		"--debug", debugParam,
 	)
 
