@@ -106,7 +106,7 @@ func setupPostgresDbLoader() error {
 	}
 	query := fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s (%s);
-		CREATE INDEX IF NOT EXISTS idx_data_source_id ON schema (data_source_id)`,
+		CREATE INDEX IF NOT EXISTS idx_data_source_id ON %[1]s (data_source_id)`,
 		name.SchemaTable,
 		strings.Join(columns, ","),
 	)
