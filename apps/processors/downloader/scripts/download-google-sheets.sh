@@ -265,7 +265,10 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
     
     "$SED" -i "s/$EMPTY_VALUE_TOKEN//g" $normalized_date_file # remove empty value token
 
-    "$QSV" cat rows -n <(echo "$original_headers") <("$QSV" behead "$normalized_date_file") -o "$normalized_date_file"
+    behead_file="$TEMP_DIR/behead.csv"
+    "$QSV" behead -o "$behead_file" "$normalized_date_file"
+
+    "$QSV" cat rows -n <(echo "$original_headers") "$behead_file" -o "$normalized_date_file"
     input_file="$normalized_date_file"
 fi
 ## End ##
@@ -394,7 +397,7 @@ detected_schema_file="$TEMP_DIR/schema.json"
 "$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$appended_id_file" >"$detected_schema_file"
 # upload
 info-log "Uploading schema..."
-null_become_string_file="$TEMP_DIR/null_become_string_fields"
+duckdb_schema_file="$TEMP_DIR/null_become_string_fields"
 ./excel/get-and-upload-schema \
     --schemaFile "$detected_schema_file" \
     --s3Url "$s3_url" \
@@ -404,56 +407,29 @@ null_become_string_file="$TEMP_DIR/null_become_string_fields"
     --s3SecretKey "$s3_secret_key" \
     --dataSourceId "$data_source_id" \
     --syncVersion "$sync_version" \
-    --saveNullBecomeStringFields "$null_become_string_file"
-IFS=',' read -ra null_fields <<< "$(cat "$null_become_string_file")"
-debug-log "Null become string fields: ${null_fields[@]}"
+    --saveDuckdbTableSchema "$duckdb_schema_file"
 
-### Convert JSON
-info-log "Converting json..."
-json_file="$TEMP_DIR/data.json"
-"$QSV" tojsonl "$header_encoded_file" --output "$json_file"
+# ### Convert JSON
+# info-log "Converting json..."
+# json_file="$TEMP_DIR/data.json"
+# "$QSV" tojsonl "$header_encoded_file" --output "$json_file"
 
-### Convert parquet
-info-log "Converting parquet..."
-s3_location="$s3_url/$s3_bucket/data/$data_source_id-$sync_version.parquet"
-clickhouse_schema_infer_settings="settings schema_inference_hints='"
-for field in "${null_fields[@]}"; do
-    clickhouse_schema_infer_settings+=" $field Nullable(String),"
-done
-clickhouse_schema_infer_settings="${clickhouse_schema_infer_settings%,}'"
-upload_parquet_query="
-    SET s3_truncate_on_insert = 1;
-    INSERT INTO FUNCTION
-        s3(
-            '$s3_location',
-            '$s3_access_key',
-            '$s3_secret_key',
-            'Parquet'
-        )
-    SELECT * FROM file('$json_file', 'JSONEachRow')
-" 
-if [ ${#null_fields[@]} -gt 0 ]; then
-    upload_parquet_query+=" $clickhouse_schema_infer_settings"
+# ### Convert data
+duckdb_schema="$(cat $duckdb_schema_file)"
+s3_file_path="data/$data_source_id-$sync_version.parquet"
+s3_json_file_path="data/$data_source_id-$sync_version.json"
+duckdb_convert_data_query="
+    CREATE TABLE t AS SELECT * FROM read_csv('$header_encoded_file', all_varchar=TRUE, auto_detect=TRUE);
+    LOAD httpfs;
+    SET s3_region='$s3_region';
+    SET s3_access_key_id='$s3_access_key';
+    SET s3_secret_access_key='$s3_secret_key';
+    SET s3_url_style='path';
+    SET s3_use_ssl=false;
+    SET s3_endpoint='$s3_endpoint';
+    COPY t TO 's3://$s3_bucket/$s3_file_path' (FORMAT 'parquet');
+"
+if [[ "$debug" == "on" ]]; then
+    duckdb_convert_data_query += "COPY t TO 's3://$s3_bucket/$s3_json_file_path' (FORMAT 'JSON');"
 fi
-clickhouse local -q "$upload_parquet_query"
-
-### Upload JSON
-if [ "$DEBUG" == "on" ]; then
-    info-log "Uploading json..."
-    s3_location="$s3_url/$s3_bucket/data/$data_source_id-$sync_version.json"
-    upload_json_query="
-        SET s3_truncate_on_insert = 1;
-        INSERT INTO FUNCTION
-            s3(
-                '$s3_location',
-                '$s3_access_key',
-                '$s3_secret_key',
-                'JSONEachRow'
-            )
-        SELECT * FROM file('$json_file', 'JSONEachRow')
-    "
-    if [ ${#null_fields[@]} -gt 0 ]; then
-        upload_json_query+=" $clickhouse_schema_infer_settings"
-    fi
-    clickhouse local -q "$upload_json_query"
-fi
+duckdb :memory: "$duckdb_convert_data_query"

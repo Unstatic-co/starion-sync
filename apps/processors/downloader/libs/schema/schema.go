@@ -1,6 +1,6 @@
 package schema
 
-const HashedPrimaryField = "762bfab577e097f72f8d3d2ec9fc08d4" // MD5 hash of OriginalPrimaryFieldName
+const HashedPrimaryField = "f_762bfab577e097f72f8d3d2ec9fc08d4" // MD5 hash of OriginalPrimaryFieldName
 const OriginalPrimaryFieldName = "__StarionId"
 const PrimaryFieldName = "id"
 

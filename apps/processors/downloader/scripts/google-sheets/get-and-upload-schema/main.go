@@ -17,6 +17,13 @@ import (
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v5"
 )
 
+var duckDbTypeMap = map[schema.DataType]string{
+	schema.String:  "VARCHAR",
+	schema.Number:  "DOUBLE",
+	schema.Date:    "VARCHAR",
+	schema.Boolean: "BOOLEAN",
+}
+
 func inferBooleanType(enum []interface{}) bool {
 	if len(enum) != 2 {
 		return false
@@ -56,11 +63,11 @@ func getSchemaFromJsonSchemaFile(filePath string) (schema.TableSchema, []string)
 	}
 
 	tableSchema := make(schema.TableSchema)
-	nullBecomeStringFields := make([]string, 0)
+	duckdbSchemaFields := make([]string, 0)
 
 	for fieldName, property := range _baseSchema.Properties {
 		var fieldSchema schema.FieldSchema
-		hashedFieldName := util.GetMD5Hash(fieldName)
+		hashedFieldName := util.HashFieldName(fieldName)
 
 		// If field is primary key
 		if hashedFieldName == schema.HashedPrimaryField {
@@ -110,7 +117,6 @@ func getSchemaFromJsonSchemaFile(filePath string) (schema.TableSchema, []string)
 				log.Printf("Field %s has unprocessable data type `null`, using string datatype to sync...\n", fieldName)
 				detectedType = schema.String
 				originalType = exceltype.String
-				nullBecomeStringFields = append(nullBecomeStringFields, hashedFieldName)
 			case "integer":
 				detectedType = schema.Number
 				originalType = exceltype.Number
@@ -150,10 +156,11 @@ func getSchemaFromJsonSchemaFile(filePath string) (schema.TableSchema, []string)
 
 		}
 
+		duckdbSchemaFields = append(duckdbSchemaFields, fmt.Sprintf("'%s': '%s'", hashedFieldName, duckDbTypeMap[fieldSchema.Type]))
 		tableSchema[hashedFieldName] = fieldSchema
 	}
 
-	return tableSchema, nullBecomeStringFields
+	return tableSchema, duckdbSchemaFields
 }
 
 func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string) error {
@@ -179,11 +186,11 @@ func main() {
 	s3SecretKey := flag.String("s3SecretKey", "", "s3 secret key")
 	dataSourceId := flag.String("dataSourceId", "", "data source id")
 	syncVersion := flag.String("syncVersion", "", "sync version")
-	saveNullBecomeStringFields := flag.String("saveNullBecomeStringFields", "", "save null become string (empty columns) fields to path")
+	saveDuckdbTableSchema := flag.String("saveDuckdbTableSchema", "", "save null become string (empty columns) fields to path")
 
 	flag.Parse()
 
-	schema, nullBecomeStringFields := getSchemaFromJsonSchemaFile(*schemaFile)
+	schema, duckdbTableSchema := getSchemaFromJsonSchemaFile(*schemaFile)
 	err := uploadSchema(
 		schema,
 		s3.S3HandlerConfig{
@@ -200,8 +207,8 @@ func main() {
 		log.Fatalf("Error when uploading schema: %+v\n", err)
 	}
 
-	if *saveNullBecomeStringFields != "" && len(nullBecomeStringFields) > 0 {
-		err := ioutil.WriteFile(*saveNullBecomeStringFields, []byte(strings.Join(nullBecomeStringFields, ",")), 0644)
+	if *saveDuckdbTableSchema != "" && len(duckdbTableSchema) > 0 {
+		err := ioutil.WriteFile(*saveDuckdbTableSchema, []byte(strings.Join(duckdbTableSchema, ",")), 0644)
 		if err != nil {
 			fmt.Printf("Error writing null fields to file: %v\n", err)
 			return

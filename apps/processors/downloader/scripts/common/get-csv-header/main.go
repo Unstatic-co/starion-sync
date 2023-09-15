@@ -61,7 +61,7 @@ func main() {
 				name = *replaceEmpty
 			}
 			if *encode {
-				name = util.GetMD5Hash(name)
+				name = util.HashFieldName(name)
 			}
 			return name
 		},
