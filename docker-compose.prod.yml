@@ -218,6 +218,7 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS_ENABLED=${REDIS_TLS_ENABLED}
       - WEBHOOK_PRIVATE_KEY=${WEBHOOK_PRIVATE_KEY}
   #--------------------------------- PROCESSORS --------------------------------------#
   downloader:
@@ -343,6 +344,7 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS_ENABLED=${REDIS_TLS_ENABLED}
   webhook-trigger:
     depends_on:
       mongodb:
@@ -382,6 +384,7 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS_ENABLED=${REDIS_TLS_ENABLED}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - WEBHOOK_TRIGGER_BASE_URL=${WEBHOOK_TRIGGER_BASE_URL}
