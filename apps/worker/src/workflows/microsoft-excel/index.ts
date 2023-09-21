@@ -52,7 +52,7 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
         workbookId: syncData.workbookId,
         worksheetId: syncData.worksheetId,
         timezone: syncData.timezone,
-        accessToken: syncData.accessToken,
+        refreshToken: syncData.refreshToken,
       });
       await compareExcel({
         dataSourceId: syncData.dataSourceId,

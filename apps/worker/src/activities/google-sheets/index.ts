@@ -33,9 +33,6 @@ export class GoogleSheetsActivities {
         { shouldWorkflowFail: false },
       );
     }
-    const accessToken = await this.googleService.getAccessToken(
-      (dataSource.config.auth as GoogleSheetsDataSourceAuthConfig).refreshToken,
-    );
     const config = dataSource.config as GoogleSheetsDataSourceConfig;
     return {
       dataSourceId: syncflow.sourceId,
@@ -43,7 +40,7 @@ export class GoogleSheetsActivities {
       prevVersion: syncflow.state.prevVersion,
       spreadsheetId: config.spreadsheetId,
       sheetId: config.sheetId,
-      accessToken,
+      refreshToken: config.auth.refreshToken,
       destTableName: config.dest?.tableName || `_${dataSource.id}`,
     };
   }
@@ -53,18 +50,31 @@ export class GoogleSheetsActivities {
     syncVersion: number;
     spreadsheetId: string;
     sheetId: string;
-    accessToken: string;
+    refreshToken: string;
   }) {
     this.logger.debug(`Downloading for ds: ${data.dataSourceId}`);
     try {
+      const accessToken = await this.googleService.getAccessToken(
+        data.refreshToken,
+      );
+      delete data['refreshToken'];
       const downloaderUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.downloaderUrl`,
       );
-      await axios.post(`${downloaderUrl}/api/v1/google-sheets/download`, data, {
-        headers: {
-          'X-API-Key': this.configService.get(`${ConfigName.PROCESSOR}.apiKey`),
+      await axios.post(
+        `${downloaderUrl}/api/v1/google-sheets/download`,
+        {
+          ...data,
+          accessToken,
         },
-      });
+        {
+          headers: {
+            'X-API-Key': this.configService.get(
+              `${ConfigName.PROCESSOR}.apiKey`,
+            ),
+          },
+        },
+      );
     } catch (err) {
       throw new UnacceptableActivityError(
         `Error when executing downloader: ${err.message}`,

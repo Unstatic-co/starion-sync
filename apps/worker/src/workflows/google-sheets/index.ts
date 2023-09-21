@@ -52,7 +52,7 @@ export async function googleSheetsFullSync(data: SyncflowScheduledPayload) {
         syncVersion,
         spreadsheetId: syncData.spreadsheetId,
         sheetId: syncData.sheetId,
-        accessToken: syncData.accessToken,
+        refreshToken: syncData.refreshToken,
       });
       await compareGoogleSheets({
         dataSourceId: syncData.dataSourceId,

@@ -33,9 +33,6 @@ export class MicrosoftExcelActivities {
         { shouldWorkflowFail: false },
       );
     }
-    const accessToken = await this.microsoftService.getAccessToken(
-      (dataSource.config.auth as ExcelDataSourceAuthConfig).refreshToken,
-    );
     const config = dataSource.config as ExcelDataSourceConfig;
     return {
       dataSourceId: syncflow.sourceId,
@@ -44,7 +41,7 @@ export class MicrosoftExcelActivities {
       workbookId: config.workbookId,
       worksheetId: config.worksheetId,
       timezone: config.timezone,
-      accessToken,
+      refreshToken: config.auth.refreshToken,
       destTableName: config.dest?.tableName || `_${dataSource.id}`,
     };
   }
@@ -55,18 +52,31 @@ export class MicrosoftExcelActivities {
     workbookId: string;
     worksheetId: string;
     timezone: string;
-    accessToken: string;
+    refreshToken: string;
   }) {
     this.logger.debug(`Downloading for ds: ${data.dataSourceId}`);
     try {
+      const accessToken = await this.microsoftService.getAccessToken(
+        data.refreshToken,
+      );
+      delete data['refreshToken'];
       const downloaderUrl = this.configService.get(
         `${ConfigName.PROCESSOR}.downloaderUrl`,
       );
-      await axios.post(`${downloaderUrl}/api/v1/excel/download`, data, {
-        headers: {
-          'X-API-Key': this.configService.get(`${ConfigName.PROCESSOR}.apiKey`),
+      await axios.post(
+        `${downloaderUrl}/api/v1/excel/download`,
+        {
+          ...data,
+          accessToken,
         },
-      });
+        {
+          headers: {
+            'X-API-Key': this.configService.get(
+              `${ConfigName.PROCESSOR}.apiKey`,
+            ),
+          },
+        },
+      );
     } catch (err) {
       throw new UnacceptableActivityError(
         `Error when executing downloader: ${err.message}`,
