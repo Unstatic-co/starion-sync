@@ -28,7 +28,7 @@ export class BrokerController {
     await this.triggerService.deleteTriggerFromSyncConnection(data);
   }
 
-  @EventPattern('test-event-to-cron-trigger')
+  // @EventPattern('test-event-to-cron-trigger')
   async testEvent(message: any) {
     this.logger.debug('test-event-to-cron-trigger', message);
   }

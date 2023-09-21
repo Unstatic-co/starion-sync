@@ -62,7 +62,7 @@ export class BrokerController {
     );
   }
 
-  @EventPattern('test-event-to-webhook')
+  // @EventPattern('test-event-to-webhook')
   async testEvent(message: any) {
     this.logger.debug('test-event-to-webhook', message);
   }

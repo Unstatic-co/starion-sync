@@ -26,7 +26,7 @@ export class BrokerController {
     });
   }
 
-  @EventPattern('test-event-to-controller')
+  // @EventPattern('test-event-to-controller')
   async testEvent(message: any) {
     this.logger.debug('test-event-to-controller', message);
   }

@@ -27,10 +27,13 @@ services:
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - DEST_DB_URI=${DEST_DB_URI}
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=configurator
       - KAFKA_CONSUMER_GROUP_ID=configurator-consumer
-      - KAFKA_SSL_ENABLED=false
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
       - ORCHESTRATOR_ADDRESS=temporal:7233
       - ORCHESTRATOR_WORKER_TASKQUEUE=configurator
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=configurator
@@ -63,10 +66,13 @@ services:
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=controller
       - KAFKA_CONSUMER_GROUP_ID=controller-consumer
-      - KAFKA_SSL_ENABLED=false
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
       - ORCHESTRATOR_ADDRESS=temporal:7233
       - ORCHESTRATOR_WORKER_TASKQUEUE=controller
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=controller
@@ -99,10 +105,13 @@ services:
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=worker
       - KAFKA_CONSUMER_GROUP_ID=worker-consumer
-      - KAFKA_SSL_ENABLED=false
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
       - ORCHESTRATOR_ADDRESS=temporal:7233
       - ORCHESTRATOR_WORKER_TASKQUEUE=worker
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=worker
@@ -139,10 +148,13 @@ services:
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=post-processor
       - KAFKA_CONSUMER_GROUP_ID=post-processor-consumer
-      - KAFKA_SSL_ENABLED=false
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
       - ORCHESTRATOR_ADDRESS=temporal:7233
       - ORCHESTRATOR_WORKER_TASKQUEUE=post-processor
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=post-processor
@@ -176,10 +188,13 @@ services:
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=webhook
       - KAFKA_CONSUMER_GROUP_ID=webhook-consumer
-      - KAFKA_SSL_ENABLED=false
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=abc123456
@@ -293,10 +308,13 @@ services:
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=cron-trigger
       - KAFKA_CONSUMER_GROUP_ID=cron-trigger
-      - KAFKA_SSL_ENABLED=false
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
       - ORCHESTRATOR_ADDRESS=temporal:7233
       - ORCHESTRATOR_WORKER_TASKQUEUE=cron-trigger
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=cron-trigger
@@ -328,10 +346,13 @@ services:
       - DB_TYPE=mongodb
       - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka:29092
+      - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=webhook-trigger
       - KAFKA_CONSUMER_GROUP_ID=webhook-trigger
-      - KAFKA_SSL_ENABLED=false
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=abc123456
@@ -466,7 +487,6 @@ services:
   temporal-ui:
     depends_on:
       - temporal
-    container_name: temporal-ui
     ports:
       - 3001:8080
     image: temporalio/ui:2.15.0

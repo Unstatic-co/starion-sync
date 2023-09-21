@@ -28,7 +28,7 @@ export class BrokerController {
     await this.triggerService.deleteTriggerFromSyncConnection(data);
   }
 
-  @EventPattern('test-event-to-webhook-trigger')
+  // @EventPattern('test-event-to-webhook-trigger')
   async testEvent(message: any) {
     this.logger.debug('test-event-to-webhook-trigger', message);
   }

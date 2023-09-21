@@ -24,8 +24,10 @@ const brokerConfig = (() => {
     KAFKA_CLIENT_ID,
     KAFKA_CONSUMER_GROUP_ID,
     KAFKA_SSL_ENABLED,
-    KAFKA_BROKER_API_KEY,
-    KAFKA_BROKER_SECRET,
+    KAFKA_SASL_ENABLED,
+    KAFKA_SASL_MECHANISM,
+    KAFKA_SASL_USERNAME,
+    KAFKA_SASL_PASSWORD,
   } = process.env;
   let options;
 
@@ -40,11 +42,14 @@ const brokerConfig = (() => {
             retries: 8,
           },
           ssl: KAFKA_SSL_ENABLED === 'true',
-          // sasl: {
-          // mechanism: 'plain', // plain or scram-sha-256 or scram-sha-512
-          // username: KAFKA_BROKER_API_KEY,
-          // password: KAFKA_BROKER_SECRET,
-          // },
+          sasl:
+            KAFKA_SASL_ENABLED === 'true'
+              ? {
+                  mechanism: KAFKA_SASL_MECHANISM || 'SCRAM-SHA-256', // plain or scram-sha-256 or scram-sha-512
+                  username: KAFKA_SASL_USERNAME,
+                  password: KAFKA_SASL_PASSWORD,
+                }
+              : undefined,
         },
         consumer: {
           groupId: KAFKA_CONSUMER_GROUP_ID,
@@ -66,11 +71,14 @@ const brokerConfig = (() => {
             retries: 8,
           },
           ssl: KAFKA_SSL_ENABLED === 'true',
-          // sasl: {
-          // mechanism: 'plain', // plain or scram-sha-256 or scram-sha-512
-          // username: KAFKA_BROKER_API_KEY,
-          // password: KAFKA_BROKER_SECRET,
-          // },
+          sasl:
+            KAFKA_SASL_ENABLED === 'true'
+              ? {
+                  mechanism: KAFKA_SASL_MECHANISM, // plain or scram-sha-256 or scram-sha-512
+                  username: KAFKA_SASL_USERNAME,
+                  password: KAFKA_SASL_PASSWORD,
+                }
+              : undefined,
         },
         consumer: {
           groupId: KAFKA_CONSUMER_GROUP_ID,

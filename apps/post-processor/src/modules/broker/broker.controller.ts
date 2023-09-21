@@ -19,7 +19,7 @@ export class BrokerController {
     return this.syncflowService.handleSyncflowSucceed(payload);
   }
 
-  @EventPattern('test-event-to-post-processor')
+  // @EventPattern('test-event-to-post-processor')
   async testEvent(message: any) {
     this.logger.debug('test-event-to-post-processor', message);
   }
