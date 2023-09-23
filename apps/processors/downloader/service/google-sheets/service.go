@@ -170,8 +170,7 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 
 	cmd := exec.CommandContext(
 		ctx,
-		"bash",
-		"./download-google-sheets.sh",
+		"./download-google-sheets",
 		"--spreadsheetId", s.spreadsheetId,
 		"--sheetId", s.sheetId,
 		"--sheetName", s.sheetName,

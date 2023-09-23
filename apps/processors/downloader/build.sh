@@ -15,11 +15,51 @@ function parse-arguments() {
                 OUT_DIR="$2"
                 shift
                 ;;
+            --mode)
+                mode="$2"
+                shift
+                ;;
         esac
         shift
     done
 }
 parse-arguments "$@"
+##############################
+
+compile_bash_scripts() {
+    local folder_path="$1"
+    local output_folder="$2"
+
+    if [ ! -d "$folder_path" ]; then
+        echo "Folder not found: $folder_path"
+        return 1
+    fi
+    if [ ! -d "$output_folder" ]; then
+        echo "Output folder not found; creating it: $output_folder"
+        mkdir -p "$output_folder" || return 1
+    fi
+
+    local found_sh_files=0
+    for file in "$folder_path"/*.sh; do
+        if [ -e "$file" ]; then
+            found_sh_files=1
+            break
+        fi
+    done
+    if [ "$found_sh_files" -eq 0 ]; then
+        echo "No .sh files found in $folder_path"
+        return 0
+    fi
+
+    local sh_files=("$folder_path"/*.sh)
+    for file in "${sh_files[@]}"; do
+        file_path="${file%.sh}"
+        output_file=$(basename "$file_path")
+        echo "Compiling $file to $output_folder/$output_file"
+        shc -r -U -f "$file" -o "$output_folder/$output_file"
+    done
+}
+
 ##############################
 
 SOURCE="${BASH_SOURCE[0]:-$0}"
@@ -40,20 +80,21 @@ declare -A SERVICE_BINARY_DEPENDENCIES=(
     [google-sheets]="get-and-normalize-date-column update-id-column get-and-upload-schema"
 )
 
-function buildCommon() {
+function buildCommonBinaries() {
     echo "Building common dependencies..."
     # golang binaries
     for bin in "${COMMON_BINARY_DEPENDENCIES[@]}"; do
         echo "Building scripts/$bin/main.go..."
         go build -o "$OUT_DIR/$bin" "$SCRIPT_DIR/common/$bin/main.go"
     done
+}
+function compileCommonShellScripts() {
     # shell scripts
-    # cp "$SCRIPT_DIR/common/*.sh" "$OUT_DIR/"
-    find "$SCRIPT_DIR" -name "*.sh" -exec cp {} "$OUT_DIR" \;
-    # cp "$SCRIPT_DIR/*.sh" "$OUT_DIR/"
+    echo "Compiling common shell scripts..."
+    compile_bash_scripts "$SCRIPT_DIR" "$OUT_DIR"
 }
 
-function buildService() {
+function buildServiceBinaries() {
     service="$1"
     echo "Building service dependencies for $service..."
     mkdir -p "$OUT_DIR/$service"
@@ -64,20 +105,43 @@ function buildService() {
         echo "Building scripts/$service/$bin/main.go..."
         go build -o "$OUT_DIR/$service/$bin" "$SCRIPT_DIR/$service/$bin/main.go"
     done
+}
+function compileServiceShellScripts() {
     # shell scripts
-    # cp "$SCRIPT_DIR/$service/*.sh" "$OUT_DIR/$service/"
-    find "$SCRIPT_DIR/$service" -name "*.sh" -exec cp {} "$OUT_DIR/$service" \;
+    compile_bash_scripts "$SCRIPT_DIR/$service" "$OUT_DIR/$service"
+}
+
+function buildWebServer() {
+    echo "Building web server..."
+    go build -tags=jsoniter -o "$OUT_DIR/downloader" .
 }
 
 ### build dependencies ###
-echo "Building dependencies..."
+echo "Start building dependencies..."
 
-buildCommon
-for service in "${SERVICES[@]}"; do
-    buildService "$service"
-done
-##########################
-
-### build web server #####
-echo "Building web server..."
-go build -tags=jsoniter -o "$OUT_DIR/downloader" .
+case $mode in
+    "binary")
+        buildCommonBinaries
+        for service in "${SERVICES[@]}"; do
+            buildServiceBinaries "$service"
+        done
+        buildWebServer
+        exit 0
+        ;;
+    "shell")
+        compileCommonShellScripts
+        for service in "${SERVICES[@]}"; do
+            compileServiceShellScripts "$service"
+        done
+        exit 0
+        ;;
+    *)
+        # build full
+        buildCommonBinaries
+        compileCommonShellScripts
+        for service in "${SERVICES[@]}"; do
+            buildServiceBinaries "$service"
+            compileServiceShellScripts "$service"
+        done
+        buildWebServer
+esac

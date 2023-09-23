@@ -185,8 +185,7 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 	// timeoutCtx, _ := context.WithTimeout(ctx, 15*time.Minute)
 	cmd := exec.CommandContext(
 		ctx,
-		"bash",
-		"./download-excel.sh",
+		"./download-excel",
 		"--driveId", source.driveId,
 		"--workbookId", source.workbookId,
 		"--worksheetId", source.worksheetId,
