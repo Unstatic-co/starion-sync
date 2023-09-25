@@ -2,12 +2,11 @@ package v1
 
 import (
 	"comparer/pkg/app"
-	"comparer/pkg/e"
 	compareService "comparer/service"
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 type CompareRequest struct {
@@ -25,9 +24,9 @@ func Compare(c *gin.Context) {
 		body CompareRequest
 	)
 
-	httpCode, errCode := app.BindAndValid(c, &body)
-	if errCode != e.SUCCESS {
-		appG.Response(httpCode, errCode, nil)
+	err := app.BindAndValid(c, &body)
+	if err != nil {
+		appG.Error(err)
 		return
 	}
 
@@ -38,14 +37,11 @@ func Compare(c *gin.Context) {
 	})
 
 	requestContext := c.Request.Context()
-	err := compareService.Run(requestContext)
+	err = compareService.Run(requestContext)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error running compare for ds %s: ", body.DataSourceId), err)
-		appG.Response(e.ERROR, e.COMPARE_ERROR, nil)
+		appG.Error(fmt.Errorf("Error running compare for ds %s: %w", body.DataSourceId, err))
 		return
 	}
 
-	appG.Response(e.SUCCESS, e.SUCCESS, &CompareResponse{
-		Message: "Compare Success!",
-	})
+	appG.Response(http.StatusOK, nil)
 }

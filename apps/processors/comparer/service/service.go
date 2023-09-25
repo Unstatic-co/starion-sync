@@ -25,7 +25,7 @@ type CompareSchemaResult struct {
 type CompareServiceInitParams struct {
 	DataSourceId string `json:"dataSourceId"`
 	SyncVersion  uint   `json:"syncVersion"`
-	PrevVersion  uint   `json:"syncVersion"`
+	PrevVersion  uint   `json:"prevSyncVersion"`
 }
 
 type CompareService struct {
@@ -117,6 +117,7 @@ func (s *CompareService) CompareData(ctx context.Context) error {
 		"clickhouse",
 		"local",
 		"-q",
+		"--multiquery",
 		fmt.Sprintf(`%s`, query),
 	)
 

@@ -2,7 +2,7 @@ package auth
 
 import (
 	"comparer/pkg/config"
-	"net/http"
+	"comparer/pkg/e"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -13,16 +13,20 @@ func ApiKeyMiddleware() gin.HandlerFunc {
 		apiKey := c.GetHeader("X-API-Key")
 
 		if apiKey == "" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "API Key is missing"})
-			c.Abort()
+			c.Error(&e.InternalError{
+				Code: e.API_KEY_MISSING,
+				Msg:  "Missing API Key",
+			})
 			return
 		}
 
 		apiKeys := strings.Split(config.AppConfig.ApiKeys, ",")
 
 		if !isValidApiKey(apiKey, apiKeys) {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid API Key"})
-			c.Abort()
+			c.Error(&e.InternalError{
+				Code: e.API_KEY_INVALID,
+				Msg:  "Invalid API Key",
+			})
 			return
 		}
 
