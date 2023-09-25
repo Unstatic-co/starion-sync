@@ -3,8 +3,8 @@ package v1
 import (
 	"fmt"
 	"loader/pkg/app"
-	"loader/pkg/e"
 	"loader/service/sheet"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -27,9 +27,9 @@ func LoadSheet(c *gin.Context) {
 		body LoadRequest
 	)
 
-	httpCode, errCode := app.BindAndValid(c, &body)
-	if errCode != e.SUCCESS {
-		appG.Response(httpCode, errCode, nil)
+	err := app.BindAndValid(c, &body)
+	if err != nil {
+		appG.Error(err)
 		return
 	}
 
@@ -40,8 +40,7 @@ func LoadSheet(c *gin.Context) {
 		TableName:    body.TableName,
 	})
 	if err != nil {
-		log.Error(fmt.Sprintf("Error when initializing excel service for ds %s: ", body.DataSourceId), err)
-		appG.Response(e.ERROR, e.LOADER_ERROR, nil)
+		appG.Error(fmt.Errorf("Error when initializing excel service for ds %s: %w", body.DataSourceId, err))
 		return
 	}
 
@@ -49,9 +48,9 @@ func LoadSheet(c *gin.Context) {
 	result, err := service.Load(requestContext)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error running load data for ds %s: ", body.DataSourceId), err)
-		appG.Response(e.ERROR, e.LOADER_ERROR, nil)
+		appG.Error(fmt.Errorf("Error running load data for ds %s: %w", body.DataSourceId, err))
 		return
 	}
 
-	appG.Response(e.SUCCESS, e.SUCCESS, &result)
+	appG.Response(http.StatusOK, &result)
 }
