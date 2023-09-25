@@ -2,6 +2,7 @@ package routers
 
 import (
 	"downloader/pkg/auth"
+	"downloader/pkg/e"
 	"downloader/pkg/logging"
 	v1 "downloader/routers/v1"
 
@@ -14,8 +15,10 @@ func InitRouter() *gin.Engine {
 	r.SetTrustedProxies(nil)
 
 	r.Use(logging.LoggingMiddleware())
-	r.Use(gin.Recovery())
 	r.Use(auth.ApiKeyMiddleware())
+	r.Use(e.ErrorHandler())
+	// r.Use(gin.CustomRecovery(e.RecoveryHandler()))
+	r.Use(gin.Recovery())
 
 	apiV1 := r.Group("/api/v1")
 

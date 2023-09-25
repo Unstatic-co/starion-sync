@@ -64,8 +64,9 @@ func New(params MicrosoftExcelServiceInitParams) *MicrosoftExcelService {
 	logger.SetFormatter(&log.JSONFormatter{})
 	logger.SetLevel(log.DebugLevel)
 	loggerEntry := logger.WithFields(log.Fields{
-		"workbookId":  params.WorkbookId,
-		"worksheetId": params.WorksheetId,
+		"workbookId":   params.WorkbookId,
+		"worksheetId":  params.WorksheetId,
+		"dataSourceId": params.DataSourceId,
 	})
 
 	// client
@@ -108,12 +109,21 @@ func (s *MicrosoftExcelService) CreateSessionId(persistChanges bool) error {
 	req.Header.Set("workbook-session-id", s.sessionId)
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error sending request to create excel session id: %w", err)
 	}
 	defer resp.Body.Close()
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error reading response body from create excel session id: %w", err)
+	}
+
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		var errRes ErrorResponse
+		err := jsoniter.Unmarshal(responseBody, &errRes)
+		if err != nil {
+			return fmt.Errorf("Error unmarshalling: %w", err)
+		}
+		return WrapWorkbookApiError(resp.StatusCode, errRes.Error.Msg)
 	}
 
 	var response CreateSessionResponse
@@ -149,6 +159,15 @@ func (s *MicrosoftExcelService) GetWorksheetInfo() error {
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
+	}
+
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		var errRes ErrorResponse
+		err := jsoniter.Unmarshal(responseBody, &errRes)
+		if err != nil {
+			return fmt.Errorf("Error unmarshalling: %w", err)
+		}
+		return WrapWorksheetApiError(resp.StatusCode, errRes.Error.Msg)
 	}
 
 	var response GetWorksheetInfoResponse

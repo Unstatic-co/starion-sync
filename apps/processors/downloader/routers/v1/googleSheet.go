@@ -2,12 +2,11 @@ package v1
 
 import (
 	"downloader/pkg/app"
-	"downloader/pkg/e"
 	google_sheets "downloader/service/google-sheets"
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 type DownloadGoogleSheetsRequest struct {
@@ -27,9 +26,9 @@ func DownloadGoogleSheets(c *gin.Context) {
 		body DownloadGoogleSheetsRequest
 	)
 
-	httpCode, errCode := app.BindAndValid(c, &body)
-	if errCode != e.SUCCESS {
-		appG.Response(httpCode, errCode, nil)
+	err := app.BindAndValid(c, &body)
+	if err != nil {
+		appG.Error(err)
 		return
 	}
 
@@ -43,21 +42,19 @@ func DownloadGoogleSheets(c *gin.Context) {
 
 	requestContext := c.Request.Context()
 
-	err := service.Setup(requestContext)
+	err = service.Setup(requestContext)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error running setup google sheets for ds %s: ", body.DataSourceId), err)
-		appG.Response(e.ERROR, e.DOWNLOAD_ERROR, nil)
+		err = fmt.Errorf("Error running setup google sheets for ds %s: %w", body.DataSourceId, err)
+		appG.Error(err)
 		return
 	}
 
 	err = service.Download(requestContext)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error running download google sheets for ds %s: ", body.DataSourceId), err)
-		appG.Response(e.ERROR, e.DOWNLOAD_ERROR, nil)
+		err = fmt.Errorf("Error running download google sheets for ds %s: %w", body.DataSourceId, err)
+		appG.Error(err)
 		return
 	}
 
-	appG.Response(e.SUCCESS, e.SUCCESS, &DownloadExcelResponse{
-		Message: "Download Success!",
-	})
+	appG.Response(http.StatusOK, nil)
 }

@@ -3,6 +3,7 @@ package google_sheets
 import (
 	"context"
 	"downloader/pkg/config"
+	"downloader/pkg/e"
 	"fmt"
 	"net/url"
 	"os"
@@ -14,6 +15,7 @@ import (
 
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
 
@@ -108,11 +110,11 @@ func (s *GoogleSheetsService) Setup(ctx context.Context) error {
 		var err error
 		s.sheetService, err = sheets.NewService(newCtx, option.WithTokenSource(tokenSource))
 		if err != nil {
-			return err
+			return e.WrapInternalError(err, e.INIT_GOOGLE_SHEETS_SERVICE, "Init sheets service error")
 		}
 		s.spreadsheet, err = s.sheetService.Spreadsheets.Get(s.spreadsheetId).Fields("properties", "sheets.properties").Do()
 		if err != nil {
-			return err
+			return WrapSpreadSheetApiError(err.(*googleapi.Error))
 		}
 		s.timezone = s.spreadsheet.Properties.TimeZone
 		sheets := s.spreadsheet.Sheets
@@ -135,11 +137,11 @@ func (s *GoogleSheetsService) Setup(ctx context.Context) error {
 		var err error
 		s.driveService, err = drive.NewService(newCtx, option.WithTokenSource(tokenSource))
 		if err != nil {
-			return err
+			return e.WrapInternalError(err, e.INIT_GOOGLE_DRIVE_SERVICE, "Init google drive service error")
 		}
 		driveFile, err := s.driveService.Files.Get(s.spreadsheetId).Fields("version", "exportLinks").Do()
 		if err != nil {
-			return err
+			return WrapGoogleDriveFileError(err.(*googleapi.Error))
 		}
 		link, err := url.Parse(driveFile.ExportLinks["text/csv"])
 		query := link.Query()
@@ -201,9 +203,5 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 		return err
 	}
 
-	return nil
-}
-
-func (s *GoogleSheetsService) getSpreadSheetInfo(ctx context.Context) error {
 	return nil
 }

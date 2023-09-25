@@ -2,12 +2,11 @@ package v1
 
 import (
 	"downloader/pkg/app"
-	"downloader/pkg/e"
 	"downloader/service/excel"
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 type DownloadExcelRequest struct {
@@ -31,9 +30,9 @@ func DownloadExcel(c *gin.Context) {
 		body DownloadExcelRequest
 	)
 
-	httpCode, errCode := app.BindAndValid(c, &body)
-	if errCode != e.SUCCESS {
-		appG.Response(httpCode, errCode, nil)
+	err := app.BindAndValid(c, &body)
+	if err != nil {
+		appG.Error(err)
 		return
 	}
 
@@ -50,14 +49,12 @@ func DownloadExcel(c *gin.Context) {
 	})
 
 	requestContext := c.Request.Context()
-	err := excelService.Download(requestContext)
+	err = excelService.Download(requestContext)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error running download excel for ds %s: ", body.DataSourceId), err)
-		appG.Response(e.ERROR, e.DOWNLOAD_ERROR, nil)
+		err = fmt.Errorf("Error running download excel for ds %s: %w", body.DataSourceId, err)
+		appG.Error(err)
 		return
 	}
 
-	appG.Response(e.SUCCESS, e.SUCCESS, &DownloadExcelResponse{
-		Message: "Download Success!",
-	})
+	appG.Response(http.StatusOK, nil)
 }

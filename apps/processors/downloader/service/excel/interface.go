@@ -1,5 +1,13 @@
 package excel
 
+type ErrorResponse struct {
+	Error ApiError `json:"error"`
+}
+type ApiError struct {
+	Code string `json:"code"`
+	Msg  string `json:"message"`
+}
+
 type CreateSessionRequest struct {
 	PersistChanges bool `json:"persistChanges"`
 }
