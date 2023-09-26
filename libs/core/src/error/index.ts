@@ -2,6 +2,11 @@ import { ErrorCode } from './code';
 
 export * from './code';
 
+export enum ErrorType {
+  INTERNAL = 'internal',
+  EXTERNAL = 'external',
+}
+
 export class BaseError extends Error {}
 
 export class ExternalError extends BaseError {

@@ -1,5 +1,7 @@
 import {
+  DataSourceErrorPayload,
   EventNames,
+  ExternalError,
   Syncflow,
   SyncflowScheduledPayload,
   WorkflowTriggeredPayload,
@@ -24,14 +26,28 @@ export async function handleWorkflowTriggeredWf(
 ) {
   return await workflowWrapper(async () => {
     await checkWorkflowAlreadyScheduled(data);
-    const syncflow = await handleWorkflowTriggered(data);
-    if (data.workflow.type === WorkflowType.SYNCFLOW) {
-      await emitEvent(EventNames.SYNCFLOW_SCHEDULED, {
-        payload: {
-          syncflow,
-          version: (syncflow as Syncflow).state.version,
-        } as SyncflowScheduledPayload,
-      });
+    try {
+      const syncflow = await handleWorkflowTriggered(data);
+      if (data.workflow.type === WorkflowType.SYNCFLOW) {
+        await emitEvent(EventNames.SYNCFLOW_SCHEDULED, {
+          payload: {
+            syncflow,
+            version: (syncflow as Syncflow).state.version,
+          } as SyncflowScheduledPayload,
+        });
+      }
+    } catch (error) {
+      if (error instanceof ExternalError) {
+        await emitEvent(EventNames.DATA_SOURCE_ERROR, {
+          payload: {
+            dataSourceId: data.trigger.dataSourceId,
+            code: error.code,
+            message: error.message,
+          } as DataSourceErrorPayload,
+        });
+      } else {
+        throw error;
+      }
     }
   });
 }

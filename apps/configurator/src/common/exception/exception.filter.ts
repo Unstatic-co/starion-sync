@@ -8,7 +8,7 @@ import {
 import { BaseExceptionFilter } from '@nestjs/core';
 import { Request, Response } from 'express';
 import { ApiError } from './api.exception';
-import { ExternalError } from '@lib/core/error';
+import { ErrorType, ExternalError } from '@lib/core/error';
 
 @Catch()
 export class AllExceptionFilter extends BaseExceptionFilter {
@@ -25,6 +25,7 @@ export class AllExceptionFilter extends BaseExceptionFilter {
     if (exception instanceof ApiError) {
       const status = exception.getStatus() || HttpStatus.INTERNAL_SERVER_ERROR;
       response.status(status).json({
+        type: ErrorType.INTERNAL,
         code: exception.code,
         message: exception.getResponse(),
         statusCode: status,
@@ -32,6 +33,7 @@ export class AllExceptionFilter extends BaseExceptionFilter {
     } else if (exception instanceof ExternalError) {
       const status = HttpStatus.INTERNAL_SERVER_ERROR;
       response.status(status).json({
+        type: ErrorType.EXTERNAL,
         code: exception.code,
         message: exception.message,
         statusCode: status,

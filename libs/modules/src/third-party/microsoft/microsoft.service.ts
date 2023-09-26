@@ -16,6 +16,8 @@ import 'isomorphic-fetch';
 import { pick } from 'lodash';
 import { DiscoveredExcelDataSource } from 'apps/configurator/src/modules/discoverer/discoverer.interface';
 import { GetFileInfoResponse } from './microsoft.interface';
+import { handleAuthApiError, handleWorkbookError } from './error-handler';
+import { handleDriveFileError } from '../google/error-handler';
 
 @Injectable()
 export class MicrosoftService {
@@ -37,10 +39,15 @@ export class MicrosoftService {
       refreshToken,
     } as RefreshTokenRequest;
 
-    const response = await this.microsoftAuthClient.acquireTokenByRefreshToken(
-      byRefreshTokenRequest,
-    );
-    return response.accessToken;
+    try {
+      const response =
+        await this.microsoftAuthClient.acquireTokenByRefreshToken(
+          byRefreshTokenRequest,
+        );
+      return response.accessToken;
+    } catch (error) {
+      handleAuthApiError(error);
+    }
   }
 }
 
@@ -73,15 +80,19 @@ export class MicrosoftGraphService {
     persist?: boolean,
   ) {
     this.logger.debug(`createWorkbookSession(): workbookId = ${workbookId}`);
-    const workbookSession = await client
-      .api(`/me/drive/items/${workbookId}/workbook/createSession`)
-      .post({
-        persistChanges: persist === true,
-      });
-    this.logger.debug(
-      `createWorkbookSession(): workbookSessionId = ${workbookSession.id}`,
-    );
-    return workbookSession.id;
+    try {
+      const workbookSession = await client
+        .api(`/me/drive/items/${workbookId}/workbook/createSession`)
+        .post({
+          persistChanges: persist === true,
+        });
+      this.logger.debug(
+        `createWorkbookSession(): workbookSessionId = ${workbookSession.id}`,
+      );
+      return workbookSession.id;
+    } catch (error) {
+      handleWorkbookError(error);
+    }
   }
 
   async listWorksheets(
@@ -97,12 +108,17 @@ export class MicrosoftGraphService {
     if (workbookSessionId) {
       api = api.header('workbook-session-id', workbookSessionId);
     }
-    const worksheets = await api.get();
 
-    this.logger.debug(`listWorksheets(): worksheets = ${worksheets}`);
-    return worksheets.value.map((worksheet) =>
-      pick(worksheet, ['id', 'name', 'position', 'visibility']),
-    ) as DiscoveredExcelDataSource[];
+    try {
+      const worksheets = await api.get();
+
+      this.logger.debug(`listWorksheets(): worksheets = ${worksheets}`);
+      return worksheets.value.map((worksheet) =>
+        pick(worksheet, ['id', 'name', 'position', 'visibility']),
+      ) as DiscoveredExcelDataSource[];
+    } catch (error) {
+      handleWorkbookError(error);
+    }
   }
 
   async getWorkbookFileInfo(data: {
@@ -117,11 +133,15 @@ export class MicrosoftGraphService {
     if (select?.length) {
       url.concat(`?$select=${select.join(',')}`);
     }
-    let api = await client.api(url);
-    if (workbookSessionId) {
-      api = api.header('workbook-session-id', workbookSessionId);
+    try {
+      let api = await client.api(url);
+      if (workbookSessionId) {
+        api = api.header('workbook-session-id', workbookSessionId);
+      }
+      const fileInfo = await api.get();
+      return fileInfo;
+    } catch (error) {
+      handleDriveFileError(error);
     }
-    const fileInfo = await api.get();
-    return fileInfo;
   }
 }
