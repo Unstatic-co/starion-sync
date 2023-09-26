@@ -5,11 +5,18 @@ import {
   Syncflow,
 } from '../entities';
 import { Trigger } from '../entities/trigger';
+import { ErrorCode } from '../error';
 import { EventPayload } from './baseEvent';
 
 export type DataSourceDeletedPayload = EventPayload & {
   dataSourceId: DataSourceId;
   syncConnectionId?: SyncConnectionId;
+};
+
+export type DataSourceErrorPayload = EventPayload & {
+  dataSourceId: DataSourceId;
+  code: ErrorCode;
+  message: string;
 };
 
 export type ConnectionCreatedPayload = EventPayload & SyncConnection;

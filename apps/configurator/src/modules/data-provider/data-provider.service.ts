@@ -76,14 +76,7 @@ export class DataProviderService implements IDataProviderService {
         isAlreadyCreated,
       };
     }
-    try {
-      await this.dataDiscovererService.check(type, config);
-    } catch (error) {
-      throw new ApiError(
-        ErrorCode.HEALTH_CHECK_FAILED,
-        `Failed to check provider: ${error.message}`,
-      );
-    }
+    await this.dataDiscovererService.check(type, config);
     return {
       data: await this.dataProviderRepository.create({
         type,

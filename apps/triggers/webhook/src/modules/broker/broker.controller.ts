@@ -5,8 +5,10 @@ import { TriggerService } from '../trigger/trigger.service';
 import {
   ConnectionCreatedPayload,
   ConnectionDeletedPayload,
+  DataSourceErrorPayload,
   EventNames,
 } from '@lib/core';
+import { ExternalError } from '@lib/core/error';
 
 @Controller('broker')
 export class BrokerController {
@@ -19,13 +21,43 @@ export class BrokerController {
   @EventPattern(EventNames.CONNECTION_CREATED)
   async onConnectionCreated(data: ConnectionCreatedPayload) {
     this.logger.debug('onConnectionCreated', data);
-    await this.triggerService.createTriggerFromSyncConnection(data);
+    try {
+      await this.triggerService.createTriggerFromSyncConnection(data);
+    } catch (error) {
+      if (error instanceof ExternalError) {
+        this.logger.warn(
+          `External error when creating trigger: ${error.code} - ${error.message}`,
+        );
+        await this.brokerService.emitEvent(EventNames.DATA_SOURCE_ERROR, {
+          payload: {
+            dataSourceId: data.sourceId,
+            code: error.code,
+            message: error.message,
+          } as DataSourceErrorPayload,
+        });
+      }
+    }
   }
 
   @EventPattern(EventNames.CONNECTION_DELETED)
   async onConnectionDeleted(data: ConnectionDeletedPayload) {
     this.logger.debug('onConnectionDeleted', data);
-    await this.triggerService.deleteTriggerFromSyncConnection(data);
+    try {
+      await this.triggerService.deleteTriggerFromSyncConnection(data);
+    } catch (error) {
+      if (error instanceof ExternalError) {
+        this.logger.warn(
+          `External error when delete trigger: ${error.code} - ${error.message}`,
+        );
+        await this.brokerService.emitEvent(EventNames.DATA_SOURCE_ERROR, {
+          payload: {
+            dataSourceId: data.sourceId,
+            code: error.code,
+            message: error.message,
+          } as DataSourceErrorPayload,
+        });
+      }
+    }
   }
 
   // @EventPattern('test-event-to-webhook-trigger')

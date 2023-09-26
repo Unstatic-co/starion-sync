@@ -84,54 +84,48 @@ export class DataSourceService {
   }
 
   async create(dto: CreateDataSourceDto): Promise<CreationResult<DataSource>> {
-    const isAlreadyCreated = false;
-    const { type, config, metadata } = dto;
-    const { externalId, externalLocalId } =
-      this.getOrGenerateDataSourceExternalId(type, config);
-    // const existingDataSource = await this.dataSourceRepository.getByExternalId(
-    // externalId,
-    // );
-    // if (existingDataSource) {
-    // isAlreadyCreated = true;
-    // return {
-    // data: existingDataSource,
-    // isAlreadyCreated,
-    // };
-    // }
-    const dataProviderExternalId =
-      this.dataProviderService.getOrGenerateProviderExternalId(
-        type,
-        config as ProviderConfigDto,
-      );
-    let dataProvider = await this.dataProviderRepository.getByExternalId(
-      dataProviderExternalId,
-    );
-    if (!dataProvider) {
-      dataProvider = (
-        await this.dataProviderService.create({
+    try {
+      const isAlreadyCreated = false;
+      const { type, config, metadata } = dto;
+      const { externalId, externalLocalId } =
+        this.getOrGenerateDataSourceExternalId(type, config);
+      const dataProviderExternalId =
+        this.dataProviderService.getOrGenerateProviderExternalId(
           type,
-          config,
-          metadata,
-        })
-      ).data;
+          config as ProviderConfigDto,
+        );
+      let dataProvider = await this.dataProviderRepository.getByExternalId(
+        dataProviderExternalId,
+      );
+      if (!dataProvider) {
+        dataProvider = (
+          await this.dataProviderService.create({
+            type,
+            config,
+            metadata,
+          })
+        ).data;
+      }
+      await this.checkDataSourceInProvider(
+        dataProvider.type,
+        config,
+        externalLocalId,
+      );
+      const dataSource = await this.dataSourceRepository.create({
+        externalId,
+        externalLocalId,
+        config,
+        providerId: dataProvider.id,
+        providerType: type,
+        metadata,
+      });
+      return {
+        data: dataSource,
+        isAlreadyCreated,
+      };
+    } catch (error) {
+      throw error;
     }
-    await this.checkDataSourceInProvider(
-      dataProvider.type,
-      dataProvider.config,
-      externalLocalId,
-    );
-    const dataSource = await this.dataSourceRepository.create({
-      externalId,
-      externalLocalId,
-      config: { ...dataProvider.config, ...config },
-      providerId: dataProvider.id,
-      providerType: type,
-      metadata,
-    });
-    return {
-      data: dataSource,
-      isAlreadyCreated,
-    };
   }
 
   public async update(id: ProviderId, data: UpdateDataSourceData) {

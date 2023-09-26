@@ -14,14 +14,7 @@ export class GoogleSheetsDiscoverer implements DataDiscoverer {
   ) {}
 
   public async check(config: GoogleSheetsProviderConfig): Promise<void> {
-    const client = await this.googleService.createAuthClient(
-      config.auth.refreshToken,
-    );
-    await this.googleSheetsService.getSpreadSheets({
-      client,
-      spreadsheetId: config.spreadsheetId,
-      fields: ['spreadsheetId'],
-    });
+    await this.googleService.validateToken(config.auth?.refreshToken);
   }
 
   public async discover(

@@ -1,5 +1,6 @@
 export const EventNames = {
   DATA_SOURCE_DELETED: 'dataSource.deleted',
+  DATA_SOURCE_ERROR: 'dataSource.error',
   CONNECTION_CREATED: 'connection.created',
   CONNECTION_DELETED: 'connection.deleted',
   WORKFLOW_TRIGGERED: 'workflow.triggered',
