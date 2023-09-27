@@ -24,6 +24,9 @@ export class BrokerController {
       // workflowExecutionTimeout: 60000,
       workflowIdReusePolicy:
         WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
+      searchAttributes: {
+        DataSourceId: [payload.syncflow.sourceId],
+      },
     });
   }
 

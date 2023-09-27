@@ -33,7 +33,6 @@ export class MicrosoftService {
     const scopes = this.configService.get<string[]>(
       `${ConfigName.MICROSOFT}.scopes`,
     );
-    this.logger.debug(`getAccessToken(): scopes = ${scopes}`);
     const byRefreshTokenRequest = {
       scopes,
       refreshToken,

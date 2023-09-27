@@ -22,7 +22,6 @@ import { WorkflowService } from '../workflow/workflow.service';
 import { createSyncConnectionWf } from '../../workflows';
 import { deleteDataSourceWf } from '../../workflows/dataSource.workflows';
 import { DeleteResult } from '../../common/type/deleteResult';
-import { DataSource } from '@lib/core';
 
 @Controller('datasources')
 export class DataSourceController {
@@ -70,6 +69,9 @@ export class DataSourceController {
         workflowId: `${id}`,
         args: [{ ...data, sourceId: id }],
         // workflowExecutionTimeout: 5000,
+        searchAttributes: {
+          DataSourceId: [id],
+        },
       },
     );
     if (result.isAlreadyCreated) {

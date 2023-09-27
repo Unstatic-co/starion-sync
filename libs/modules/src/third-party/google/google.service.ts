@@ -61,7 +61,6 @@ export class GoogleService {
       `${ConfigName.GOOGLE}.scopes`,
     );
     const scopes = token.res.data.scope.split(' ');
-    this.logger.log(`scopes: ${scopes}`);
     if (intersection(scopes, requiredScopes).length !== requiredScopes.length) {
       throw new ExternalError(
         ERROR_CODE.TOKEN_MISSING_PERMISSIONS,

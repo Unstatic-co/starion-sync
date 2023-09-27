@@ -470,7 +470,6 @@ services:
   temporal:
     depends_on:
       - postgresql
-    container_name: temporal
     image: temporalio/auto-setup:1.20.3.2
     expose:
       - 7233
@@ -496,6 +495,20 @@ services:
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CORS_ORIGINS=http://localhost:3001
+  temporal-admin-tools:
+    restart: 'no'
+    depends_on:
+      - temporal
+    image: temporalio/admin-tools:1.20.3.2
+    stdin_open: true
+    tty: true
+    entrypoint: bash
+    command: "/etc/temporal/init.sh"
+    volumes:
+      - ./init/temporal-init.sh:/etc/temporal/init.sh
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
   #--------------------------------- MINIO ---------------------------------------#
   minio:
     container_name: minio

@@ -535,6 +535,20 @@ services:
       - POSTGRES_PWD=${TEMPORAL_POSTGRES_PWD}
       - POSTGRES_SEEDS=${TEMPORAL_POSTGRES_SEEDS}
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+  temporal-admin-tools:
+    restart: 'no'
+    depends_on:
+      - temporal
+    image: temporalio/admin-tools:1.20.3.2
+    stdin_open: true
+    tty: true
+    entrypoint: bash
+    command: "/etc/temporal/init.sh"
+    volumes:
+      - ./init/temporal-init.sh:/etc/temporal/init.sh
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
   #--------------------------------- MINIO ---------------------------------------#
   minio:
     restart: on-failure
