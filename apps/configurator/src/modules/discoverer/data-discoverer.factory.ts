@@ -1,12 +1,14 @@
-import { ProviderConfig, ProviderId, ProviderType } from '@lib/core';
+import { DataSourceConfig, ProviderConfig, ProviderType } from '@lib/core';
 import { GoogleSheetsDiscoverer } from './google-sheets/googleSheets.discoverer';
 import { Injectable } from '@nestjs/common';
 import { DiscoveredDataSource } from './discoverer.interface';
 import { MicrosoftExcelDiscoverer } from './microsoft-excel/microsoftExcel.discover';
 
 export interface DataDiscoverer {
-  check(providerConfig: ProviderConfig): Promise<any>;
-  discover(providerConfig: ProviderConfig): Promise<DiscoveredDataSource[]>;
+  checkDataSource(dataSourceConfig: DataSourceConfig): Promise<any>;
+  discoverProvider(
+    providerConfig: ProviderConfig,
+  ): Promise<DiscoveredDataSource[]>;
 }
 
 @Injectable()

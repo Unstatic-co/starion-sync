@@ -76,7 +76,6 @@ export class DataProviderService implements IDataProviderService {
         isAlreadyCreated,
       };
     }
-    await this.dataDiscovererService.check(type, config);
     return {
       data: await this.dataProviderRepository.create({
         type,
@@ -111,11 +110,11 @@ export class DataProviderService implements IDataProviderService {
   }
 
   public async discover(providerId: ProviderId) {
-    return this.dataDiscovererService.discover(providerId);
+    return this.dataDiscovererService.discoverProvider(providerId);
   }
 
   public async discoverByConfig(type: ProviderType, config: ProviderConfig) {
-    return this.dataDiscovererService.discoverByConfig(type, config);
+    return this.dataDiscovererService.discoverProviderByConfig(type, config);
   }
 
   public getOrGenerateProviderExternalId(

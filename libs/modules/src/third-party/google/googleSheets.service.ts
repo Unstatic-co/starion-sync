@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GaxiosPromise, sheets } from '@googleapis/sheets';
 import { drive, drive_v3 as DriveV3 } from '@googleapis/drive';
+import { sheets, sheets_v4 as SheetsV4 } from '@googleapis/sheets';
 import { OAuth2Client } from 'google-auth-library';
 import { handleDriveFileError, handleSpreadSheetError } from './error-handler';
 
@@ -29,6 +29,28 @@ export class GoogleSheetsService {
       }
       const res = await s.spreadsheets.get(params);
       return res.data;
+    } catch (error) {
+      handleSpreadSheetError(error);
+    }
+  }
+
+  async getRangeValue(data: {
+    client: SheetsV4.Sheets;
+    spreadsheetId: string;
+    range: string;
+  }) {
+    this.logger.debug(
+      `Getting rannge values, speadsheetId = ${data.spreadsheetId}`,
+    );
+    try {
+      const { client, spreadsheetId, range } = data;
+      const params = {
+        spreadsheetId,
+        range,
+        fields: 'values',
+      };
+      const res = await client.spreadsheets.values.get(params);
+      return res.data.values;
     } catch (error) {
       handleSpreadSheetError(error);
     }

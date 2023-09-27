@@ -1,7 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DataDiscovererFactory } from './data-discoverer.factory';
 import { DiscoveredDataSource } from './discoverer.interface';
-import { ProviderConfig, ProviderId, ProviderType } from '@lib/core';
+import {
+  DataSourceConfig,
+  ProviderConfig,
+  ProviderId,
+  ProviderType,
+} from '@lib/core';
 import { DataProviderRepository, InjectTokens } from '@lib/modules';
 import { ApiError } from '../../common/exception/api.exception';
 import { ErrorCode } from '../../common/constants';
@@ -28,7 +33,7 @@ export class DataDiscovererService {
     return dataProvider;
   }
 
-  public async discover(
+  public async discoverProvider(
     providerId: ProviderId,
   ): Promise<DiscoveredDataSource[]> {
     const dataProvider = await this.dataProviderRepository.getById(providerId);
@@ -38,27 +43,27 @@ export class DataDiscovererService {
     this.logger.debug(`Discovering data for ${dataProvider.type}`);
     const dataDiscoverer = this.dataDiscovererFactory.get(dataProvider.type);
     const discoveredDataSources: DiscoveredDataSource[] =
-      await dataDiscoverer.discover(dataProvider.config);
+      await dataDiscoverer.discoverProvider(dataProvider.config);
     return discoveredDataSources;
   }
 
-  public async discoverByConfig(
+  public async discoverProviderByConfig(
     providerType: ProviderType,
     config: ProviderConfig,
   ): Promise<DiscoveredDataSource[]> {
     this.logger.debug(`discoverByConfig(): Config = ${JSON.stringify(config)}`);
     const dataDiscoverer = this.dataDiscovererFactory.get(providerType);
     const discoveredDataSources: DiscoveredDataSource[] =
-      await dataDiscoverer.discover(config);
+      await dataDiscoverer.discoverProvider(config);
     return discoveredDataSources;
   }
 
-  public async check(
+  public async checkDataSource(
     providerType: ProviderType,
-    config: ProviderConfig,
+    config: DataSourceConfig,
   ): Promise<void> {
     this.logger.debug(`Config = ${JSON.stringify(config)}`);
     const dataDiscoverer = this.dataDiscovererFactory.get(providerType);
-    await dataDiscoverer.check(config);
+    await dataDiscoverer.checkDataSource(config);
   }
 }

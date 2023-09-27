@@ -28,6 +28,7 @@ import { ErrorCode } from '../../common/constants';
 import { ProviderConfigDto } from '../data-provider/dto/createProvider.dto';
 import { CreationResult } from '../../common/type';
 import { DeleteResult } from '../../common/type/deleteResult';
+import { DataDiscovererService } from '../discoverer/discoverer.service';
 
 export type DeleteDataSourceResult = {
   dataSource: DataSource;
@@ -49,6 +50,7 @@ export class DataSourceService {
     private readonly dataSourceRepository: IDataSourceRepository,
     @Inject(InjectTokens.DESTINATION_DATABASE_SERVICE)
     private readonly destinationDatabaseService: IDestinationDatabaseService,
+    private readonly discovererService: DataDiscovererService,
   ) {}
   /**
    * Hello world
@@ -108,11 +110,9 @@ export class DataSourceService {
           })
         ).data;
       }
-      await this.checkDataSourceInProvider(
-        dataProvider.type,
-        config,
-        externalLocalId,
-      );
+
+      await this.discovererService.checkDataSource(dataProvider.type, config);
+
       const dataSource = await this.dataSourceRepository.create({
         externalId,
         externalLocalId,
