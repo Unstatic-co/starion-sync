@@ -22,7 +22,7 @@ export class BrokerController {
       args: [payload],
       // workflowExecutionTimeout: 5000,
       workflowIdReusePolicy:
-        WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
+        WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE,
       searchAttributes: {
         DataSourceId: [payload.sourceId],
       },
