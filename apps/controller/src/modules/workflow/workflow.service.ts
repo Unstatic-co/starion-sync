@@ -69,21 +69,21 @@ export class WorkflowService {
 
   async handleSyncflowTriggered(trigger: Trigger) {
     this.logger.debug('handleWorkflowTriggered', trigger);
-    const syncflow = await this.syncflowRepository.getById(trigger.workflow.id);
-    if (!syncflow) {
-      this.logger.warn(`Syncflow not found: ${trigger.workflow.id}`);
-      throw new UnacceptableActivityError(
-        `Syncflow not found: ${trigger.workflow.id}`,
-        { shouldWorkflowFail: false },
-      );
-    }
-    const dataSource = await this.dataSourceRepository.getById(
-      syncflow.sourceId,
-    );
+    const [syncflow, dataSource] = await Promise.all([
+      this.syncflowRepository.getById(trigger.workflow.id),
+      this.dataSourceRepository.getById(trigger.sourceId),
+    ]);
     if (!dataSource) {
       this.logger.warn(`DataSource not found: ${syncflow.sourceId}`);
       throw new UnacceptableActivityError(
         `DataSource not found: ${syncflow.sourceId}`,
+        { shouldWorkflowFail: false },
+      );
+    }
+    if (!syncflow) {
+      this.logger.warn(`Syncflow not found: ${trigger.workflow.id}`);
+      throw new UnacceptableActivityError(
+        `Syncflow not found: ${trigger.workflow.id}`,
         { shouldWorkflowFail: false },
       );
     }
