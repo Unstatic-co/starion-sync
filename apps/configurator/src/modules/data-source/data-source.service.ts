@@ -3,7 +3,9 @@ import { DataProviderService } from '../data-provider/data-provider.service';
 import {
   DataSource,
   DataSourceId,
+  ERROR_CODE,
   ExcelDataSourceConfig,
+  ExternalError,
   GoogleSheetsDataSourceConfig,
   ProviderConfig,
   ProviderId,
@@ -219,9 +221,9 @@ export class DataSourceService {
     );
 
     if (!dataSourceInProvider) {
-      throw new ApiError(
-        ErrorCode.INVALID_DATA,
-        `Data source with id ${externalLocalId} not found in provider`,
+      throw new ExternalError(
+        ERROR_CODE.DATA_SOURCE_NOT_FOUND,
+        "Data source doesn't exist in provider",
       );
     }
 

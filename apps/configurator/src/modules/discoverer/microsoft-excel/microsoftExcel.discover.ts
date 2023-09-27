@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DataDiscoverer } from '../data-discoverer.factory';
 import {
   MicrosoftGraphService,
@@ -6,7 +6,6 @@ import {
 } from '@lib/modules/third-party';
 import { DiscoveredExcelDataSource } from '../discoverer.interface';
 import { ExcelProviderConfig } from '@lib/core';
-import { ApiError } from 'apps/configurator/src/common/exception/api.exception';
 
 @Injectable()
 export class MicrosoftExcelDiscoverer implements DataDiscoverer {
@@ -22,21 +21,10 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
       config.auth.refreshToken,
     );
     const client = await this.microsoftGraphService.createClient(accessToken);
-    const sessionId = await this.microsoftGraphService.createWorkbookSession(
-      client,
-      config.workbookId,
-      false,
-    );
-    const [worksheets, workbookFileInfo] = await Promise.all([
-      this.microsoftGraphService.listWorksheets(
-        client,
-        config.workbookId,
-        sessionId,
-      ),
+    const [workbookFileInfo] = await Promise.all([
       this.microsoftGraphService.getWorkbookFileInfo({
         client,
         workbookId: config.workbookId,
-        workbookSessionId: sessionId,
       }),
     ]);
   }

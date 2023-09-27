@@ -95,6 +95,35 @@ export class MicrosoftGraphService {
     }
   }
 
+  async getWorksheet(
+    client: Client,
+    workbookId: string,
+    worksheetId: string,
+    options?: {
+      select?: string[];
+      workbookSessionId?: string;
+    },
+  ) {
+    this.logger.debug(
+      `getWorksheet(): workbookId = ${workbookId} worksheetId = ${worksheetId}`,
+    );
+    const url = `/me/drive/items/${workbookId}/workbook/worksheets/${worksheetId}`;
+    if (options?.select?.length) {
+      url.concat(`?$select=${options.select.join(',')}`);
+    }
+    let api = client.api(url);
+    if (options?.workbookSessionId) {
+      api = api.header('workbook-session-id', options.workbookSessionId);
+    }
+
+    try {
+      const worksheet = await api.get();
+      return worksheet;
+    } catch (error) {
+      handleWorkbookError(error);
+    }
+  }
+
   async listWorksheets(
     client: Client,
     workbookId: string,
