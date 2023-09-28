@@ -36,6 +36,8 @@ export class GoogleSheetsDiscoverer implements DataDiscoverer {
         "Sheet doesn't exist",
       );
     }
+
+    await this.checkEmpty(sheet.title, config);
   }
 
   public async discoverProvider(
@@ -60,14 +62,38 @@ export class GoogleSheetsDiscoverer implements DataDiscoverer {
     return data as DiscoveredGoogleSheetsDataSource[];
   }
 
-  // async checkEmpty(config: GoogleSheetsProviderConfig) {
-  // const;
-  // const headerValues = (
-  // await this.googleSheetsService.getRangeValue({
-  // client: data.client,
-  // spreadsheetId: data.spreadsheetId,
-  // range: `${data.sheetName}!A1:Z1`,
-  // })
-  // )[0];
-  // }
+  async checkEmpty(sheetName: string, config: GoogleSheetsDataSourceConfig) {
+    let isEmpty = false;
+    const { auth, spreadsheetId } = config;
+    const client = await this.googleSheetsService.createSheetsClient(
+      auth.refreshToken,
+    );
+    const headerRangeValues = await this.googleSheetsService.getRangeValue({
+      client,
+      spreadsheetId,
+      range: `${sheetName}!A1:Z1`,
+    });
+    if (!headerRangeValues.length) {
+      isEmpty = true;
+    } else {
+      let headerValuesCount = 0;
+      const headerValues = headerRangeValues[0];
+      this.logger.debug(`Header values: ${headerValues}`);
+      headerValues.forEach((value) => {
+        if (value !== '') {
+          headerValuesCount++;
+        }
+      });
+      if (!headerValues.length || headerValuesCount === 0) {
+        isEmpty = true;
+      }
+    }
+
+    if (isEmpty) {
+      throw new ExternalError(
+        ERROR_CODE.SHEET_EMPTY,
+        "Sheet doesn't have any data",
+      );
+    }
+  }
 }

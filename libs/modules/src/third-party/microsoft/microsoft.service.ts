@@ -16,7 +16,11 @@ import 'isomorphic-fetch';
 import { pick } from 'lodash';
 import { DiscoveredExcelDataSource } from 'apps/configurator/src/modules/discoverer/discoverer.interface';
 import { GetFileInfoResponse } from './microsoft.interface';
-import { handleAuthApiError, handleWorkbookError } from './error-handler';
+import {
+  handleAuthApiError,
+  handleWorkbookError,
+  handleWorksheetError,
+} from './error-handler';
 import { handleDriveFileError } from '../google/error-handler';
 
 @Injectable()
@@ -171,5 +175,50 @@ export class MicrosoftGraphService {
     } catch (error) {
       handleDriveFileError(error);
     }
+  }
+
+  async getWorksheetRow(data: {
+    client: Client;
+    workbookId: string;
+    worksheetId: string;
+    row: number;
+    workbookSessionId?: string;
+    select?: string[];
+  }) {
+    const { client, workbookId, workbookSessionId, row, worksheetId, select } =
+      data;
+    this.logger.debug(
+      `getWorksheetRow(): ${JSON.stringify({
+        workbookId,
+        worksheetId,
+        row,
+      })}`,
+    );
+    try {
+      const url = `/me/drive/items/${workbookId}/workbook/worksheets/${worksheetId}/range/usedRange/row(row=${row})`;
+      if (select?.length) {
+        url.concat(`?$select=${select.join(',')}`);
+      }
+      let api = await client.api(url);
+      if (workbookSessionId) {
+        api = api.header('workbook-session-id', workbookSessionId);
+      }
+      return api.get();
+    } catch (error) {
+      handleWorksheetError(error);
+    }
+  }
+
+  async getWorksheetRowValues(data: {
+    client: Client;
+    workbookId: string;
+    worksheetId: string;
+    row: number;
+    workbookSessionId?: string;
+    select?: string[];
+  }): Promise<any[]> {
+    return this.getWorksheetRow({ ...data, select: ['values'] }).then(
+      (res) => res.values[0],
+    );
   }
 }

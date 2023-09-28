@@ -504,7 +504,7 @@ duckdb_schema="$(cat $duckdb_schema_file)"
 s3_file_path="data/$data_source_id-$sync_version.parquet"
 s3_json_file_path="data/$data_source_id-$sync_version.json"
 duckdb_convert_data_query="
-    CREATE TABLE t AS SELECT * FROM read_csv('$header_encoded_file', all_varchar=TRUE, auto_detect=TRUE);
+    CREATE TABLE t AS SELECT * FROM read_csv('$header_encoded_file', all_varchar=TRUE, auto_detect=TRUE, header=TRUE);
     LOAD httpfs;
     SET s3_region='$s3_region';
     SET s3_access_key_id='$s3_access_key';

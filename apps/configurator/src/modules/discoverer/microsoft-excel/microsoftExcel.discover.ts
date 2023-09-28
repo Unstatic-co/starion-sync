@@ -11,6 +11,7 @@ import {
   ExcelProviderConfig,
   ExternalError,
 } from '@lib/core';
+import { Client } from '@microsoft/microsoft-graph-client';
 
 @Injectable()
 export class MicrosoftExcelDiscoverer implements DataDiscoverer {
@@ -39,6 +40,7 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
         workbookSessionId: sessionId,
         select: [''],
       }),
+      // this.checkEmpty(client, sessionId, config),
       this.microsoftGraphService.listWorksheets(client, workbookId, sessionId),
     ]);
 
@@ -64,5 +66,46 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
       client,
       config.workbookId,
     );
+  }
+
+  async checkEmpty(
+    client: Client,
+    sessionId: string,
+    config: ExcelDataSourceConfig,
+  ) {
+    const { workbookId, worksheetId } = config;
+    let isEmpty = false;
+
+    const headerValues = await this.microsoftGraphService.getWorksheetRowValues(
+      {
+        client,
+        workbookId,
+        worksheetId,
+        row: 0,
+        workbookSessionId: sessionId,
+      },
+    );
+    this.logger.debug(`headerValues: ${headerValues}`);
+
+    if (!headerValues.length) {
+      isEmpty = true;
+    } else {
+      let headerValuesCount = 0;
+      headerValues.forEach((value) => {
+        if (value !== '') {
+          headerValuesCount++;
+        }
+      });
+      if (!headerValues.length || headerValuesCount === 0) {
+        isEmpty = true;
+      }
+    }
+
+    if (isEmpty) {
+      throw new ExternalError(
+        ERROR_CODE.WORKSHEET_EMPTY,
+        "Worksheet doesn't have any data",
+      );
+    }
   }
 }

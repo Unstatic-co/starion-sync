@@ -4,12 +4,22 @@ import { drive, drive_v3 as DriveV3 } from '@googleapis/drive';
 import { sheets, sheets_v4 as SheetsV4 } from '@googleapis/sheets';
 import { OAuth2Client } from 'google-auth-library';
 import { handleDriveFileError, handleSpreadSheetError } from './error-handler';
+import { GoogleService } from './google.service';
 
 @Injectable()
 export class GoogleSheetsService {
   private readonly logger = new Logger(GoogleSheetsService.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly googleService: GoogleService,
+  ) {}
+
+  async createSheetsClient(refreshToken: string) {
+    const authClient = await this.googleService.createAuthClient(refreshToken);
+    const s = sheets({ version: 'v4', auth: authClient });
+    return s;
+  }
 
   async getSpreadSheets(data: {
     client: OAuth2Client;
@@ -50,7 +60,7 @@ export class GoogleSheetsService {
         fields: 'values',
       };
       const res = await client.spreadsheets.values.get(params);
-      return res.data.values;
+      return res.data.values || [];
     } catch (error) {
       handleSpreadSheetError(error);
     }
