@@ -12,7 +12,7 @@ export class BaseError extends Error {}
 export class ExternalError extends BaseError {
   constructor(
     public readonly code: ErrorCode,
-    message: string,
+    public readonly message: string,
     public readonly data?: {
       [key: string]: any;
     },

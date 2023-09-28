@@ -15,7 +15,7 @@ import {
 import 'isomorphic-fetch';
 import { pick } from 'lodash';
 import { DiscoveredExcelDataSource } from 'apps/configurator/src/modules/discoverer/discoverer.interface';
-import { GetFileInfoResponse } from './microsoft.interface';
+import { GetFileInfoResponse, GetRangeResponse } from './microsoft.interface';
 import {
   handleAuthApiError,
   handleWorkbookError,
@@ -65,8 +65,6 @@ export class MicrosoftGraphService {
   ) {}
 
   async createClient(accessToken: string) {
-    this.logger.debug(`createGraphClient(): accessToken = ${accessToken}`);
-
     const authProvider: AuthProvider = (callback: AuthProviderCallback) => {
       callback(null, accessToken);
     };
@@ -89,12 +87,25 @@ export class MicrosoftGraphService {
         .post({
           persistChanges: persist === true,
         });
-      this.logger.debug(
-        `createWorkbookSession(): workbookSessionId = ${workbookSession.id}`,
-      );
       return workbookSession.id;
     } catch (error) {
       handleWorkbookError(error);
+    }
+  }
+
+  async closeWorkbookSession(
+    client: Client,
+    workbookId: string,
+    persist?: boolean,
+  ) {
+    this.logger.debug(`closeWorkbookSession(): workbookId = ${workbookId}`);
+    try {
+      const workbookSession = await client
+        .api(`/me/drive/items/${workbookId}/workbook/closeSession`)
+        .post({});
+      return workbookSession.id;
+    } catch (error) {
+      this.logger.debug(`closeWorkbookSession(): error`);
     }
   }
 
@@ -110,9 +121,9 @@ export class MicrosoftGraphService {
     this.logger.debug(
       `getWorksheet(): workbookId = ${workbookId} worksheetId = ${worksheetId}`,
     );
-    const url = `/me/drive/items/${workbookId}/workbook/worksheets/${worksheetId}`;
+    let url = `/me/drive/items/${workbookId}/workbook/worksheets/${worksheetId}`;
     if (options?.select?.length) {
-      url.concat(`?$select=${options.select.join(',')}`);
+      url = url.concat(`?$select=${options.select.join(',')}`);
     }
     let api = client.api(url);
     if (options?.workbookSessionId) {
@@ -133,9 +144,6 @@ export class MicrosoftGraphService {
     workbookSessionId?: string,
   ) {
     this.logger.debug(`listWorksheets(): workbookId = ${workbookId}`);
-    this.logger.debug(
-      `listWorksheets(): workbookSessionId = ${workbookSessionId}`,
-    );
     let api = client.api(`/me/drive/items/${workbookId}/workbook/worksheets`);
     if (workbookSessionId) {
       api = api.header('workbook-session-id', workbookSessionId);
@@ -144,7 +152,7 @@ export class MicrosoftGraphService {
     try {
       const worksheets = await api.get();
 
-      this.logger.debug(`listWorksheets(): worksheets = ${worksheets}`);
+      // this.logger.debug(`listWorksheets(): worksheets = ${worksheets}`);
       return worksheets.value.map((worksheet) =>
         pick(worksheet, ['id', 'name', 'position', 'visibility']),
       ) as DiscoveredExcelDataSource[];
@@ -161,9 +169,9 @@ export class MicrosoftGraphService {
   }): Promise<GetFileInfoResponse> {
     const { client, workbookId, workbookSessionId, select } = data;
     this.logger.debug(`getWorkbookFileInfo(): workbookId = ${workbookId}`);
-    const url = `/me/drive/items/${workbookId}`;
+    let url = `/me/drive/items/${workbookId}`;
     if (select?.length) {
-      url.concat(`?$select=${select.join(',')}`);
+      url = url.concat(`?$select=${select.join(',')}`);
     }
     try {
       let api = await client.api(url);
@@ -177,14 +185,14 @@ export class MicrosoftGraphService {
     }
   }
 
-  async getWorksheetRow(data: {
+  async getWorksheetUsedRangeRow(data: {
     client: Client;
     workbookId: string;
     worksheetId: string;
     row: number;
     workbookSessionId?: string;
     select?: string[];
-  }) {
+  }): Promise<GetRangeResponse> {
     const { client, workbookId, workbookSessionId, row, worksheetId, select } =
       data;
     this.logger.debug(
@@ -195,21 +203,22 @@ export class MicrosoftGraphService {
       })}`,
     );
     try {
-      const url = `/me/drive/items/${workbookId}/workbook/worksheets/${worksheetId}/range/usedRange/row(row=${row})`;
+      let url = `/me/drive/items/${workbookId}/workbook/worksheets/${worksheetId}/range/usedRange/row(row=${row})`;
       if (select?.length) {
-        url.concat(`?$select=${select.join(',')}`);
+        url = url.concat(`?$select=${select.join(',')}`);
       }
       let api = await client.api(url);
       if (workbookSessionId) {
         api = api.header('workbook-session-id', workbookSessionId);
       }
-      return api.get();
+      const res = await api.get();
+      return res;
     } catch (error) {
       handleWorksheetError(error);
     }
   }
 
-  async getWorksheetRowValues(data: {
+  async getWorksheetUsedRangeRowValues(data: {
     client: Client;
     workbookId: string;
     worksheetId: string;
@@ -217,8 +226,32 @@ export class MicrosoftGraphService {
     workbookSessionId?: string;
     select?: string[];
   }): Promise<any[]> {
-    return this.getWorksheetRow({ ...data, select: ['values'] }).then(
+    return this.getWorksheetUsedRangeRow({ ...data, select: ['values'] }).then(
       (res) => res.values[0],
     );
+  }
+
+  async getWorksheetUsedRange(data: {
+    client: Client;
+    workbookId: string;
+    worksheetId: string;
+    workbookSessionId?: string;
+    select?: string[];
+  }) {
+    const { client, workbookId, workbookSessionId, worksheetId, select } = data;
+    try {
+      let url = `/me/drive/items/${workbookId}/workbook/worksheets/${worksheetId}/range/usedRange`;
+      if (select?.length) {
+        url = url.concat(`?$select=${select.join(',')}`);
+      }
+      let api = await client.api(url);
+      if (workbookSessionId) {
+        api = api.header('workbook-session-id', workbookSessionId);
+      }
+      const res = await api.get();
+      return res;
+    } catch (error) {
+      handleWorksheetError(error);
+    }
   }
 }

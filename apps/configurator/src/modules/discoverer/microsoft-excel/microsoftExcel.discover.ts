@@ -12,6 +12,7 @@ import {
   ExternalError,
 } from '@lib/core';
 import { Client } from '@microsoft/microsoft-graph-client';
+import { Utils } from 'apps/configurator/src/common/utils';
 
 @Injectable()
 export class MicrosoftExcelDiscoverer implements DataDiscoverer {
@@ -33,26 +34,29 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
       workbookId,
       false,
     );
-    const [, worksheets] = await Promise.all([
+    const [worksheets] = await Promise.all([
       this.microsoftGraphService.getWorkbookFileInfo({
         client,
         workbookId: config.workbookId,
         workbookSessionId: sessionId,
         select: [''],
       }),
-      // this.checkEmpty(client, sessionId, config),
-      this.microsoftGraphService.listWorksheets(client, workbookId, sessionId),
+      this.microsoftGraphService
+        .listWorksheets(client, workbookId, sessionId)
+        .then((worksheets) => {
+          const worksheet = worksheets.find(
+            (discoveredWorksheet) => discoveredWorksheet.id === worksheetId,
+          );
+          if (!worksheet) {
+            throw new ExternalError(
+              ERROR_CODE.WORKSHEET_NOT_FOUND,
+              "Worksheet doesn't exist",
+            );
+          }
+        }),
     ]);
-
-    const worksheet = worksheets.find(
-      (discoveredWorksheet) => discoveredWorksheet.id === worksheetId,
-    );
-    if (!worksheet) {
-      throw new ExternalError(
-        ERROR_CODE.WORKSHEET_NOT_FOUND,
-        "Worksheet doesn't exist",
-      );
-    }
+    await this.checkEmpty(client, sessionId, config);
+    this.microsoftGraphService.closeWorkbookSession(client, workbookId);
   }
 
   public async discoverProvider(
@@ -76,28 +80,41 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
     const { workbookId, worksheetId } = config;
     let isEmpty = false;
 
-    const headerValues = await this.microsoftGraphService.getWorksheetRowValues(
-      {
-        client,
-        workbookId,
-        worksheetId,
-        row: 0,
-        workbookSessionId: sessionId,
-      },
-    );
-    this.logger.debug(`headerValues: ${headerValues}`);
-
-    if (!headerValues.length) {
-      isEmpty = true;
-    } else {
-      let headerValuesCount = 0;
-      headerValues.forEach((value) => {
-        if (value !== '') {
-          headerValuesCount++;
-        }
-      });
-      if (!headerValues.length || headerValuesCount === 0) {
+    try {
+      const firstRowOfSheet =
+        await this.microsoftGraphService.getWorksheetUsedRangeRow({
+          client,
+          workbookId,
+          worksheetId,
+          row: 0,
+          workbookSessionId: sessionId,
+          select: ['address', 'values'],
+        });
+      const firstRowNumber = Utils.getFirstRowFromA1Notation(
+        firstRowOfSheet.address,
+      );
+      if (firstRowNumber !== 1) {
         isEmpty = true;
+      } else {
+        const headerValues = firstRowOfSheet.values[0];
+        let headerValuesCount = 0;
+        headerValues.forEach((value) => {
+          if (value !== '') {
+            headerValuesCount++;
+          }
+        });
+        if (!headerValues.length || headerValuesCount === 0) {
+          isEmpty = true;
+        }
+      }
+    } catch (error) {
+      if (
+        error instanceof ExternalError &&
+        error.code === ERROR_CODE.WORKSHEET_RANGE_NOT_FOUND
+      ) {
+        isEmpty = true;
+      } else {
+        throw error;
       }
     }
 

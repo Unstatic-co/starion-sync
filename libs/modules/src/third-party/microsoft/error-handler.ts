@@ -41,8 +41,8 @@ export function handleWorksheetError(error: GraphError) {
       );
     case 404:
       throw new ExternalError(
-        ERROR_CODE.WORKSHEET_NOT_FOUND,
-        'Worksheet not found',
+        ERROR_CODE.WORKSHEET_RANGE_NOT_FOUND,
+        'Worksheet range not found',
       );
     default:
       throw error;

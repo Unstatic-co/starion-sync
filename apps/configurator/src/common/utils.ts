@@ -265,4 +265,20 @@ export class Utils {
   ): Promise<boolean> => {
     return await bcrypt.compare(password, hash);
   };
+
+  public static getFirstRowFromA1Notation(a1Notation: string): number {
+    // Split the input string into sheet name and range
+    const [, range] = a1Notation.split('!');
+
+    // Regular expression to extract row number from range
+    const regex = /(\d+)/;
+
+    const match = range.match(regex);
+
+    if (!match || match.length !== 2) {
+      throw new Error('Invalid A1 notation range format');
+    }
+
+    return parseInt(match[1], 10);
+  }
 }
