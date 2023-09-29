@@ -8,9 +8,10 @@ import {
 } from '@lib/core';
 import { DataSourceActivities } from '../modules/activities/dataSource.activities';
 
-const { deleteDataSource } = proxyActivities<DataSourceActivities>({
-  startToCloseTimeout: '10 second',
-});
+const { deleteDataSource, terminateDataSourceWorkflows } =
+  proxyActivities<DataSourceActivities>({
+    startToCloseTimeout: '10 second',
+  });
 
 const { emitEvent } = proxyActivities<BrokerActivities>({
   startToCloseTimeout: '10 second',
@@ -18,6 +19,9 @@ const { emitEvent } = proxyActivities<BrokerActivities>({
 
 export async function deleteDataSourceWf(id: SyncConnectionId) {
   const result = await deleteDataSource(id);
+
+  await terminateDataSourceWorkflows(id);
+
   if (result.isAlreadyDeleted === false) {
     const payload: DataSourceDeletedPayload = {
       dataSourceId: id,

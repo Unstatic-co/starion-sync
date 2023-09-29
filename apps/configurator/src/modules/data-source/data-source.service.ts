@@ -29,6 +29,7 @@ import { ProviderConfigDto } from '../data-provider/dto/createProvider.dto';
 import { CreationResult } from '../../common/type';
 import { DeleteResult } from '../../common/type/deleteResult';
 import { DataDiscovererService } from '../discoverer/discoverer.service';
+import { WorkflowService } from '../workflow/workflow.service';
 
 export type DeleteDataSourceResult = {
   dataSource: DataSource;
@@ -51,6 +52,7 @@ export class DataSourceService {
     @Inject(InjectTokens.DESTINATION_DATABASE_SERVICE)
     private readonly destinationDatabaseService: IDestinationDatabaseService,
     private readonly discovererService: DataDiscovererService,
+    private readonly workflowService: WorkflowService,
   ) {}
   /**
    * Hello world
@@ -167,10 +169,19 @@ export class DataSourceService {
     const data = (await this.dataSourceRepository.delete(id, {
       old: true,
     })) as DeleteDataSourceResult;
+
     return {
       isAlreadyDeleted,
       data,
     };
+  }
+
+  async terminateDataSourceWorkflows(id: DataSourceId) {
+    const query = `DataSourceId = '${id}' AND (ExecutionStatus = 'Running' OR ExecutionStatus = 'TimedOut' OR ExecutionStatus = 'ContinuedAsNew')`;
+    return this.workflowService.terminateWorkflowsByQuery(
+      query,
+      'Data source deleted',
+    );
   }
 
   public getOrGenerateDataSourceExternalId(

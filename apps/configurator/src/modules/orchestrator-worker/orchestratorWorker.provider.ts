@@ -32,6 +32,10 @@ export const OrchestratorWorkerProvider = {
       emitEvent: brokerActivities.emitEvent.bind(brokerActivities),
       deleteDataSource:
         dataSourceActivities.deleteDataSource.bind(dataSourceActivities),
+      terminateDataSourceWorkflows:
+        dataSourceActivities.terminateDataSourceWorkflows.bind(
+          dataSourceActivities,
+        ),
       createSyncConnection: syncConnectionActivities.createSyncConnection.bind(
         syncConnectionActivities,
       ),

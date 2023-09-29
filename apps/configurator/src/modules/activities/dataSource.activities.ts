@@ -9,4 +9,8 @@ export class DataSourceActivities {
   async deleteDataSource(id: DataSourceId) {
     return this.dataSourceService.delete(id);
   }
+
+  async terminateDataSourceWorkflows(id: DataSourceId) {
+    await this.dataSourceService.terminateDataSourceWorkflows(id);
+  }
 }
