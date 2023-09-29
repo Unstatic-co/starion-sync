@@ -1,10 +1,12 @@
 import {
+  DataSourceErrorPayload,
+  ErrorType,
   EventNames,
   SyncflowScheduledPayload,
   SyncflowSucceedPayload,
   WorkflowStatus,
 } from '@lib/core';
-import { workflowWrapper } from '../wrapper';
+import { getActivityErrorDetail, workflowWrapper } from '../wrapper';
 import { WorkflowActivities } from '../../activities/workflow.activities';
 import { proxyActivities } from '@temporalio/workflow';
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
@@ -82,8 +84,22 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
         status: WorkflowStatus.IDLING,
       });
     } catch (error) {
-      await updateSyncflowStatus(data.syncflow.id, WorkflowStatus.IDLING);
-      throw error;
+      // await updateSyncflowStatus(data.syncflow.id, WorkflowStatus.IDLING);
+
+      const errorDetail = getActivityErrorDetail(error);
+      // detect processor external error
+      if (errorDetail.errorData?.type === ErrorType.EXTERNAL) {
+        await emitEvent(EventNames.DATA_SOURCE_ERROR, {
+          payload: {
+            dataSourceId: data.syncflow.sourceId,
+            code: errorDetail.errorData.code,
+            message: errorDetail.errorData.message,
+          } as DataSourceErrorPayload,
+        });
+        throw error;
+      } else {
+        throw error;
+      }
     }
   });
 }

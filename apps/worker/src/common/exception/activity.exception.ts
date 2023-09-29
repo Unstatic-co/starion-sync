@@ -9,6 +9,8 @@ const defaultAcceptableActivityErrorData: AcceptableActivityErrorData = {};
 export interface UnacceptableActivityErrorData extends AcitivityErrorData {
   shouldActivityRetry?: boolean;
   shouldWorkflowFail?: boolean;
+
+  errorData?: any;
 }
 const defaultUnacceptableActivityErrorData: UnacceptableActivityErrorData = {
   shouldActivityRetry: false,
@@ -23,6 +25,10 @@ export class ActivityError extends Error {
     this.data = data;
   }
 }
+export type UnacceptableActivityErrorDetail = {
+  shouldWorkflowFail: boolean;
+  errorData: any;
+};
 export class UnacceptableActivityError extends ActivityError {
   data?: UnacceptableActivityErrorData;
   constructor(message, data?: UnacceptableActivityErrorData) {

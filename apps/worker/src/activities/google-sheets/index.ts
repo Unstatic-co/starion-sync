@@ -3,11 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { UnacceptableActivityError } from '../../common/exception';
-import {
-  GoogleSheetsDataSourceAuthConfig,
-  GoogleSheetsDataSourceConfig,
-  Syncflow,
-} from '@lib/core';
+import { GoogleSheetsDataSourceConfig, Syncflow } from '@lib/core';
 import { IDataSourceRepository, InjectTokens } from '@lib/modules';
 import { GoogleService } from '@lib/modules/third-party';
 

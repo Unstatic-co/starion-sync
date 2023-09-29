@@ -23,6 +23,14 @@ export class ExternalError extends BaseError {
   public setData(key: string, value: any) {
     this.data[key] = value;
   }
+
+  public toJSON() {
+    return {
+      code: this.code,
+      message: this.message,
+      data: this.data,
+    };
+  }
 }
 
 export class InternalError extends BaseError {
