@@ -519,7 +519,7 @@ services:
     restart: on-failure
     depends_on:
       - postgresql
-    image: temporalio/auto-setup:1.20.3.2
+    image: temporalio/auto-setup:1.22.0
     expose:
       - 7233
     ports:
@@ -539,7 +539,7 @@ services:
     restart: 'no'
     depends_on:
       - temporal
-    image: temporalio/admin-tools:1.20.3.2
+    image: temporalio/admin-tools:1.22.0
     stdin_open: true
     tty: true
     entrypoint: bash

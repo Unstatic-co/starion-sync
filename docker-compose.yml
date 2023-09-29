@@ -470,7 +470,7 @@ services:
   temporal:
     depends_on:
       - postgresql
-    image: temporalio/auto-setup:1.20.3.2
+    image: temporalio/auto-setup:1.22.0
     expose:
       - 7233
     ports:
@@ -480,7 +480,7 @@ services:
     volumes:
       - ./init/temporal-config.yml:/etc/temporal/config/dynamicconfig/development-sql.yaml
     environment:
-      - DB=postgresql
+      - DB=postgres12
       - DB_PORT=5432
       - POSTGRES_USER=admin
       - POSTGRES_PWD=abc123456
@@ -491,7 +491,7 @@ services:
       - temporal
     ports:
       - 3001:8080
-    image: temporalio/ui:2.15.0
+    image: temporalio/ui:2.17.1
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CORS_ORIGINS=http://localhost:3001
@@ -499,7 +499,7 @@ services:
     restart: 'no'
     depends_on:
       - temporal
-    image: temporalio/admin-tools:1.20.3.2
+    image: temporalio/admin-tools:1.22.0
     stdin_open: true
     tty: true
     entrypoint: bash
