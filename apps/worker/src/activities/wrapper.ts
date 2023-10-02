@@ -82,11 +82,7 @@ export async function processorApiWrapper<T>(fn: () => Promise<T>): Promise<T> {
   } catch (err) {
     if (err.response?.data?.type === 'external') {
       const errDetail = err.response.data as ProcessorApiErrorResponse;
-      throw new ExternalError(
-        errDetail.code,
-        errDetail.message,
-        errDetail.data,
-      );
+      throw new ExternalError(errDetail.code, errDetail.msg, errDetail.data);
     } else {
       throw err;
     }

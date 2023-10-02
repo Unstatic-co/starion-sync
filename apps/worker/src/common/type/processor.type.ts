@@ -3,7 +3,7 @@ import { ErrorType } from '@lib/core';
 export type ProcessorApiErrorResponse = {
   type?: ErrorType;
   code: number;
-  message: string;
+  msg: string;
   data?: any;
 };
 
