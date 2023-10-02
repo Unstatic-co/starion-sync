@@ -3,13 +3,14 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { UnacceptableActivityError } from '../../common/exception';
-import {
-  ExcelDataSourceAuthConfig,
-  ExcelDataSourceConfig,
-  Syncflow,
-} from '@lib/core';
+import { ExcelDataSourceConfig, Syncflow } from '@lib/core';
 import { IDataSourceRepository, InjectTokens } from '@lib/modules';
 import { MicrosoftService } from '@lib/modules/third-party';
+import {
+  activityWrapper,
+  processorApiWrapper,
+  processorWrapper,
+} from '../wrapper';
 
 @Injectable()
 export class MicrosoftExcelActivities {
@@ -54,37 +55,34 @@ export class MicrosoftExcelActivities {
     timezone: string;
     refreshToken: string;
   }) {
-    this.logger.debug(`Downloading for ds: ${data.dataSourceId}`);
-    try {
-      const accessToken = await this.microsoftService.getAccessToken(
-        data.refreshToken,
-      );
-      delete data['refreshToken'];
-      const downloaderUrl = this.configService.get(
-        `${ConfigName.PROCESSOR}.downloaderUrl`,
-      );
-      await axios.post(
-        `${downloaderUrl}/api/v1/excel/download`,
-        {
-          ...data,
-          accessToken,
-        },
-        {
-          headers: {
-            'X-API-Key': this.configService.get(
-              `${ConfigName.PROCESSOR}.apiKey`,
-            ),
-          },
-        },
-      );
-    } catch (err) {
-      throw new UnacceptableActivityError(
-        `Error when executing downloader: ${err.message}`,
-        {
-          shouldActivityRetry: true,
-        },
-      );
-    }
+    await activityWrapper(async () => {
+      this.logger.debug(`Downloading for ds: ${data.dataSourceId}`);
+      return processorWrapper('downloader', async () => {
+        const accessToken = await this.microsoftService.getAccessToken(
+          data.refreshToken,
+        );
+        delete data['refreshToken'];
+        const downloaderUrl = this.configService.get(
+          `${ConfigName.PROCESSOR}.downloaderUrl`,
+        );
+        return processorApiWrapper(async () =>
+          axios.post(
+            `${downloaderUrl}/api/v1/excel/download`,
+            {
+              ...data,
+              accessToken,
+            },
+            {
+              headers: {
+                'X-API-Key': this.configService.get(
+                  `${ConfigName.PROCESSOR}.apiKey`,
+                ),
+              },
+            },
+          ),
+        );
+      });
+    });
   }
 
   async compareExcel(data: {
@@ -92,24 +90,23 @@ export class MicrosoftExcelActivities {
     syncVersion: number;
     prevVersion: number;
   }) {
-    this.logger.debug(`Comparing for ds: ${data.dataSourceId}`);
-    try {
-      const comparerUrl = this.configService.get(
-        `${ConfigName.PROCESSOR}.comparerUrl`,
-      );
-      await axios.post(`${comparerUrl}/api/v1/excel/compare`, data, {
-        headers: {
-          'X-API-Key': this.configService.get(`${ConfigName.PROCESSOR}.apiKey`),
-        },
+    await activityWrapper(async () => {
+      this.logger.debug(`Comparing for ds: ${data.dataSourceId}`);
+      return processorWrapper('comparer', async () => {
+        const comparerUrl = this.configService.get(
+          `${ConfigName.PROCESSOR}.comparerUrl`,
+        );
+        return processorApiWrapper(async () =>
+          axios.post(`${comparerUrl}/api/v1/excel/compare`, data, {
+            headers: {
+              'X-API-Key': this.configService.get(
+                `${ConfigName.PROCESSOR}.apiKey`,
+              ),
+            },
+          }),
+        );
       });
-    } catch (err) {
-      throw new UnacceptableActivityError(
-        `Error when executing comparer: ${err.message}`,
-        {
-          shouldActivityRetry: true,
-        },
-      );
-    }
+    });
   }
 
   async loadExcel(data: {
@@ -118,28 +115,27 @@ export class MicrosoftExcelActivities {
     prevVersion: number;
     tableName?: string;
   }) {
-    this.logger.debug(`Loading for ds: ${data.dataSourceId}`);
-    try {
-      const loaderUrl = this.configService.get(
-        `${ConfigName.PROCESSOR}.loaderUrl`,
-      );
-      const res = await axios.post(`${loaderUrl}/api/v1/excel/load`, data, {
-        headers: {
-          'X-API-Key': this.configService.get(`${ConfigName.PROCESSOR}.apiKey`),
-        },
+    return await activityWrapper(async () => {
+      this.logger.debug(`Loading for ds: ${data.dataSourceId}`);
+      return processorWrapper('loader', async () => {
+        const loaderUrl = this.configService.get(
+          `${ConfigName.PROCESSOR}.loaderUrl`,
+        );
+        return processorApiWrapper(async () => {
+          const res = await axios.post(`${loaderUrl}/api/v1/excel/load`, data, {
+            headers: {
+              'X-API-Key': this.configService.get(
+                `${ConfigName.PROCESSOR}.apiKey`,
+              ),
+            },
+          });
+          return res.data.data as {
+            addedRowsCount: number;
+            deletedRowsCount: number;
+            isSchemaChanged: boolean;
+          };
+        });
       });
-      return res.data.data as {
-        addedRowsCount: number;
-        deletedRowsCount: number;
-        isSchemaChanged: boolean;
-      };
-    } catch (err) {
-      throw new UnacceptableActivityError(
-        `Error when executing loader: ${err.message}`,
-        {
-          shouldActivityRetry: true,
-        },
-      );
-    }
+    });
   }
 }

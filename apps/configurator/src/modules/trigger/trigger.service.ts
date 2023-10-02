@@ -57,6 +57,7 @@ export class TriggerService {
     }
     switch (trigger.type) {
       case TriggerType.CRON:
+      case TriggerType.EVENT_WEBHOOK:
         this.logger.debug(`trigger workflow ${trigger.workflow.id}`);
         await this.brokerService.emitEvent(EventNames.WORKFLOW_TRIGGERED, {
           payload: trigger,
