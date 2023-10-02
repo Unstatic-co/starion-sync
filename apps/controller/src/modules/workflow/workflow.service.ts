@@ -101,7 +101,7 @@ export class WorkflowService {
     );
     await Promise.all([
       this.dataSourceService.checkLimitation(dataSource),
-      // syncflowController.run(syncflow, dataSource),
+      syncflowController.run(syncflow, dataSource),
     ]);
 
     const triggeredSyncflow = await this.syncflowRepository.updateState(

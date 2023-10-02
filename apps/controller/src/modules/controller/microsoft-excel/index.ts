@@ -39,9 +39,9 @@ export class MicrosoftExcelSyncflowController implements SyncflowController {
     if (
       ctag === (syncflow.state.cursor as MicrosoftExcelFullSyncCursor)?.ctag
     ) {
-      this.logger.debug(
-        `Syncflow ${syncflow.id} with ds not changed, skipping`,
-      );
+      // this.logger.debug(
+      // `Syncflow ${syncflow.id} with ds not changed, skipping`,
+      // );
       throw new UnacceptableActivityError(
         `Syncflow ${syncflow.id} with ds not changed, skipping`,
         { shouldWorkflowFail: false },
