@@ -139,17 +139,32 @@ func setupPostgresDbLoader() error {
 	return nil
 }
 
-// UTILS
+// * UTILS ***
 func formatVariableToPostgresStatementValue(a interface{}) string {
 	switch v := a.(type) {
 	case string:
-		return fmt.Sprintf("\"%v\"", v)
+		r := strings.NewReplacer("'", "''", "\"", "\\\"")
+		return fmt.Sprintf("\"%s\"", r.Replace(v))
 	case nil:
 		return "null"
 	default:
 		return fmt.Sprintf("%v", v)
 	}
 }
+func escapeSingleQuote(a string) string {
+	r := strings.NewReplacer("'", "''")
+	return r.Replace(a)
+}
+func formatEnumToPostgresStatementValue(enum []interface{}) (string, error) {
+	marshalled, err := jsoniter.MarshalToString(enum)
+	if err != nil {
+		log.Error("Error when marshaling enum: ", err)
+		return "", err
+	}
+	return escapeSingleQuote(marshalled), nil
+}
+
+// ***********
 
 type PostgreLoader struct {
 	DatasourceId string
@@ -317,9 +332,8 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
 	}
 	defer stmt.Close()
 	for fieldId, field := range data.Schema {
-		enum, err := jsoniter.MarshalToString(field.Enum)
+		enum, err := formatEnumToPostgresStatementValue(field.Enum)
 		if err != nil {
-			log.Error("Error when marshaling enum: ", err)
 			return err
 		}
 		_, err = stmt.Exec(fieldId, schemaId, field.Name, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary)
@@ -415,9 +429,8 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 		}
 		defer stmt.Close()
 		for fieldId, field := range data.SchemaChanges.AddedFields {
-			enum, err := jsoniter.MarshalToString(field.Enum)
+			enum, err := formatEnumToPostgresStatementValue(field.Enum)
 			if err != nil {
-				log.Error("Error when marshaling enum: ", err)
 				return err
 			}
 			_, err = stmt.Exec(fieldId, schemaId, field.Name, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary)
@@ -441,9 +454,8 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 		log.Info("Updating fields")
 
 		for fieldId, field := range data.SchemaChanges.UpdatedFields {
-			enum, err := jsoniter.MarshalToString(field.Enum)
+			enum, err := formatEnumToPostgresStatementValue(field.Enum)
 			if err != nil {
-				log.Error("Error when marshaling enum: ", err)
 				return err
 			}
 			query := fmt.Sprintf(
