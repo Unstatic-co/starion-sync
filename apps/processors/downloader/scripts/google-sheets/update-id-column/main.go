@@ -14,6 +14,8 @@ import (
 	"google.golang.org/api/sheets/v4"
 )
 
+const MAX_BATCH_SIZE = 40000
+
 type UpdateIdData map[int][]string // map[firstRowNumber][]id
 
 // UTILS
@@ -83,7 +85,7 @@ func generateUpdateIdData(idsFile string, includeHeader bool) UpdateIdData {
 		rowNumber := record[1]
 
 		rowNumberInt, _ := strconv.Atoi(rowNumber)
-		if prevRowNumber+1 == rowNumberInt {
+		if prevRowNumber+1 == rowNumberInt && len(batchData) < MAX_BATCH_SIZE {
 			// continue batch
 			batchData = append(batchData, id)
 		} else {
