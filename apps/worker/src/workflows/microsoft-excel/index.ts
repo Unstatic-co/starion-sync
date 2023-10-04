@@ -6,11 +6,11 @@ import {
   SyncflowSucceedPayload,
   WorkflowStatus,
 } from '@lib/core';
-import { getActivityErrorDetail, workflowWrapper } from '../wrapper';
 import { WorkflowActivities } from '../../activities/workflow.activities';
 import { proxyActivities } from '@temporalio/workflow';
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import { MicrosoftExcelActivities } from '../../activities';
+import { getActivityErrorDetail, workflowWrapper } from '../wrapper';
 
 const {
   checkAndUpdateStatusBeforeStartSyncflow,

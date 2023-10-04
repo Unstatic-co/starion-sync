@@ -18,6 +18,7 @@ import { DiscoveredExcelDataSource } from 'apps/configurator/src/modules/discove
 import { GetFileInfoResponse, GetRangeResponse } from './microsoft.interface';
 import {
   handleAuthApiError,
+  handleFileError,
   handleWorkbookError,
   handleWorksheetError,
 } from './error-handler';
@@ -134,7 +135,7 @@ export class MicrosoftGraphService {
       const worksheet = await api.get();
       return worksheet;
     } catch (error) {
-      handleWorkbookError(error);
+      handleWorksheetError(error);
     }
   }
 
@@ -157,7 +158,7 @@ export class MicrosoftGraphService {
         pick(worksheet, ['id', 'name', 'position', 'visibility']),
       ) as DiscoveredExcelDataSource[];
     } catch (error) {
-      handleWorkbookError(error);
+      handleWorksheetError(error);
     }
   }
 
@@ -181,7 +182,7 @@ export class MicrosoftGraphService {
       const fileInfo = await api.get();
       return fileInfo;
     } catch (error) {
-      handleDriveFileError(error);
+      handleFileError(error);
     }
   }
 

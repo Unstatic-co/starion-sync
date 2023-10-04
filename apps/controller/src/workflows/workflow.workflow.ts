@@ -1,7 +1,7 @@
 import {
   DataSourceErrorPayload,
+  ErrorType,
   EventNames,
-  ExternalError,
   Syncflow,
   SyncflowScheduledPayload,
   WorkflowTriggeredPayload,
@@ -10,7 +10,7 @@ import {
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import { proxyActivities, proxyLocalActivities } from '@temporalio/workflow';
 import { WorkflowActivities } from '../modules/activities/workflow.activities';
-import { workflowWrapper } from './wrapper';
+import { getActivityErrorDetail, workflowWrapper } from './wrapper';
 
 const { emitEvent } = proxyLocalActivities<BrokerActivities>({
   startToCloseTimeout: '10 second',
@@ -37,14 +37,17 @@ export async function handleWorkflowTriggeredWf(
         });
       }
     } catch (error) {
-      if (error instanceof ExternalError) {
+      const errorDetail = getActivityErrorDetail(error);
+      // detect processor external error
+      if (errorDetail.errorData?.type === ErrorType.EXTERNAL) {
         await emitEvent(EventNames.DATA_SOURCE_ERROR, {
           payload: {
-            dataSourceId: data.trigger.dataSourceId,
-            code: error.code,
-            message: error.message,
+            dataSourceId: data.sourceId,
+            code: errorDetail.errorData.code,
+            message: errorDetail.errorData.message,
           } as DataSourceErrorPayload,
         });
+        throw error;
       } else {
         throw error;
       }

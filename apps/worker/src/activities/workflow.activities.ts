@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { WorkflowService } from '../modules/workflow/workflow.service';
-import { activityWrapper } from './wrapper';
 import { SyncflowState } from '@lib/core';
+import { activityWrapper } from './wrapper';
 
 @Injectable()
 export class WorkflowActivities {

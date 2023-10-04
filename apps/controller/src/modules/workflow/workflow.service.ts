@@ -1,6 +1,12 @@
-import { Trigger, WorkflowStatus, WorkflowType } from '@lib/core';
+import {
+  SyncConnectionStatus,
+  Trigger,
+  WorkflowStatus,
+  WorkflowType,
+} from '@lib/core';
 import {
   IDataSourceRepository,
+  ISyncConnectionRepository,
   ISyncflowRepository,
   ITriggerRepository,
   InjectTokens,
@@ -24,6 +30,8 @@ export class WorkflowService {
     private readonly syncflowRepository: ISyncflowRepository,
     @Inject(InjectTokens.DATA_SOURCE_REPOSITORY)
     private readonly dataSourceRepository: IDataSourceRepository,
+    @Inject(InjectTokens.SYNC_CONNECTION_REPOSITORY)
+    private readonly syncConnectionRepository: ISyncConnectionRepository,
     private readonly dataSourceService: DataSourceService,
     private readonly syncflowControllerFactory: SyncflowControllerFactory,
   ) {}
@@ -69,9 +77,10 @@ export class WorkflowService {
 
   async handleSyncflowTriggered(trigger: Trigger) {
     this.logger.debug('handleWorkflowTriggered', trigger);
-    const [syncflow, dataSource] = await Promise.all([
+    const [syncflow, dataSource, syncConnection] = await Promise.all([
       this.syncflowRepository.getById(trigger.workflow.id),
       this.dataSourceRepository.getById(trigger.sourceId),
+      this.syncConnectionRepository.getByDataSourceId(trigger.sourceId),
     ]);
     if (!dataSource) {
       this.logger.warn(`DataSource not found: ${syncflow.sourceId}`);
@@ -80,10 +89,24 @@ export class WorkflowService {
         { shouldWorkflowFail: false },
       );
     }
+    if (!syncConnection) {
+      this.logger.warn(`SyncConnection not found: ${trigger.sourceId}`);
+      throw new UnacceptableActivityError(
+        `SyncConnection not found: ${trigger.sourceId}`,
+        { shouldWorkflowFail: false },
+      );
+    }
     if (!syncflow) {
       this.logger.warn(`Syncflow not found: ${trigger.workflow.id}`);
       throw new UnacceptableActivityError(
         `Syncflow not found: ${trigger.workflow.id}`,
+        { shouldWorkflowFail: false },
+      );
+    }
+
+    if (syncConnection.state.status !== SyncConnectionStatus.ACTIVE) {
+      throw new UnacceptableActivityError(
+        `Sync connection is not active: ${syncConnection.id}`,
         { shouldWorkflowFail: false },
       );
     }

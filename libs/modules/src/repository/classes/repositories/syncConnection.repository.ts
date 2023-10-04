@@ -3,7 +3,9 @@ import {
   ProviderId,
   SyncConnection,
   SyncConnectionConfig,
+  SyncConnectionHealthStatus,
   SyncConnectionId,
+  SyncConnectionStatus,
   SyncflowAttributes,
   SyncflowConfig,
   SyncflowName,
@@ -30,6 +32,10 @@ export interface ISyncConnectionRepository extends IRepository {
     data: UpdateSyncConnectionData,
     options?: QueryOptions,
   ): Promise<SyncConnection | void>;
+  updateState(
+    data: UpdateSyncConnectionStateData,
+    options?: QueryOptions,
+  ): Promise<SyncConnection | void>;
   delete(
     id: SyncConnectionId,
     options?: QueryOptions,
@@ -52,4 +58,10 @@ export type CreateSyncConnectionData = {
 
 export type UpdateSyncConnectionData = {
   id: ProviderId;
+};
+
+export type UpdateSyncConnectionStateData = {
+  id: SyncConnectionId;
+  status?: SyncConnectionStatus;
+  healthStatus?: SyncConnectionHealthStatus;
 };
