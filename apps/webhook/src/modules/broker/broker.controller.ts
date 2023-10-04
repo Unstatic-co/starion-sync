@@ -4,6 +4,7 @@ import { BrokerService } from './broker.service';
 import {
   ConnectionCreatedPayload,
   DataSourceDeletedPayload,
+  DataSourceErrorPayload,
   EventNames,
   SyncflowScheduledPayload,
 } from '@lib/core';
@@ -16,6 +17,24 @@ export class BrokerController {
     private readonly brokerService: BrokerService,
     private readonly webhookService: WebhookService,
   ) {}
+
+  @EventPattern(EventNames.DATA_SOURCE_DELETED)
+  async dataSourceDeleted(data: DataSourceDeletedPayload) {
+    this.logger.log(`data source ${data.dataSourceId} deleted`);
+    return this.webhookService.addWebhookExecution(
+      EventNames.DATA_SOURCE_DELETED,
+      data,
+    );
+  }
+
+  @EventPattern(EventNames.DATA_SOURCE_ERROR)
+  async dataSourceError(data: DataSourceErrorPayload) {
+    this.logger.log(`data source ${data.dataSourceId} error`);
+    return this.webhookService.addWebhookExecution(
+      EventNames.DATA_SOURCE_ERROR,
+      data,
+    );
+  }
 
   @EventPattern(EventNames.CONNECTION_CREATED)
   async connectionCreated(data: ConnectionCreatedPayload) {
@@ -40,15 +59,6 @@ export class BrokerController {
     this.logger.log(`syncflow ${data.syncflowId} succeed`);
     return this.webhookService.addWebhookExecution(
       EventNames.SYNCFLOW_SUCCEED,
-      data,
-    );
-  }
-
-  @EventPattern(EventNames.DATA_SOURCE_DELETED)
-  async dataSourceDeleted(data: DataSourceDeletedPayload) {
-    this.logger.log(`data source ${data.dataSourceId} deleted`);
-    return this.webhookService.addWebhookExecution(
-      EventNames.DATA_SOURCE_DELETED,
       data,
     );
   }

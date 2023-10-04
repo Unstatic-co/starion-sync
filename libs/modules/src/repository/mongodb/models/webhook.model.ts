@@ -55,6 +55,8 @@ export class WebhookModel extends Webhook {
 
 export const WebhookSchema = SchemaFactory.createForClass(WebhookModel);
 
+WebhookSchema.index({ dataSourceId: 1 }, { background: true });
+
 WebhookSchema.virtual('id').get(function () {
     return this._id.toHexString(); // eslint-disable-line
 });

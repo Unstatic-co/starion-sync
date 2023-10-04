@@ -1,4 +1,3 @@
-import { EventName } from '@lib/core/events';
 import { DataSourceId } from '../data-source';
 
 export type WebhookId = string;
@@ -9,8 +8,9 @@ export enum WebhookStatus {
 }
 
 export enum WebhookType {
-  SYNC_CONNECTION_CREATED = 'sync-connection-created',
   DATA_SOURCE_DELETED = 'data-source-deleted',
+  DATA_SOURCE_ERROR = 'data-source-error',
+  SYNC_CONNECTION_CREATED = 'sync-connection-created',
   SYNCFLOW_SCHEDULED = 'syncflow-scheduled',
   SYNCFLOW_SUCCEED = 'syncflow-succeed',
   SYNCFLOW_COMPLETED = 'syncflow-completed',

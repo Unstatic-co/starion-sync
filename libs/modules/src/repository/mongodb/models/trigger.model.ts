@@ -62,6 +62,8 @@ export class TriggerModel extends Trigger {
 
 export const TriggerSchema = SchemaFactory.createForClass(TriggerModel);
 
+TriggerSchema.index({ sourceId: 1 }, { background: true });
+
 TriggerSchema.virtual('id').get(function () {
     return this._id.toHexString(); // eslint-disable-line
 });

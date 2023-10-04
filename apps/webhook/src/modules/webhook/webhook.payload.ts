@@ -40,3 +40,9 @@ export interface DataSourceDeletedWebhookPayload extends WebhookPayload {
   syncConnectionId?: SyncflowId;
   dataSourceId: DataSourceId;
 }
+
+export interface DataSourceErrorWebhookPayload extends WebhookPayload {
+  dataSourceId: DataSourceId;
+  code: number;
+  message: string;
+}

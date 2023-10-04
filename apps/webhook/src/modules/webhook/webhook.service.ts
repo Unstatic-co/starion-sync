@@ -10,6 +10,7 @@ import { BrokerService } from '../broker/broker.service';
 import {
   ConnectionCreatedPayload,
   DataSourceDeletedPayload,
+  DataSourceErrorPayload,
   DataSourceId,
   EventName,
   EventNames,
@@ -31,6 +32,7 @@ import Bull, { Queue } from 'bull';
 import { WebhookExecutionData } from './webhook.job';
 import {
   DataSourceDeletedWebhookPayload,
+  DataSourceErrorWebhookPayload,
   SyncConnectionCreatedWebhookPayload,
   SyncflowCompletedWebhookPayload,
   SyncflowScheduledWebhookPayload,
@@ -131,6 +133,17 @@ export class WebhookService {
           dataSourceId,
           syncConnectionId: dataSourceDeletedPayload.syncConnectionId,
         } as DataSourceDeletedWebhookPayload;
+        break;
+
+      case EventNames.DATA_SOURCE_ERROR:
+        const dataSourceErrorPayload = eventPayload as DataSourceErrorPayload;
+        webhookType = WebhookType.DATA_SOURCE_ERROR;
+        dataSourceId = dataSourceErrorPayload.dataSourceId;
+        webhookPayload = {
+          dataSourceId,
+          code: dataSourceErrorPayload.code,
+          message: dataSourceErrorPayload.message,
+        } as DataSourceErrorWebhookPayload;
         break;
 
       default:

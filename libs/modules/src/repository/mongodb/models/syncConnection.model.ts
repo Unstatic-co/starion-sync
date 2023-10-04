@@ -55,6 +55,8 @@ export class SyncConnectionModel extends SyncConnection {
 export const SyncConnectionSchema =
   SchemaFactory.createForClass(SyncConnectionModel);
 
+SyncConnectionSchema.index({ sourceId: 1 }, { background: true });
+
 SyncConnectionSchema.virtual('id').get(function () {
     return this._id.toHexString(); // eslint-disable-line
 });
