@@ -84,11 +84,10 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
         status: WorkflowStatus.IDLING,
       });
     } catch (error) {
-      // await updateSyncflowStatus(data.syncflow.id, WorkflowStatus.IDLING);
-
       const errorDetail = getActivityErrorDetail(error);
       // detect processor external error
       if (errorDetail.errorData?.type === ErrorType.EXTERNAL) {
+        await updateSyncflowStatus(data.syncflow.id, WorkflowStatus.IDLING);
         await emitEvent(EventNames.DATA_SOURCE_ERROR, {
           payload: {
             dataSourceId: data.syncflow.sourceId,
