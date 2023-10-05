@@ -34,7 +34,7 @@ DIR="$(realpath "$CURRENT_DIR"/..)"
 mkdir -p "$OUT_DIR"
 
 declare -a SERVICES=(excel google-sheets)
-declare -a COMMON_BINARY_DEPENDENCIES=(generate-id get-csv-header)
+declare -a COMMON_BINARY_DEPENDENCIES=(generate-id get-csv-header find-and-fix-id-col)
 declare -A SERVICE_BINARY_DEPENDENCIES=(
     [excel]="get-and-normalize-date-column update-id-column get-and-upload-schema"
     [google-sheets]="get-and-normalize-date-column update-id-column get-and-upload-schema"
