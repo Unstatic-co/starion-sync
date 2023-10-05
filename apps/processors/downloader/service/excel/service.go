@@ -106,7 +106,6 @@ func (s *MicrosoftExcelService) CreateSessionId(persistChanges bool) error {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.accessToken))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(bodyJSON)))
-	req.Header.Set("workbook-session-id", s.sessionId)
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("Error sending request to create excel session id: %w", err)
@@ -134,6 +133,45 @@ func (s *MicrosoftExcelService) CreateSessionId(persistChanges bool) error {
 	log.Debug("Session id: ", response.Id)
 
 	s.sessionId = response.Id
+	return nil
+}
+
+func (s *MicrosoftExcelService) CloseSession() error {
+	s.logger.Debug("Closing session")
+	var url string
+	if s.driveId == "" {
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/me/drive/items/%s/workbook/closeSession", s.workbookId)
+	} else {
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/drives/%s/items/%s/workbook/closeSession", s.driveId, s.workbookId)
+	}
+	body := CloseSessionRequest{}
+	bodyJSON, err := jsoniter.Marshal(body)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyJSON))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.accessToken))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("workbook-session-id", s.sessionId)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("Error sending request to close excel session: %w", err)
+	}
+	defer resp.Body.Close()
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("Error reading response body when close session: %w", err)
+	}
+
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		var errRes ErrorResponse
+		err := jsoniter.Unmarshal(responseBody, &errRes)
+		if err != nil {
+			return fmt.Errorf("Error unmarshalling: %w", err)
+		}
+		return WrapWorkbookApiError(resp.StatusCode, errRes.Error.Msg)
+	}
+
 	return nil
 }
 
@@ -236,5 +274,14 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 		return err
 	}
 
+	return nil
+}
+
+func (source *MicrosoftExcelService) Close(ctx context.Context) error {
+	go func() {
+		if err := source.CloseSession(); err != nil {
+			source.logger.Warn("Error close session", err)
+		}
+	}()
 	return nil
 }

@@ -205,3 +205,7 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 
 	return nil
 }
+
+func (source *GoogleSheetsService) Close(ctx context.Context) error {
+	return nil
+}

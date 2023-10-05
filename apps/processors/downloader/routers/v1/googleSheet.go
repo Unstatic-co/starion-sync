@@ -56,5 +56,7 @@ func DownloadGoogleSheets(c *gin.Context) {
 		return
 	}
 
+	err = service.Close(requestContext)
+
 	appG.Response(http.StatusOK, nil)
 }

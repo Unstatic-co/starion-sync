@@ -56,5 +56,7 @@ func DownloadExcel(c *gin.Context) {
 		return
 	}
 
+	excelService.Close(requestContext)
+
 	appG.Response(http.StatusOK, nil)
 }

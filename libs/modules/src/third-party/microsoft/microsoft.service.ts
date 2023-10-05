@@ -97,16 +97,16 @@ export class MicrosoftGraphService {
   async closeWorkbookSession(
     client: Client,
     workbookId: string,
-    persist?: boolean,
+    sessionId: string,
   ) {
     this.logger.debug(`closeWorkbookSession(): workbookId = ${workbookId}`);
     try {
-      const workbookSession = await client
+      await client
         .api(`/me/drive/items/${workbookId}/workbook/closeSession`)
+        .header('workbook-session-id', sessionId)
         .post({});
-      return workbookSession.id;
     } catch (error) {
-      this.logger.debug(`closeWorkbookSession(): error`);
+      this.logger.debug(`closeWorkbookSession(): error = ${error.message}`);
     }
   }
 

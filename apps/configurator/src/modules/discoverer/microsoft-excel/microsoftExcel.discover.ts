@@ -56,7 +56,11 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
         }),
     ]);
     await this.checkEmpty(client, sessionId, config);
-    this.microsoftGraphService.closeWorkbookSession(client, workbookId);
+    this.microsoftGraphService.closeWorkbookSession(
+      client,
+      workbookId,
+      sessionId,
+    );
   }
 
   public async discoverProvider(

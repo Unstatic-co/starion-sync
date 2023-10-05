@@ -12,6 +12,8 @@ type CreateSessionRequest struct {
 	PersistChanges bool `json:"persistChanges"`
 }
 
+type CloseSessionRequest struct{}
+
 type CreateSessionResponse struct {
 	PersistChanges bool   `json:"persistChanges"`
 	Id             string `json:"id"`
