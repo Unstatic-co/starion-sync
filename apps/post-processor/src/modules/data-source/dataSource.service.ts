@@ -27,7 +27,7 @@ export class DataSourceService {
       );
       return;
     }
-    if (syncConnection.state.status === SyncConnectionStatus.INACTIVE) {
+    if (syncConnection.state.status === SyncConnectionStatus.ACTIVE) {
       await this.syncConnectionRepository.updateState({
         id: syncConnection.id,
         status: SyncConnectionStatus.INACTIVE,
