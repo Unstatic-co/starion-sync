@@ -148,8 +148,8 @@ function write-external-error() {
 
 function check-csv-empty() {
     local file=$1
-    if [[ -z $(head -n 1 "$file" | awk -F, '{print $1}') ]]; then
-        write-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
+    if [[ -z $(head -n 1 "$file" | awk -F, '{for(i=1;i<=NF;i++) if($i != "") {print $i; exit 0;} exit 0; }') ]]; then
+        write-external-error "$WORKSHEET_EMPTY_ERROR" "Worksheet is empty or missing header row"
     fi
 }
 
