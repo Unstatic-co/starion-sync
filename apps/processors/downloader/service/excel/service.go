@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"downloader/pkg/config"
+	"downloader/pkg/e"
+	"downloader/util"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -14,6 +16,11 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 )
+
+type DownloadExternalError struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+}
 
 type MicrosoftExcelServiceInitParams struct {
 	// info
@@ -239,11 +246,17 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 	} else {
 		debugParam = "on"
 	}
-	// timeoutCtx, _ := context.WithTimeout(ctx, 15*time.Minute)
+
+	externalErrorFile, err := util.GenerateTempFileName("ext", "json")
+	if err != nil {
+		return fmt.Errorf("Cannot generate temp file: %w", err)
+	}
+
 	cmd := exec.CommandContext(
 		ctx,
 		"bash",
 		"./download-excel.sh",
+		"--externalErrorFile", externalErrorFile,
 		"--driveId", source.driveId,
 		"--workbookId", source.workbookId,
 		"--worksheetId", source.worksheetId,
@@ -273,6 +286,18 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 	if err := cmd.Run(); err != nil {
 		return err
 	}
+
+	// check external error
+	var externalError DownloadExternalError
+	err = util.MarshalJsonFile(externalErrorFile, &externalError)
+	if err != nil {
+		fmt.Errorf("Cannot read external error file: %w", err)
+	}
+	if externalError.Code != 0 {
+		return e.NewExternalErrorWithDescription(externalError.Code, externalError.Msg, "External error when running download script")
+	}
+
+	go util.DeleteFile(externalErrorFile)
 
 	return nil
 }

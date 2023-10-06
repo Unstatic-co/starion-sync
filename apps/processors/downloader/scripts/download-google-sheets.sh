@@ -41,6 +41,10 @@ function parse-arguments() {
     while [[ $# > 0 ]]
     do
         case "$1" in
+            --externalErrorFile)
+                external_error_file="$2"
+                shift
+                ;;
             --spreadsheetId)
                 spreadsheet_id="$2"
                 shift
@@ -122,15 +126,32 @@ parse-arguments "$@"
 ###### CONSTANTS #######
 
 EMPTY_HEADER_TOKEN="oYWhr9mRCYjP1ss0suIMbzRJBLH_Uv9UVg61"
-readonly EMPTY_HEADER_TOKEN
 EMPTY_VALUE_TOKEN="__StarionSyncNull"
-readonly EMPTY_VALUE_TOKEN
 ID_COL_NAME="__StarionId"
-readonly ID_COL_NAME
 ROW_NUMBER_COL_NAME="__StarionRowNum"
-readonly ROW_NUMBER_COL_NAME
+SHEET_EMPTY_ERROR="1015"
+SPREADSHEET_NOT_FOUND_ERROR="1006"
+SPREADSHEET_FORBIDDEN_ERROR="1009"
 
 ###### FUNCTIONS #######
+
+function write-external-error() {
+    local error_code=$1
+    local error_message=$2
+    info-log "External error: $error_code - $error_message"
+    jq -n \
+        --arg "code" "$error_code" \
+        --arg "msg" "$error_message" \
+        '{"code":$code|tonumber,"msg":$msg}' > "$external_error_file"
+    exit 0
+}
+
+function check-csv-empty() {
+    local file=$1
+    if [[ -z $(head -n 1 "$file" | awk -F, '{print $1}') ]]; then
+        write-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
+    fi
+}
 
 function download-google-sheets-file() {
     local outfile=$1
@@ -148,6 +169,11 @@ function download-google-sheets-file() {
     )
     if test "$status_code" -ne 200; then
         error-log "Failed to download file. Status code: $status_code"
+        if test "$status_code" -eq 404; then
+            write-external-error "$SPREADSHEET_NOT_FOUND_ERROR" "Spreadsheet not found"
+        elif test "$status_code" -eq 403; then
+            write-external-error "$SPREADSHEET_FORBIDDEN_ERROR" "Missing permission to access spreadsheet"
+        fi
         exit 1
     fi
 }
@@ -155,7 +181,6 @@ function download-google-sheets-file() {
 ######### MAIN #########
 
 makeTemp
-
 
 ### Prepare
 
@@ -201,6 +226,8 @@ fi
 
 original_file=$TEMP_DIR/original.csv
 download-google-sheets-file "$original_file" "$download_url"
+
+check-csv-empty "$original_file"
 
 ### Preprocess
 info-log "Preprocessing csv file..."

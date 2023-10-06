@@ -41,6 +41,10 @@ function parse-arguments() {
     while [[ $# > 0 ]]
     do
         case "$1" in
+            --externalErrorFile)
+                external_error_file="$2"
+                shift
+                ;;
             --driveId)
                 drive_id="$2"
                 shift
@@ -126,15 +130,32 @@ parse-arguments "$@"
 ###### CONSTANTS #######
 
 EMPTY_HEADER_TOKEN="oYWhr9mRCYjP1ss0suIMbzRJBLH_Uv9UVg61"
-readonly EMPTY_HEADER_TOKEN
 EMPTY_VALUE_TOKEN="__StarionSyncNull"
-readonly EMPTY_VALUE_TOKEN
 ID_COL_NAME="__StarionId"
-readonly ID_COL_NAME
 ROW_NUMBER_COL_NAME="__StarionRowNum"
-readonly ROW_NUMBER_COL_NAME
+WORKSHEET_EMPTY_ERROR="1106"
+WORKBOOK_NOT_FOUND_ERROR="1102"
+WORKBOOK_FORBIDDEN_ERROR="1101"
 
 ###### FUNCTIONS #######
+
+function write-external-error() {
+    local error_code=$1
+    local error_message=$2
+    info-log "External error: $error_code - $error_message"
+    jq -n \
+        --arg "code" "$error_code" \
+        --arg "msg" "$error_message" \
+        '{"code":$code|tonumber,"msg":$msg}' > "$external_error_file"
+    exit 0
+}
+
+function check-csv-empty() {
+    local file=$1
+    if [[ -z $(head -n 1 "$file" | awk -F, '{print $1}') ]]; then
+        write-external-error "$WORKSHEET_EMPTY_ERROR" "Worksheet is empty or missing header row"
+    fi
+}
 
 function get-excel-session() {
     info-log "Creating excel session..."
@@ -183,6 +204,11 @@ function download-excel-file() {
     )
     if test "$status_code" -ne 200; then
         error-log "Failed to download file. Status code: $status_code"
+        if test "$status_code" -eq 404; then
+            write-external-error "$WORKBOOK_NOT_FOUND_ERROR" "Workbook not found"
+        elif test "$status_code" -eq 403; then
+            write-external-error "$WORKBOOK_FORBIDDEN_ERROR" "Missing permission to access workbook"
+        fi
         exit 1
     fi
 }
@@ -277,6 +303,8 @@ original_csv_file=$TEMP_DIR/original.csv
     --sheet "$worksheet_name" \
     --output "$original_csv_file" \
     "$original_file"
+
+check-csv-empty "$original_csv_file"
 
 ### Preprocess
 info-log "Preprocessing csv file..."
