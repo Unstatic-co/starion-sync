@@ -22,7 +22,6 @@ import {
   handleWorkbookError,
   handleWorksheetError,
 } from './error-handler';
-import { handleDriveFileError } from '../google/error-handler';
 
 @Injectable()
 export class MicrosoftService {

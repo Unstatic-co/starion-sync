@@ -354,39 +354,45 @@ debug-log "Creating table with row number..."
     echo "$ROW_NUMBER_COL_NAME"
     seq 2 $((record_counts + 1))
 ) --output "$table_with_row_number"
+id_with_row_number="$TEMP_DIR/id_with_row_number.csv"
+debug-log "Creating id with row number..."
+"$QSV" select "${ID_COL_NAME},${ROW_NUMBER_COL_NAME}" "$table_with_row_number" -o "$id_with_row_number"
 
-# Search missing id rows
-table_missing_id_rows="$TEMP_DIR/with_missing_id_rows.csv"
-"$QSV" search -s "$ID_COL_NAME" '^$' "$table_with_row_number" -o "$table_missing_id_rows" || true # Suppress exit code 1 when no match found
-missing_counts="$("$QSV" count "$table_missing_id_rows")"
-info-log "Number of rows missing primary keys: $missing_counts"
+# Find and fix id column
+table_fixed_id_rows="$TEMP_DIR/fixed_id_rows.csv"
+table_new_id_rows="$TEMP_DIR/new_id_rows.csv"
+./find-and-fix-id-col \
+    --inFile "$id_with_row_number" \
+    --outFile "$table_fixed_id_rows" \
+    --fullOutFile "$table_new_id_rows" \
+    --idColName "$ID_COL_NAME" \
+    --rowNumColName "$ROW_NUMBER_COL_NAME"
+fixed_id_count="$("$QSV" count "$table_fixed_id_rows")"
+info-log "Number of rows have invalid id: $fixed_id_count"
 
-if ((missing_counts == 0)); then
+if ((fixed_id_count == 0)); then
     appended_id_file="$input_file"
 else
-    # Add missing ids
-    table_id_for_missing_rows="$TEMP_DIR/id_for_missing_rows.csv"
-    "$QSV" cat columns \
-        <("$QSV" select "!${ID_COL_NAME}" "$table_missing_id_rows") \
-        <(./generate-id --columnName "$ID_COL_NAME" --n "$missing_counts") |
-        "$QSV" select "${ID_COL_NAME},${ROW_NUMBER_COL_NAME}" --output "$table_id_for_missing_rows"
-    
-    info-log "Adding missing primary keys..."
+    info-log "Fixing primary keys..."
     ./google-sheets/update-id-column \
         --spreadsheetId "$spreadsheet_id" \
         --sheetId "$sheet_id" \
         --sheetName "$sheet_name" \
         --accessToken "$access_token" \
         --idColIndex "$id_col_colnum" \
-        --idsFile "$table_id_for_missing_rows" \
+        --idsFile "$table_fixed_id_rows" \
         --includeHeader "$missing_id_col"
+    info-log "Fixed primary keys"
 
     appended_id_file="$TEMP_DIR/appended_id.csv"
-
-    "$QSV" cat rows \
-        <("$QSV" search -s "$ID_COL_NAME" -v "^$" "$table_with_row_number" | "$QSV" select "!${ROW_NUMBER_COL_NAME}") \
-        <("$QSV" join "$ROW_NUMBER_COL_NAME" "$table_with_row_number" $ROW_NUMBER_COL_NAME "$table_id_for_missing_rows" |
-            "$QSV" select "!${ID_COL_NAME}[0],${ROW_NUMBER_COL_NAME},${ROW_NUMBER_COL_NAME}[1]") --output "$appended_id_file"
+    "$QSV" cat columns -p \
+        <("$QSV" select "!${ID_COL_NAME}" "$input_file") \
+        <("$QSV" select "${ID_COL_NAME}" "$table_new_id_rows") \
+        -o "$appended_id_file"
+    # "$QSV" \
+        # select "!${ID_COL_NAME}[0],${ROW_NUMBER_COL_NAME},${ROW_NUMBER_COL_NAME}[1]" \
+        # <("$QSV" join "$ROW_NUMBER_COL_NAME" "$table_with_row_number" $ROW_NUMBER_COL_NAME "$table_new_id_rows") \
+        # --output "$appended_id_file"
 fi
 # ## End ##
 
