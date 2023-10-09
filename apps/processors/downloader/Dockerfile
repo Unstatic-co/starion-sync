@@ -43,5 +43,5 @@ COPY --from=qsv_builder /app/qsv /usr/local/bin
 COPY --from=duckdb_builder /app/duckdb /usr/local/bin
 COPY --from=binary_builder /dist/ /app/
 # RUN clickhouse local -q "select 1" >/dev/null
-RUN duckdb :memory: "install httpfs;"
+RUN duckdb :memory: "install httpfs; install spatial;"
 ENTRYPOINT ["./downloader"]

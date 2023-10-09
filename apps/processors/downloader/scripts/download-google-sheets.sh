@@ -127,6 +127,8 @@ parse-arguments "$@"
 
 EMPTY_HEADER_TOKEN="oYWhr9mRCYjP1ss0suIMbzRJBLH_Uv9UVg61"
 EMPTY_VALUE_TOKEN="__StarionSyncNull"
+ERROR_VALUE_TOKEN="__Error"
+ERROR_VALUE_REGEX="^(#NULL!|#DIV/0!|#VALUE!|#REF!|#NAME\?|#NUM!|#N/A|#ERROR!)$"
 ID_COL_NAME="__StarionId"
 ROW_NUMBER_COL_NAME="__StarionRowNum"
 SHEET_EMPTY_ERROR="1015"
@@ -423,13 +425,13 @@ else
 fi
 # ## End ##
 
-## Preprocess: Encode header
+## Preprocess: Replace error values & Encode header
 # encode header to `_${hex}` (underscore + hexadecimal encoding of col name) format to easily querying in DB
-info-log "Encoding header..."
+info-log "Replacing error values & Encoding header..."
 header_encoded_file="$TEMP_DIR/header-endcoded.csv"
 new_headers="$("./get-csv-header" -file "$appended_id_file" -encode -sep ,)"
 echo "$new_headers" >"$header_encoded_file"
-"$QSV" behead "$appended_id_file" >>"$header_encoded_file"
+"$QSV" behead <("$QSV" replace -s "!$ID_COL_NAME" "$ERROR_VALUE_REGEX" "$ERROR_VALUE_TOKEN" "$appended_id_file") >>"$header_encoded_file"
 ## End ##
 
 ### Schema

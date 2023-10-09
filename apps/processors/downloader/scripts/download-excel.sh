@@ -131,6 +131,8 @@ parse-arguments "$@"
 
 EMPTY_HEADER_TOKEN="oYWhr9mRCYjP1ss0suIMbzRJBLH_Uv9UVg61"
 EMPTY_VALUE_TOKEN="__StarionSyncNull"
+ERROR_VALUE_TOKEN="__Error"
+ERROR_VALUE_REGEX="^(#NULL!|#DIV/0!|#VALUE!|#REF!|#NAME\?|#NUM!|#N/A|#ERROR!|#SPILL!|#CALC!)$"
 ID_COL_NAME="__StarionId"
 ROW_NUMBER_COL_NAME="__StarionRowNum"
 WORKSHEET_EMPTY_ERROR="1106"
@@ -296,13 +298,15 @@ download-excel-file "$original_file"
 ### Convert
 info-log "Converting file to csv..."
 original_csv_file=$TEMP_DIR/original.csv
-"$QSV" excel \
-    --quiet \
-    --flexible \
-    --trim \
-    --sheet "$worksheet_name" \
-    --output "$original_csv_file" \
-    "$original_file"
+# "$QSV" excel \
+    # --quiet \
+    # --flexible \
+    # --trim \
+    # --sheet "$worksheet_name" \
+    # --output "$original_csv_file" \
+    # "$original_file"
+OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=STRING duckdb :memory: \
+    "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$worksheet_name')) TO '$original_csv_file' (HEADER, DELIMITER ',');"
 
 check-csv-empty "$original_csv_file"
 
@@ -310,7 +314,7 @@ check-csv-empty "$original_csv_file"
 info-log "Preprocessing csv file..."
 preprocess_file=$TEMP_DIR/preprocess.csv
 
-"$QSV" input "$original_csv_file" -o "$preprocess_file"
+"$QSV" input --trim-headers --trim-fields "$original_csv_file" -o "$preprocess_file"
 input_file="$preprocess_file"
 
 rows_number="$("$QSV" count "$original_csv_file")"
@@ -501,13 +505,13 @@ else
 fi
 ## End ##
 
-## Preprocess: Encode header
+## Preprocess: Replace error values & Encode header
 # encode header to `_${hex}` (underscore + hexadecimal encoding of col name) format to easily querying in DB
-info-log "Encoding header..."
+info-log "Replacing error values & Encoding header..."
 header_encoded_file="$TEMP_DIR/header-endcoded.csv"
 new_headers="$("./get-csv-header" -file "$appended_id_file" -encode -sep ,)"
 echo "$new_headers" >"$header_encoded_file"
-"$QSV" behead "$appended_id_file" >>"$header_encoded_file"
+"$QSV" behead <("$QSV" replace -s "!$ID_COL_NAME" "$ERROR_VALUE_REGEX" "$ERROR_VALUE_TOKEN" "$appended_id_file") >>"$header_encoded_file"
 ## End ##
 
 ### Schema
@@ -538,7 +542,6 @@ duckdb_schema="$(cat $duckdb_schema_file)"
 s3_file_path="data/$data_source_id-$sync_version.parquet"
 s3_json_file_path="data/$data_source_id-$sync_version.json"
 duckdb_convert_data_query="
-    CREATE TABLE t AS SELECT * FROM read_csv('$header_encoded_file', all_varchar=TRUE, auto_detect=TRUE, header=TRUE);
     LOAD httpfs;
     SET s3_region='$s3_region';
     SET s3_access_key_id='$s3_access_key';
@@ -546,7 +549,7 @@ duckdb_convert_data_query="
     SET s3_url_style='path';
     SET s3_use_ssl=false;
     SET s3_endpoint='$s3_endpoint';
-    COPY t TO 's3://$s3_bucket/$s3_file_path' (FORMAT 'parquet');
+    COPY (SELECT * FROM read_csv('$header_encoded_file', all_varchar=TRUE, auto_detect=TRUE, header=TRUE)) TO 's3://$s3_bucket/$s3_file_path' (FORMAT 'parquet');
 "
 if [[ "$debug" == "on" ]]; then
     duckdb_convert_data_query += "COPY t TO 's3://$s3_bucket/$s3_json_file_path' (FORMAT 'JSON');"
