@@ -226,19 +226,35 @@ fi
 
 ### Download
 
-original_file=$TEMP_DIR/original.csv
-download-google-sheets-file "$original_file" "$download_url"
+# original_file=$TEMP_DIR/original.xlsx
+# download-google-sheets-file "$original_file" "$download_url"
 
-check-csv-empty "$original_file"
+# ### Convert
+# info-log "Converting file to csv..."
+# original_csv_file=$TEMP_DIR/original.csv
+# # "$QSV" excel \
+    # # --quiet \
+    # # --flexible \
+    # # --trim \
+    # # --sheet "$worksheet_name" \
+    # # --output "$original_csv_file" \
+    # # "$original_file"
+# OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=STRING duckdb :memory: \
+    # "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$sheet_name')) TO '$original_csv_file' (HEADER, DELIMITER ',');"
+
+original_csv_file=$TEMP_DIR/original.csv
+download-google-sheets-file "$original_csv_file" "$download_url"
+
+check-csv-empty "$original_csv_file"
 
 ### Preprocess
 info-log "Preprocessing csv file..."
 preprocess_file=$TEMP_DIR/preprocess.csv
 
-"$QSV" input "$original_file" -o "$preprocess_file"
+"$QSV" input --trim-headers --trim-fields "$original_csv_file" -o "$preprocess_file"
 input_file="$preprocess_file"
 
-rows_number="$("$QSV" count "$original_file")"
+rows_number="$("$QSV" count "$original_csv_file")"
 debug-log "Number of rows: $rows_number"
 
 dedup_header_file=$TEMP_DIR/dedup-header-normalize.csv
