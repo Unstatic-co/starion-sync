@@ -241,7 +241,7 @@ original_csv_file=$TEMP_DIR/original.csv
     # --sheet "$worksheet_name" \
     # --output "$original_csv_file" \
     # "$original_file"
-OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=STRING duckdb :memory: \
+OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=AUTO duckdb :memory: \
     "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$sheet_name')) TO '$original_csv_file' (HEADER, DELIMITER ',');"
 
 # original_csv_file=$TEMP_DIR/original.csv
