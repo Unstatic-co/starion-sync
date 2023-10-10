@@ -203,6 +203,8 @@ else
     QSV="qsv"
 fi
 readonly QSV
+export QSV_PREFER_DMY=1
+export QSV_LOG_LEVEL=error
 
 # check missing commands
 missing_command=0
@@ -226,24 +228,24 @@ fi
 
 ### Download
 
-# original_file=$TEMP_DIR/original.xlsx
-# download-google-sheets-file "$original_file" "$download_url"
+original_file=$TEMP_DIR/original.xlsx
+download-google-sheets-file "$original_file" "$download_url"
 
-# ### Convert
-# info-log "Converting file to csv..."
-# original_csv_file=$TEMP_DIR/original.csv
-# # "$QSV" excel \
-    # # --quiet \
-    # # --flexible \
-    # # --trim \
-    # # --sheet "$worksheet_name" \
-    # # --output "$original_csv_file" \
-    # # "$original_file"
-# OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=STRING duckdb :memory: \
-    # "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$sheet_name')) TO '$original_csv_file' (HEADER, DELIMITER ',');"
-
+### Convert
+info-log "Converting file to csv..."
 original_csv_file=$TEMP_DIR/original.csv
-download-google-sheets-file "$original_csv_file" "$download_url"
+# "$QSV" excel \
+    # --quiet \
+    # --flexible \
+    # --trim \
+    # --sheet "$worksheet_name" \
+    # --output "$original_csv_file" \
+    # "$original_file"
+OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=STRING duckdb :memory: \
+    "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$sheet_name')) TO '$original_csv_file' (HEADER, DELIMITER ',');"
+
+# original_csv_file=$TEMP_DIR/original.csv
+# download-google-sheets-file "$original_csv_file" "$download_url"
 
 check-csv-empty "$original_csv_file"
 
@@ -251,7 +253,7 @@ check-csv-empty "$original_csv_file"
 info-log "Preprocessing csv file..."
 preprocess_file=$TEMP_DIR/preprocess.csv
 
-"$QSV" input --trim-headers --trim-fields "$original_csv_file" -o "$preprocess_file"
+"$QSV" input --trim-headers --trim-fields <(tac "$original_csv_file" | awk '/[^,]/ {found=1} found' | tac) -o "$preprocess_file"
 input_file="$preprocess_file"
 
 rows_number="$("$QSV" count "$original_csv_file")"
@@ -310,13 +312,13 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
             --accessToken "$access_token" \
             --colIndexes "$date_col_idxs" \
             --rowNumber "$rows_number" \
-            --replaceEmpty "$EMPTY_VALUE_TOKEN"
+            --replaceEmpty "$ERROR_VALUE_TOKEN"
     ) >"$temp_updated_dates_file"
 
     "$QSV" cat columns -p <("$QSV" select "!${date_col_idxs}" "$dedup_header_file") "$temp_updated_dates_file" |
         "$QSV" select "$placeholder_headers" -o "$normalized_date_file"
     
-    "$SED" -i "s/$EMPTY_VALUE_TOKEN//g" $normalized_date_file # remove empty value token
+    # "$SED" -i "s/$EMPTY_VALUE_TOKEN/$ERROR_VALUE_TOKEN/g" $normalized_date_file # remove empty value token
 
     behead_file="$TEMP_DIR/behead.csv"
     "$QSV" behead -o "$behead_file" "$normalized_date_file"

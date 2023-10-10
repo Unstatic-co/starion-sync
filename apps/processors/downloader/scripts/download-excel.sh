@@ -265,6 +265,8 @@ else
     QSV="qsv"
 fi
 readonly QSV
+export QSV_PREFER_DMY=1
+export QSV_LOG_LEVEL=error
 
 # check missing commands
 missing_command=0
@@ -372,14 +374,14 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
             --sessionId "$session_id" \
             --colIndexes "$date_col_idxs" \
             --rowNumber "$rows_number" \
-            --replaceEmpty "$EMPTY_VALUE_TOKEN" \
+            --replaceEmpty "$ERROR_VALUE_TOKEN" \
             --timezone "$time_zone"
     ) >"$temp_updated_dates_file"
 
     "$QSV" cat columns -p <("$QSV" select "!${date_col_idxs}" "$dedup_header_file") "$temp_updated_dates_file" |
         "$QSV" select "$placeholder_headers" -o "$normalized_date_file"
     
-    "$SED" -i "s/$EMPTY_VALUE_TOKEN//g" $normalized_date_file # remove empty value token
+    # "$SED" -i "s/$EMPTY_VALUE_TOKEN//g" $normalized_date_file # remove empty value token
 
     behead_file="$TEMP_DIR/behead.csv"
     "$QSV" behead -o "$behead_file" "$normalized_date_file"

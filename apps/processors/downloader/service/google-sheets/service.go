@@ -149,7 +149,7 @@ func (s *GoogleSheetsService) Setup(ctx context.Context) error {
 		if err != nil {
 			return WrapGoogleDriveFileError(err.(*googleapi.Error))
 		}
-		link, err := url.Parse(driveFile.ExportLinks["text/csv"])
+		link, err := url.Parse(driveFile.ExportLinks["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"])
 		query := link.Query()
 		query.Set("gid", s.sheetId)
 		link.RawQuery = query.Encode()
