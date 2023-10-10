@@ -123,7 +123,7 @@ export class WorkflowService {
       dataSource.provider.type,
     );
     await Promise.all([
-      this.dataSourceService.checkLimitation(dataSource),
+      // this.dataSourceService.checkLimitation(dataSource),
       syncflowController.run(syncflow, dataSource),
     ]);
 
