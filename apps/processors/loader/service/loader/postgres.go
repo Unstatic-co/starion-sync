@@ -173,6 +173,8 @@ type PostgreLoader struct {
 
 	tableName string
 
+	rowErrorMap map[string]bool
+
 	dbConn *sql.DB
 }
 
@@ -189,6 +191,8 @@ func (l *PostgreLoader) Setup() error {
 	if (l.tableName == "") || (l.tableName == "null") {
 		l.tableName = fmt.Sprintf("_%s", l.DatasourceId)
 	}
+
+	l.rowErrorMap = make(map[string]bool)
 
 	return nil
 }
@@ -249,6 +253,11 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 		}
 	}
 
+	err = l.loadRowErrorMetadata(txn)
+	if err != nil {
+		return err
+	}
+
 	err = txn.Commit()
 	if err != nil {
 		txn.Rollback()
@@ -266,6 +275,12 @@ func (l *PostgreLoader) setTimezone(txn *sql.Tx) error {
 	}
 
 	return nil
+}
+
+func (l *PostgreLoader) addRowError(rowId string) {
+	if _, ok := l.rowErrorMap[rowId]; !ok {
+		l.rowErrorMap[rowId] = true
+	}
 }
 
 func (l *PostgreLoader) initTable(txn *sql.Tx, data *LoaderData) error {
@@ -506,11 +521,19 @@ func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *LoaderData) error {
 	for _, row := range data.AddedRows.Rows {
 		dataInsert := make(map[string]interface{}, len(data.AddedRows.Fields))
 		var id string
+		isRowHasError := false
 		for index, field := range data.AddedRows.Fields {
+			fieldData := row[index]
 			if field == schema.HashedPrimaryField {
-				id = row[index].(string)
+				id = fieldData.(string)
 			}
-			dataInsert[field] = row[index]
+			dataInsert[field] = fieldData
+			if fieldData == schema.ErrorValue && !isRowHasError {
+				isRowHasError = true
+			}
+		}
+		if isRowHasError {
+			l.addRowError(id)
 		}
 		dataInsertJson, err := jsoniter.MarshalToString(dataInsert)
 		if err != nil {
@@ -568,24 +591,32 @@ func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	for rowId, fieldUpdateData := range data.UpdatedFields {
+		isRowHasError := false
 		var jsonbSet string
 		updatedFields := lo.Keys(fieldUpdateData)
 		for i, fieldName := range updatedFields {
+			fieldData := fieldUpdateData[fieldName]
 			if i == 0 {
 				jsonbSet = fmt.Sprintf(
 					"jsonb_set(%s, '{%s}', '%s'::jsonb)",
 					name.TableDataDataColumn,
 					fieldName,
-					formatVariableToPostgresStatementValue(fieldUpdateData[fieldName]),
+					formatVariableToPostgresStatementValue(fieldData),
 				)
 			} else {
 				jsonbSet = fmt.Sprintf(
 					"jsonb_set(%s, '{%s}', '%s'::jsonb)",
 					jsonbSet,
 					fieldName,
-					formatVariableToPostgresStatementValue(fieldUpdateData[fieldName]),
+					formatVariableToPostgresStatementValue(fieldData),
 				)
 			}
+			if fieldData == schema.ErrorValue && !isRowHasError {
+				isRowHasError = true
+			}
+		}
+		if isRowHasError {
+			l.addRowError(rowId)
 		}
 		query := fmt.Sprintf(
 			"UPDATE \"%s\" SET %s = %s, %s = %s WHERE %s = '%s'",
@@ -615,24 +646,32 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	for rowId, fieldAddData := range data.AddedFields {
+		isRowHasError := false
 		var jsonbSet string
 		addedFields := lo.Keys(fieldAddData)
 		for i, fieldName := range addedFields {
+			fieldData := fieldAddData[fieldName]
 			if i == 0 {
 				jsonbSet = fmt.Sprintf(
 					"jsonb_set(%s, '{%s}', '%s'::jsonb)",
 					name.TableDataDataColumn,
 					fieldName,
-					formatVariableToPostgresStatementValue(fieldAddData[fieldName]),
+					formatVariableToPostgresStatementValue(fieldData),
 				)
 			} else {
 				jsonbSet = fmt.Sprintf(
 					"jsonb_set(%s, '{%s}', '%s'::jsonb)",
 					jsonbSet,
 					fieldName,
-					formatVariableToPostgresStatementValue(fieldAddData[fieldName]),
+					formatVariableToPostgresStatementValue(fieldData),
 				)
 			}
+			if fieldData == schema.ErrorValue && !isRowHasError {
+				isRowHasError = true
+			}
+		}
+		if isRowHasError {
+			l.addRowError(rowId)
 		}
 		query := fmt.Sprintf(
 			"UPDATE \"%s\" SET %s = %s, %s = %s WHERE %s = '%s'",
@@ -685,6 +724,59 @@ func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	log.Info("Loaded deleted fields to postgres")
+
+	return nil
+}
+
+func (l *PostgreLoader) loadRowErrorMetadata(txn *sql.Tx) error {
+	log.Info("Loading row error metadata")
+
+	if len(l.rowErrorMap) == 0 {
+		log.Info("No new error metadata to load")
+		if l.PrevVersion == 0 {
+			return nil
+		}
+	} else {
+		for rowId := range l.rowErrorMap {
+			jsonbSet := fmt.Sprintf(
+				"jsonb_set(coalesce(%s, '{}'), '{%s}', %s::jsonb)",
+				name.MetadataColumn,
+				name.HasErrorColumn,
+				"'true'",
+			)
+			query := fmt.Sprintf(
+				"UPDATE \"%s\" SET %s = %s WHERE %s = '%s'",
+				l.tableName,
+				name.MetadataColumn, jsonbSet,
+				name.IdColumn, rowId,
+			)
+			log.Debug("Query: ", query)
+			_, err := txn.Exec(query)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if l.PrevVersion != 0 {
+		// clean no longer error rows
+		query := fmt.Sprintf(
+			"UPDATE \"%s\" SET %[2]s = %[2]s - ARRAY['%[3]s'] WHERE (%[2]s->'%[3]s')::bool IS TRUE AND NOT EXISTS (SELECT 1 FROM jsonb_each_text(%[4]s) AS json_data WHERE json_data.value = '%[5]s')",
+			l.tableName,
+			name.MetadataColumn,
+			name.HasErrorColumn,
+			name.TableDataDataColumn,
+			schema.ErrorValue,
+		)
+		log.Debug("Query: ", query)
+		_, err := txn.Exec(query)
+		if err != nil {
+			return err
+		}
+		log.Debug("Cleaned no longer error rows")
+	}
+
+	log.Info("Loaded row error metadata to postgres")
 
 	return nil
 }

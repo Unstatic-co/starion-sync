@@ -13,6 +13,7 @@ const (
 	CreatedAtColumn TableColumn = "created_at"
 	UpdatedAtColumn TableColumn = "updated_at"
 	MetadataColumn  TableColumn = "metadata"
+	HasErrorColumn  TableColumn = "has_error"
 
 	// data table column
 	TableDataDataColumn TableColumn = "data"
