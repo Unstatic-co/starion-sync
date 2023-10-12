@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eouv
+set -eo pipefail
 
 is_missing=false
 for env in DOCKER_IMAGE_NAME DOCKER_IMAGE_DIGEST; do

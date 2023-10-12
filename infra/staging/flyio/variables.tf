@@ -27,3 +27,13 @@ variable "redis_password" {
   type      = string
   sensitive = true
 }
+
+variable "mongodb_user" {
+  type      = string
+  sensitive = true
+}
+
+variable "mongodb_password" {
+  type      = string
+  sensitive = true
+}

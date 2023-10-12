@@ -5,6 +5,7 @@ provider "registry.terraform.io/fly-apps/fly" {
   version     = "0.0.23"
   constraints = "0.0.23"
   hashes = [
+    "h1:6gklEyEzzCMpnqzF8vT207ivMk/NSfXTmoWEb2znig8=",
     "h1:FAtRSDCgAQC0sTJnp6Qn7NhxkEFWmEq+s2Tj66q5D4g=",
     "zh:1218d3ddd6395d5f0457ba6e3831ece52068c1b168e89f31695fb97768f14846",
     "zh:2281ffb369a001849223f585fb607d83a77a47534d4a8f1d023d9b883cb7bd69",
@@ -27,7 +28,7 @@ provider "registry.terraform.io/fly-apps/fly" {
 provider "registry.terraform.io/hashicorp/null" {
   version = "3.2.1"
   hashes = [
-    "h1:tSj1mL6OQ8ILGqR2mDu7OYYYWf+hoir0pf9KAQ8IzO8=",
+    "h1:FbGfc+muBsC17Ohy5g806iuI1hQc4SIexpYCrQHQd8w=",
     "zh:58ed64389620cc7b82f01332e27723856422820cfd302e304b5f6c3436fb9840",
     "zh:62a5cc82c3b2ddef7ef3a6f2fedb7b9b3deff4ab7b414938b08e51d6e8be87cb",
     "zh:63cff4de03af983175a7e37e52d4bd89d990be256b16b5c7f919aff5ad485aa5",
