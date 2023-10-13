@@ -57,9 +57,9 @@ resource "fly_machine" "redis" {
   image = "registry.fly.io/${fly_app.redis.name}:${local.redis_hash}"
   # entrypoint = ["sudo mkdir /bitnami/redis && sudo chown 1001:1001 /bitnami/redis &&"]
 
-  lifecycle {
-    prevent_destroy = true
-  }
+  # lifecycle {
+  # prevent_destroy = true
+  # }
 
   services = [
     {
@@ -139,9 +139,9 @@ resource "fly_machine" "mongodb" {
 
   image = "registry.fly.io/${fly_app.mongodb.name}:${local.mongodb_hash}"
 
-  lifecycle {
-    prevent_destroy = true
-  }
+  # lifecycle {
+  # prevent_destroy = true
+  # }
 
   services = [
     {
@@ -223,9 +223,9 @@ resource "fly_machine" "postgres" {
 
   image = "registry.fly.io/${fly_app.postgres.name}:${local.postgres_hash}"
 
-  lifecycle {
-    prevent_destroy = true
-  }
+  # lifecycle {
+  # prevent_destroy = true
+  # }
 
   services = [
     {

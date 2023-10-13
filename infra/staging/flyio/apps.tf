@@ -16,6 +16,7 @@ resource "fly_ip" "apps_ip_v6" {
 locals {
   apps_files = [
     "${path.module}/build/apps/Dockerfile",
+    "${path.module}/build/apps/apps.json",
   ]
   apps_hash = md5(join("", [for i in local.apps_files : filemd5(i)]))
 }
@@ -49,7 +50,7 @@ resource "fly_machine" "apps" {
   name   = "${var.project}-${var.environment}-apps"
 
   cpus     = 2
-  memorymb = 1024
+  memorymb = 2048
 
   image = "registry.fly.io/${fly_app.apps.name}:${local.apps_hash}"
 
@@ -62,15 +63,29 @@ resource "fly_machine" "apps" {
       "protocol" : "tcp",
       "ports" : [
         {
-          port = 9000
+          port = 8080
         }
       ],
-      "internal_port" : 9000,
+      "internal_port" : 8080,
     }
   ]
 
   env = {
-    NODE_ENV = var.environment
+    NODE_ENV                = var.environment
+    LOG_LEVEL               = "error"
+    BROKER_URIS             = "intimate-eagle-6706-us1-kafka.upstash.io:9092"
+    DB_TYPE                 = "mongodb"
+    DB_URI                  = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-sync?directConnection=true&authSource=admin"
+    DEST_DB_URI             = "postgres://${var.postgres_user}:${var.postgres_password}@${fly_ip.postgres_ip_v4.address}:5432/starion-sync?sslmode=disable"
+    BROKER_TYPE             = "kafka"
+    KAFKA_SSL_ENABLED       = "true"
+    KAFKA_SASL_ENABLED      = "true"
+    KAFKA_SASL_USERNAME     = "aW50aW1hdGUtZWFnbGUtNjcwNiRPYxQX8gnwSox0VLZwUMRHW24Z6BuKIN9ZgCA"
+    KAFKA_SASL_PASSWORD     = "MTAwYjQ3ZGYtZTg4ZS00ZjYyLWJkOGMtZjZjZjljMTI1Mzgz"
+    REDIS_HOST              = "redis://default:123456@${fly_ip.redis_ip_v4.address}:6379"
+    ORCHESTRATOR_ADDRESS    = "65.21.57.51:7233"
+    MICROSOFT_CLIENT_ID     = "9b2ff1a2-7ff2-4d1c-a6cb-87e59d6463b7"
+    MICROSOFT_CLIENT_SECRET = "tXg8Q~pLOGojmhkBM3tk0sC1VA8EoAfb7jJwIdal"
   }
 
   depends_on = [

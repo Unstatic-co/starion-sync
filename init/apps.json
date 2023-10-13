@@ -1,9 +1,0 @@
-{
-    "apps": [
-      {
-        "name": "configurator",
-        "script": "dist/apps/configurator/src/main.js",
-        "instances": 1
-      }
-    ]
-  }

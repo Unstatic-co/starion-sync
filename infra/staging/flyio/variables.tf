@@ -47,3 +47,8 @@ variable "postgres_password" {
   type      = string
   sensitive = true
 }
+
+# variable "db_uri" {
+# type      = string
+# sensitive = true
+# }

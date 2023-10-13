@@ -42,3 +42,29 @@ variable "postgres_password" {
   type      = string
   sensitive = true
 }
+
+variable "api_keys" {
+  type      = string
+  sensitive = true
+  default   = "api-key"
+}
+
+# variable "db_uri" {
+# type      = string
+# sensitive = true
+# }
+
+# variable "dest_db_uri" {
+# type      = string
+# sensitive = true
+# }
+
+# variable "broker_uris" {
+# type      = string
+# sensitive = true
+# }
+
+# variable "orchestrator_address" {
+# type      = string
+# sensitive = true
+# }
