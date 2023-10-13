@@ -35,7 +35,7 @@ resource "null_resource" "redis_builder" {
     environment = {
       FLY_ACCESS_TOKEN = var.api_token
 
-      # DOCKERFILE_NAME     = "redis.dockerfile"
+      DOCKER_FILE         = "Dockerfile"
       DOCKER_IMAGE_NAME   = fly_app.redis.name
       DOCKER_IMAGE_DIGEST = local.redis_hash
 
@@ -119,7 +119,7 @@ resource "null_resource" "mongodb_builder" {
     environment = {
       FLY_ACCESS_TOKEN = var.api_token
 
-      # DOCKERFILE_NAME     = "redis.dockerfile"
+      DOCKER_FILE         = "Dockerfile"
       DOCKER_IMAGE_NAME   = fly_app.mongodb.name
       DOCKER_IMAGE_DIGEST = local.mongodb_hash
 
@@ -163,5 +163,89 @@ resource "fly_machine" "mongodb" {
 
   depends_on = [
     null_resource.mongodb_builder,
+  ]
+}
+
+// ********************* Postgres *********************
+
+resource "fly_app" "postgres" {
+  name = "${var.project}-${var.environment}-postgres"
+  org  = var.organization
+}
+
+resource "fly_ip" "postgres_ip_v4" {
+  app  = fly_app.postgres.name
+  type = "v4"
+}
+
+resource "fly_ip" "postgres_ip_v6" {
+  app  = fly_app.postgres.name
+  type = "v6"
+}
+
+locals {
+  postgres_files = [
+    "${path.module}/build/postgres/Dockerfile",
+  ]
+  postgres_hash = md5(join("", [for i in local.postgres_files : filemd5(i)]))
+}
+
+resource "null_resource" "postgres_builder" {
+  triggers = {
+    sha1 = local.postgres_hash
+  }
+
+  provisioner "local-exec" {
+    command = abspath("${path.module}/build-image.sh")
+    interpreter = [
+      "/bin/bash"
+    ]
+    environment = {
+      FLY_ACCESS_TOKEN = var.api_token
+
+      DOCKER_FILE         = "Dockerfile"
+      DOCKER_IMAGE_NAME   = fly_app.postgres.name
+      DOCKER_IMAGE_DIGEST = local.postgres_hash
+
+      # ARGS = "--build-arg PASS=${var.redis_password}}"
+    }
+    working_dir = abspath("${path.module}/build/postgres")
+  }
+}
+
+resource "fly_machine" "postgres" {
+  app    = fly_app.postgres.name
+  region = var.region
+  name   = "${var.project}-${var.environment}-postgres"
+
+  cpus     = 1
+  memorymb = 512
+
+  image = "registry.fly.io/${fly_app.postgres.name}:${local.postgres_hash}"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+
+  services = [
+    {
+      "protocol" : "tcp",
+      "ports" : [
+        {
+          port = 5432
+        }
+      ],
+      "internal_port" : 5432,
+    }
+  ]
+
+  env = {
+    POSTGRES_USER     = var.postgres_user
+    POSTGRES_PASSWORD = var.postgres_password
+    POSTGRES_DB       = "starion-sync"
+  }
+
+  depends_on = [
+    null_resource.postgres_builder,
   ]
 }

@@ -5,9 +5,11 @@ module "flyio" {
     fly = fly
   }
 
-  region           = var.fly_region
-  api_token        = var.fly_api_token
-  redis_password   = var.redis_password
-  mongodb_user     = var.mongodb_user
-  mongodb_password = var.mongodb_password
+  region            = var.fly_region
+  api_token         = var.fly_api_token
+  redis_password    = var.redis_password
+  mongodb_user      = var.mongodb_user
+  mongodb_password  = var.mongodb_password
+  postgres_user     = var.postgres_user
+  postgres_password = var.postgres_password
 }
