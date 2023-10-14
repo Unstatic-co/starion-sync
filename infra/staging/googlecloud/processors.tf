@@ -50,6 +50,10 @@ resource "google_cloud_run_service" "downloader" {
           value = "true"
         }
         env {
+          name  = "LOG_LEVEL"
+          value = "debug"
+        }
+        env {
           name  = "API_KEYS"
           value = join(",", var.processor_api_keys)
         }
@@ -153,6 +157,10 @@ resource "google_cloud_run_service" "comparer" {
           value = "true"
         }
         env {
+          name  = "LOG_LEVEL"
+          value = "debug"
+        }
+        env {
           name  = "API_KEYS"
           value = join(",", var.processor_api_keys)
         }
@@ -254,6 +262,10 @@ resource "google_cloud_run_service" "loader" {
         env {
           name  = "PRODUCTION"
           value = "true"
+        }
+        env {
+          name  = "LOG_LEVEL"
+          value = "debug"
         }
         env {
           name  = "API_KEYS"
