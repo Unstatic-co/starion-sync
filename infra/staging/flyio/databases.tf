@@ -33,7 +33,7 @@ resource "null_resource" "redis_builder" {
       "/bin/bash"
     ]
     environment = {
-      FLY_ACCESS_TOKEN = var.api_token
+      FLY_ACCESS_TOKEN = var.fly_api_token
 
       DOCKER_FILE         = "Dockerfile"
       DOCKER_IMAGE_NAME   = fly_app.redis.name
@@ -117,7 +117,7 @@ resource "null_resource" "mongodb_builder" {
       "/bin/bash"
     ]
     environment = {
-      FLY_ACCESS_TOKEN = var.api_token
+      FLY_ACCESS_TOKEN = var.fly_api_token
 
       DOCKER_FILE         = "Dockerfile"
       DOCKER_IMAGE_NAME   = fly_app.mongodb.name
@@ -201,7 +201,7 @@ resource "null_resource" "postgres_builder" {
       "/bin/bash"
     ]
     environment = {
-      FLY_ACCESS_TOKEN = var.api_token
+      FLY_ACCESS_TOKEN = var.fly_api_token
 
       DOCKER_FILE         = "Dockerfile"
       DOCKER_IMAGE_NAME   = fly_app.postgres.name
