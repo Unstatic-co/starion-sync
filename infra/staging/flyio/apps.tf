@@ -14,16 +14,20 @@ resource "fly_ip" "apps_ip_v6" {
 }
 
 locals {
-  apps_files = [
-    "${path.module}/build/apps/Dockerfile",
-    "${path.module}/build/apps/apps.json",
-  ]
+  apps_path = "${path.root}/../../apps"
+  apps_files = sort(setunion(
+    [
+      "${path.module}/build/apps/Dockerfile",
+      "${path.module}/build/apps/apps.json",
+    ],
+    [for f in fileset("${local.apps_path}", "**") : "${local.apps_path}/${f}"],
+  ))
   apps_hash = md5(join("", [for i in local.apps_files : filemd5(i)]))
 }
 
 resource "null_resource" "apps_builder" {
   triggers = {
-    sha1 = local.apps_hash
+    hash = local.apps_hash
   }
 
   provisioner "local-exec" {
@@ -91,8 +95,8 @@ resource "fly_machine" "apps" {
     BROKER_TYPE             = "kafka"
     KAFKA_SSL_ENABLED       = "true"
     KAFKA_SASL_ENABLED      = "true"
-    KAFKA_SASL_USERNAME     = "bWFzc2l2ZS1tYWdwaWUtMTIzNDQkMRlXwhjf1CjZb894Nu3jcbQ_JfkP4ROQOyg"
-    KAFKA_SASL_PASSWORD     = "OWFiNmJlOTAtN2RjZS00YzU5LWEzNmMtNzA5OTgyYWE5NDcw"
+    KAFKA_SASL_USERNAME     = var.kafka_sasl_username
+    KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
     REDIS_HOST              = "redis://default:123456@${fly_ip.redis_ip_v4.address}:6379"
     ORCHESTRATOR_ADDRESS    = var.orchestrator_address
     MICROSOFT_CLIENT_ID     = var.microsoft_client_id

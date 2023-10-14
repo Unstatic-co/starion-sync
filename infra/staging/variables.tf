@@ -5,7 +5,7 @@ variable "project" {
 
 variable "environment" {
   type    = string
-  default = "staging"
+  default = "stagging"
 }
 
 variable "fly_api_token" {
@@ -16,6 +16,16 @@ variable "fly_api_token" {
 variable "fly_region" {
   type    = string
   default = "lax"
+}
+
+variable "gcp_project" {
+  type    = string
+  default = "starion-stagging"
+}
+
+variable "gcp_region" {
+  type    = string
+  default = "us-central1"
 }
 
 variable "redis_password" {
@@ -64,6 +74,12 @@ variable "kafka_sasl_password" {
 }
 
 variable "api_keys" {
+  type      = string
+  sensitive = true
+  default   = "api-key"
+}
+
+variable "processor_api_keys" {
   type      = string
   sensitive = true
   default   = "api-key"
