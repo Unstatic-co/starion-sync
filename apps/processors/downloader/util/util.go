@@ -4,8 +4,10 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	"crypto/rand"
@@ -79,4 +81,26 @@ func MarshalJsonFile(filePath string, v interface{}) error {
 		return fmt.Errorf("Cannot unmarshal json file: %+v", err.Error())
 	}
 	return nil
+}
+
+func ConvertS3URLToHost(inputURL string) (string, error) {
+	s3URLRegex := regexp.MustCompile(`^s3://([^/]+)(:([0-9]+))?`)
+	match := s3URLRegex.FindStringSubmatch(inputURL)
+
+	if len(match) >= 2 {
+		host := match[1]
+		port := match[3]
+
+		if port != "" {
+			return fmt.Sprintf("%s:%s", host, port), nil
+		}
+		return host, nil
+	}
+
+	parsedURL, err := url.Parse(inputURL)
+	if err != nil {
+		return "", err
+	}
+
+	return parsedURL.Host, nil
 }

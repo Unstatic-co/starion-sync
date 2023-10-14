@@ -81,8 +81,8 @@ function parse-arguments() {
                 s3_endpoint="$2"
                 shift
                 ;;
-            --s3Url)
-                s3_url="$2"
+            --s3Host)
+                s3_host="$2"
                 shift
                 ;;
             --s3Region)
@@ -487,7 +487,7 @@ duckdb_convert_data_query="
     SET s3_secret_access_key='$s3_secret_key';
     SET s3_url_style='path';
     SET s3_use_ssl=false;
-    SET s3_endpoint='$s3_endpoint';
+    SET s3_endpoint='$s3_host';
     COPY t TO 's3://$s3_bucket/$s3_file_path' (FORMAT 'parquet');
 "
 if [[ "$debug" == "on" ]]; then

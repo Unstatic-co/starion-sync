@@ -28,6 +28,25 @@ variable "gcp_region" {
   default = "us-central1"
 }
 
+variable "cf_api_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "cf_api_token" {
+  type      = string
+  sensitive = true
+}
+
+variable "cf_zone_id" {
+  type = string
+}
+
+variable "cf_account_id" {
+  type = string
+}
+
+
 variable "redis_password" {
   type      = string
   sensitive = true
@@ -73,16 +92,36 @@ variable "kafka_sasl_password" {
   sensitive = true
 }
 
-variable "api_keys" {
+variable "s3_endpoint" {
+  type = string
+}
+
+variable "s3_region" {
+  type = string
+}
+
+variable "s3_bucket" {
+  type = string
+}
+
+variable "s3_access_key" {
   type      = string
   sensitive = true
-  default   = "api-key"
+}
+
+variable "s3_secret_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "api_keys" {
+  type      = list(string)
+  sensitive = true
 }
 
 variable "processor_api_keys" {
-  type      = string
+  type      = list(string)
   sensitive = true
-  default   = "api-key"
 }
 
 variable "microsoft_client_id" {

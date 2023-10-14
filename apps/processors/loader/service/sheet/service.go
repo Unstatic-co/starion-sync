@@ -58,7 +58,7 @@ func NewService(params SheetServiceInitParams) (*SheetService, error) {
 
 	// s3
 	handler, err := s3.NewHandlerWithConfig(&s3.S3HandlerConfig{
-		Url:       config.AppConfig.S3Url,
+		Endpoint:  config.AppConfig.S3Endpoint,
 		Region:    config.AppConfig.S3Region,
 		Bucket:    config.AppConfig.S3DiffDataBucket,
 		AccessKey: config.AppConfig.S3AccessKey,

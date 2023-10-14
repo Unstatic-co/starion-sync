@@ -99,6 +99,10 @@ resource "fly_machine" "apps" {
     KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
     REDIS_HOST              = "redis://default:123456@${fly_ip.redis_ip_v4.address}:6379"
     ORCHESTRATOR_ADDRESS    = var.orchestrator_address
+    DOWNLOADER_URL          = var.downloader_url
+    COMPARER_URL            = var.comparer_url
+    LOADER_URL              = var.loader_url
+    PROCESSOR_API_KEY       = random_shuffle.processor_api.result[0]
     MICROSOFT_CLIENT_ID     = var.microsoft_client_id
     MICROSOFT_CLIENT_SECRET = var.microsoft_secret_id
     GOOGLE_CLIENT_ID        = var.google_client_id
@@ -111,4 +115,9 @@ resource "fly_machine" "apps" {
     fly_machine.postgres,
     fly_machine.mongodb,
   ]
+}
+
+resource "random_shuffle" "processor_api" {
+  input        = var.processor_api_keys
+  result_count = 1
 }

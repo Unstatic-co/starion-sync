@@ -51,17 +51,32 @@ resource "google_cloud_run_service" "downloader" {
         }
         env {
           name  = "API_KEYS"
-          value = var.processor_api_keys
+          value = join(",", var.processor_api_keys)
         }
-        # env {
-        # name = "API_KEYS"
-        # value_from {
-        # secret_key_ref {
-        # key  = "latest"
-        # name = "RSA_PRIVATE_KEY_CODESIGN"
-        # }
-        # }
-        # }
+        env {
+          name  = "S3_URL"
+          value = var.s3_endpoint
+        }
+        env {
+          name  = "S3_REGION"
+          value = var.s3_region
+        }
+        env {
+          name  = "S3_DIFF_DATA_BUCKET"
+          value = var.s3_bucket
+        }
+        env {
+          name  = "S3_ACCESS_KEY"
+          value = var.s3_access_key
+        }
+        env {
+          name  = "S3_SECRET_KEY"
+          value = var.s3_secret_key
+        }
+        env {
+          name  = "S3_SSL"
+          value = "true"
+        }
       }
       timeout_seconds       = 300
       container_concurrency = 20
@@ -139,7 +154,31 @@ resource "google_cloud_run_service" "comparer" {
         }
         env {
           name  = "API_KEYS"
-          value = var.processor_api_keys
+          value = join(",", var.processor_api_keys)
+        }
+        env {
+          name  = "S3_URL"
+          value = var.s3_endpoint
+        }
+        env {
+          name  = "S3_REGION"
+          value = var.s3_region
+        }
+        env {
+          name  = "S3_DIFF_DATA_BUCKET"
+          value = var.s3_bucket
+        }
+        env {
+          name  = "S3_ACCESS_KEY"
+          value = var.s3_access_key
+        }
+        env {
+          name  = "S3_SECRET_KEY"
+          value = var.s3_secret_key
+        }
+        env {
+          name  = "S3_SSL"
+          value = "true"
         }
       }
       timeout_seconds       = 60
@@ -218,7 +257,7 @@ resource "google_cloud_run_service" "loader" {
         }
         env {
           name  = "API_KEYS"
-          value = var.processor_api_keys
+          value = join(",", var.processor_api_keys)
         }
         env {
           name  = "DB_TYPE"
@@ -227,6 +266,30 @@ resource "google_cloud_run_service" "loader" {
         env {
           name  = "DB_URI"
           value = var.postgres_uri
+        }
+        env {
+          name  = "S3_ENDPOINT"
+          value = var.s3_endpoint
+        }
+        env {
+          name  = "S3_REGION"
+          value = var.s3_region
+        }
+        env {
+          name  = "S3_DIFF_DATA_BUCKET"
+          value = var.s3_bucket
+        }
+        env {
+          name  = "S3_ACCESS_KEY"
+          value = var.s3_access_key
+        }
+        env {
+          name  = "S3_SECRET_KEY"
+          value = var.s3_secret_key
+        }
+        env {
+          name  = "S3_SSL"
+          value = "true"
         }
       }
       timeout_seconds       = 120

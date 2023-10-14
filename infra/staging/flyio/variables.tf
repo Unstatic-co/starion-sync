@@ -68,10 +68,26 @@ variable "kafka_sasl_password" {
   sensitive = true
 }
 
+variable "downloader_url" {
+  type = string
+}
+
+variable "comparer_url" {
+  type = string
+}
+
+variable "loader_url" {
+  type = string
+}
+
 variable "api_keys" {
-  type      = string
+  type      = list(string)
   sensitive = true
-  default   = "api-key"
+}
+
+variable "processor_api_keys" {
+  type      = list(string)
+  sensitive = true
 }
 
 variable "microsoft_client_id" {

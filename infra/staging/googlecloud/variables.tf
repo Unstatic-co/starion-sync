@@ -28,7 +28,29 @@ variable "postgres_uri" {
   sensitive = true
 }
 
-variable "processor_api_keys" {
+variable "s3_endpoint" {
+  type = string
+}
+
+variable "s3_region" {
+  type = string
+}
+
+variable "s3_bucket" {
+  type = string
+}
+
+variable "s3_access_key" {
   type      = string
+  sensitive = true
+}
+
+variable "s3_secret_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "processor_api_keys" {
+  type      = list(string)
   sensitive = true
 }
