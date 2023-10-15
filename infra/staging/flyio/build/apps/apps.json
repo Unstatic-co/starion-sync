@@ -67,16 +67,6 @@
         "KAFKA_CLIENT_ID": "cron-trigger",
         "KAFKA_CONSUMER_GROUP_ID": "cron-trigger-consumer"
       }
-    },
-    {
-      "name": "webhook-trigger",
-      "script": "dist/apps/triggers/webhook/src/main.js",
-      "instances": 1,
-      "env": {
-        "PORT": "8004",
-        "KAFKA_CLIENT_ID": "webhook-trigger",
-        "KAFKA_CONSUMER_GROUP_ID": "webhook-trigger-consumer"
-      }
     }
   ]
 }

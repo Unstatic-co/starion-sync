@@ -1,3 +1,9 @@
+locals {
+  downloader_url = "https://${fly_app.downloader.name}.fly.dev"
+  comparer_url   = "https://${fly_app.comparer.name}.fly.dev"
+  loader_url     = "https://${fly_app.loader.name}.fly.dev"
+}
+
 resource "fly_app" "apps" {
   name = "${var.project}-${var.environment}-apps"
   org  = var.organization
@@ -14,13 +20,23 @@ resource "fly_ip" "apps_ip_v6" {
 }
 
 locals {
-  apps_path = "${path.root}/../../apps"
+  configurator_path   = "${path.root}/../../apps/configurator"
+  controller_path     = "${path.root}/../../apps/controller"
+  worker_path         = "${path.root}/../../apps/worker"
+  post_processor_path = "${path.root}/../../apps/post-processor"
+  webhook_path        = "${path.root}/../../apps/webhook"
+  cron_trigger_path   = "${path.root}/../../apps/cron-trigger"
   apps_files = sort(setunion(
     [
       "${path.module}/build/apps/Dockerfile",
       "${path.module}/build/apps/apps.json",
     ],
-    [for f in fileset("${local.apps_path}", "**") : "${local.apps_path}/${f}"],
+    [for f in fileset("${local.configurator_path}", "**") : "${local.configurator_path}/${f}"],
+    [for f in fileset("${local.controller_path}", "**") : "${local.controller_path}/${f}"],
+    [for f in fileset("${local.worker_path}", "**") : "${local.worker_path}/${f}"],
+    [for f in fileset("${local.post_processor_path}", "**") : "${local.post_processor_path}/${f}"],
+    [for f in fileset("${local.webhook_path}", "**") : "${local.webhook_path}/${f}"],
+    [for f in fileset("${local.cron_trigger_path}", "**") : "${local.cron_trigger_path}/${f}"],
   ))
   apps_hash = md5(join("", [for i in local.apps_files : filemd5(i)]))
 }
@@ -86,22 +102,25 @@ resource "fly_machine" "apps" {
 
   env = {
     NODE_ENV                = var.environment
-    LOG_LEVEL               = "warn"
+    LOG_LEVEL               = "info"
     API_KEYS                = "api-key"
     BROKER_URIS             = var.broker_uris
     DB_TYPE                 = "mongodb"
-    DB_URI                  = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-sync?directConnection=true&authSource=admin"
+    DB_URI                  = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin"
     DEST_DB_URI             = "postgres://${var.postgres_user}:${var.postgres_password}@${fly_ip.postgres_ip_v4.address}:5432/starion-sync?sslmode=disable"
     BROKER_TYPE             = "kafka"
     KAFKA_SSL_ENABLED       = "true"
     KAFKA_SASL_ENABLED      = "true"
     KAFKA_SASL_USERNAME     = var.kafka_sasl_username
     KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
-    REDIS_HOST              = "redis://default:123456@${fly_ip.redis_ip_v4.address}:6379"
+    REDIS_HOST              = fly_ip.redis_ip_v4.address
+    REDIS_PORT              = "6379"
+    REDIS_PASSWORD          = var.redis_password
+    REDIS_TLS_ENABLED       = "false"
     ORCHESTRATOR_ADDRESS    = var.orchestrator_address
-    DOWNLOADER_URL          = var.downloader_url
-    COMPARER_URL            = var.comparer_url
-    LOADER_URL              = var.loader_url
+    DOWNLOADER_URL          = local.downloader_url
+    COMPARER_URL            = local.comparer_url
+    LOADER_URL              = local.loader_url
     PROCESSOR_API_KEY       = random_shuffle.processor_api.result[0]
     MICROSOFT_CLIENT_ID     = var.microsoft_client_id
     MICROSOFT_CLIENT_SECRET = var.microsoft_secret_id
@@ -114,6 +133,7 @@ resource "fly_machine" "apps" {
     fly_machine.redis,
     fly_machine.postgres,
     fly_machine.mongodb,
+    null_resource.mongodb_replica_set_setup,
   ]
 }
 

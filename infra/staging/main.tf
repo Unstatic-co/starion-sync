@@ -19,6 +19,11 @@ module "flyio" {
   broker_uris          = var.broker_uris
   kafka_sasl_username  = var.kafka_sasl_username
   kafka_sasl_password  = var.kafka_sasl_password
+  s3_endpoint          = var.s3_endpoint
+  s3_region            = var.s3_region
+  s3_bucket            = var.s3_bucket
+  s3_access_key        = var.s3_access_key
+  s3_secret_key        = var.s3_secret_key
   downloader_url       = module.googlecloud.downloader_url
   comparer_url         = module.googlecloud.comparer_url
   loader_url           = module.googlecloud.loader_url

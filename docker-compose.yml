@@ -24,7 +24,7 @@ services:
       - PORT=8080
       - API_KEYS=${API_KEYS}
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - DEST_DB_URI=${DEST_DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
@@ -64,7 +64,7 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=controller
@@ -103,7 +103,7 @@ services:
       - NODE_ENV=development
       - PORT=9000
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=worker
@@ -146,7 +146,7 @@ services:
       - NODE_ENV=development
       - PORT=9000
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=post-processor
@@ -186,7 +186,7 @@ services:
       - NODE_ENV=development
       - PORT=9000
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=webhook
@@ -307,7 +307,7 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=cron-trigger
@@ -346,7 +346,7 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=webhook-trigger

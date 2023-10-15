@@ -25,7 +25,7 @@ resource "null_resource" "downloader_builder" {
     environment = {
       PROJECT    = var.gcp_project
       WORKDIR    = abspath(local.downloader_path)
-      IMAGE_NAME = data.google_container_registry_image.downloader.name
+      IMAGE_NAME = "${data.google_container_registry_image.downloader.name}:${local.downloader_hash}"
     }
     working_dir = abspath(path.module)
   }
@@ -38,7 +38,7 @@ resource "google_cloud_run_service" "downloader" {
   template {
     spec {
       containers {
-        image = data.google_container_registry_image.downloader.image_url
+        image = "${data.google_container_registry_image.downloader.image_url}:${local.downloader_hash}"
         resources {
           limits = {
             cpu    = 1
@@ -58,7 +58,7 @@ resource "google_cloud_run_service" "downloader" {
           value = join(",", var.processor_api_keys)
         }
         env {
-          name  = "S3_URL"
+          name  = "S3_ENDPOINT"
           value = var.s3_endpoint
         }
         env {
@@ -165,7 +165,7 @@ resource "google_cloud_run_service" "comparer" {
           value = join(",", var.processor_api_keys)
         }
         env {
-          name  = "S3_URL"
+          name  = "S3_ENDPOINT"
           value = var.s3_endpoint
         }
         env {

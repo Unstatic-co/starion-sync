@@ -9,5 +9,5 @@ EXPOSE 27017
 # RUN chmod +x ./init.sh
 COPY ./init.js /docker-entrypoint-initdb.d/init.js
 # ENTRYPOINT ["/bin/bash", "-c", "./init.sh"]
-# CMD ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/tmp/key.file"]
-CMD ["--bind_ip_all", "--keyFile", "/tmp/key.file"]
+CMD ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/tmp/key.file"]
+# ENTRYPOINT ["mongod"]

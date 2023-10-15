@@ -5,6 +5,7 @@ provider "registry.terraform.io/cloudflare/cloudflare" {
   version     = "4.16.0"
   constraints = "~> 4.0"
   hashes = [
+    "h1:5/Mz4BadyjMXarbuNclVvJsZ9WpUXCBpPpeTeMJA3fM=",
     "h1:pia7CCAHtyGxEAeYkz+MiohX2YnRhPYwrexSbW560es=",
     "zh:0e2add99a234202d0cb306a06d98f7234024fbf03387f326b484ee3793eb17b7",
     "zh:217485b986a34845f91836cec516f257fda8c1a18394eee12084fc006d0f0a4f",
@@ -49,8 +50,10 @@ provider "registry.terraform.io/fly-apps/fly" {
 }
 
 provider "registry.terraform.io/hashicorp/google" {
-  version = "5.1.0"
+  version     = "5.1.0"
+  constraints = "~> 5.1.0"
   hashes = [
+    "h1:/Zq/ntZdxKjpOwtmWyUidVeyrwFKY5DvUv6PlYR8+qQ=",
     "h1:sWFV9Doy66DZYiyeFPGy3UWG5Zwqaw0aSDoIkrm8A/M=",
     "zh:01f24868bba2292a097cb7d754b41a660050475235c07ceddeceaa8f2a19f6d8",
     "zh:184182ec28d6aec21531001092e276f1ea1b1b6ad2bba7e632bc56c5d6f2ec77",
@@ -90,6 +93,7 @@ provider "registry.terraform.io/hashicorp/null" {
 provider "registry.terraform.io/hashicorp/random" {
   version = "3.5.1"
   hashes = [
+    "h1:VSnd9ZIPyfKHOObuQCaKfnjIHRtR7qTw19Rz8tJxm+k=",
     "h1:sZ7MTSD4FLekNN2wSNFGpM+5slfvpm5A/NLVZiB7CO0=",
     "zh:04e3fbd610cb52c1017d282531364b9c53ef72b6bc533acb2a90671957324a64",
     "zh:119197103301ebaf7efb91df8f0b6e0dd31e6ff943d231af35ee1831c599188d",

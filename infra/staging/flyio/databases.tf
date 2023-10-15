@@ -166,6 +166,30 @@ resource "fly_machine" "mongodb" {
   ]
 }
 
+resource "null_resource" "mongodb_replica_set_setup" {
+  triggers = {
+    hash = local.mongodb_hash
+  }
+
+  provisioner "local-exec" {
+    command = abspath("${path.module}/build/mongodb/init.sh")
+    interpreter = [
+      "/bin/bash"
+    ]
+    environment = {
+      FLY_ACCESS_TOKEN           = var.fly_api_token
+      FLY_MACHINE_ID             = fly_machine.mongodb.id
+      FLY_APP                    = fly_app.mongodb.name
+      MONGO_INITDB_ROOT_USERNAME = var.mongodb_user
+      MONGO_INITDB_ROOT_PASSWORD = var.mongodb_password
+    }
+  }
+
+  depends_on = [
+    fly_machine.mongodb,
+  ]
+}
+
 // ********************* Postgres *********************
 
 resource "fly_app" "postgres" {
