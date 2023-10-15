@@ -1,4 +1,10 @@
 
+locals {
+  postgres_uri = "postgres://${var.postgres_user}:${var.postgres_password}@starion-sync-stagging-postgres.fly.dev:5432/starion-sync?sslmode=disable"
+  mongodb_uri  = "mongodb://${var.mongodb_user}:${var.mongodb_password}@starion-sync-stagging-mongodb.fly.dev:27017/starion-sync?directConnection=true&authSource=admin"
+  broker_uri   = "${module.upstash.kafka_uri}:9092"
+}
+
 module "flyio" {
   source = "./flyio"
   providers = {
@@ -16,9 +22,9 @@ module "flyio" {
   postgres_user        = var.postgres_user
   postgres_password    = var.postgres_password
   orchestrator_address = var.orchestrator_address
-  broker_uris          = var.broker_uris
-  kafka_sasl_username  = var.kafka_sasl_username
-  kafka_sasl_password  = var.kafka_sasl_password
+  broker_uris          = local.broker_uri
+  kafka_sasl_username  = module.upstash.kafka_username
+  kafka_sasl_password  = module.upstash.kafka_password
   s3_endpoint          = var.s3_endpoint
   s3_region            = var.s3_region
   s3_bucket            = var.s3_bucket
@@ -35,13 +41,9 @@ module "flyio" {
   google_secret_id     = var.google_secret_id
 
   depends_on = [
-    module.googlecloud
+    module.googlecloud,
+    module.upstash
   ]
-}
-
-locals {
-  postgres_uri = "postgres://${var.postgres_user}:${var.postgres_password}@starion-sync-stagging-postgres.fly.dev:5432/starion-sync?sslmode=disable"
-  mongodb_uri  = "mongodb://${var.mongodb_user}:${var.mongodb_password}@starion-sync-stagging-mongodb.fly.dev:27017/starion-sync?directConnection=true&authSource=admin"
 }
 
 module "googlecloud" {
@@ -74,4 +76,19 @@ module "cloudflare" {
 
   cf_zone_id    = var.cf_zone_id
   cf_account_id = var.cf_account_id
+}
+
+module "upstash" {
+  source = "./upstash"
+
+  project     = var.project
+  environment = var.environment
+
+  upstash_email   = var.upstash_email
+  upstash_api_key = var.upstash_api_key
+  kafka_region    = var.upstash_kafka_region
+
+  providers = {
+    upstash = upstash
+  }
 }

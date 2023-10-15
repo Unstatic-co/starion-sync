@@ -46,6 +46,14 @@ variable "cf_account_id" {
   type = string
 }
 
+variable "upstash_api_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "upstash_email" {
+  type = string
+}
 
 variable "redis_password" {
   type      = string
@@ -81,6 +89,11 @@ variable "broker_uris" {
   type      = string
   sensitive = true
 }
+
+variable "upstash_kafka_region" { // upstash
+  type = string
+}
+
 
 variable "kafka_sasl_username" {
   type      = string
