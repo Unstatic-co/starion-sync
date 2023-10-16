@@ -253,3 +253,112 @@ resource "fly_machine" "webhook_trigger" {
     fly_machine.mongodb,
   ]
 }
+
+# // **************************** Form Sync ****************************
+
+# resource "fly_app" "formsync" {
+# name = "${var.project}-${var.environment}-formsync"
+# org  = var.organization
+# }
+
+# resource "fly_ip" "formsync_ip_v4" {
+# app  = fly_app.formsync.name
+# type = "v4"
+# }
+
+# resource "fly_ip" "formsync_ip_v6" {
+# app  = fly_app.formsync.name
+# type = "v6"
+# }
+
+# locals {
+# formsync_path = abspath("${path.root}/../../apps/triggers/webhook")
+# formsync_files = sort(setunion(
+# [
+# "${local.formsync_path}/Dockerfile",
+# ],
+# [for f in fileset("${local.formsync_path}", "**") : "${local.formsync_path}/${f}"],
+# ))
+# formsync_hash = md5(join("", [for i in local.formsync_files : filemd5(i)]))
+# }
+
+# resource "null_resource" "formsync_builder" {
+# triggers = {
+# hash = local.formsync_hash
+# }
+
+# provisioner "local-exec" {
+# command = abspath("${path.module}/build-image.sh")
+# interpreter = [
+# "/bin/bash"
+# ]
+# environment = {
+# FLY_ACCESS_TOKEN    = var.fly_api_token
+# DOCKER_FILE         = abspath("${local.formsync_path}/Dockerfile")
+# DOCKER_IMAGE_NAME   = fly_app.formsync.name
+# DOCKER_IMAGE_DIGEST = local.formsync_hash
+# }
+# working_dir = abspath("${path.root}/../../")
+# }
+# }
+
+# resource "fly_machine" "formsync" {
+# app    = fly_app.formsync.name
+# region = var.region
+# name   = "${var.project}-${var.environment}-formsync"
+
+# cpus     = 1
+# memorymb = 256
+
+# image = "registry.fly.io/${fly_app.formsync.name}:${local.formsync_hash}"
+
+# services = [
+# {
+# "protocol" : "tcp",
+# "ports" : [
+# {
+# port : 443,
+# handlers : [
+# "tls",
+# "http"
+# ]
+# },
+# {
+# "port" : 80,
+# "handlers" : [
+# "http"
+# ]
+# }
+# ],
+# "internal_port" : 8080,
+# }
+# ]
+
+# env = {
+# NODE_ENV             = var.environment
+# LOG_LEVEL            = "info"
+# PORT                 = "8080"
+# DB_TYPE              = "mongodb"
+# DB_URI               = local.db_uri
+# DEST_DB_URI          = local.dest_db_uri
+# BROKER_TYPE          = "kafka"
+# BROKER_URIS          = var.broker_uris
+# KAFKA_SSL_ENABLED    = "true"
+# KAFKA_SASL_ENABLED   = "true"
+# KAFKA_SASL_USERNAME  = var.kafka_sasl_username
+# KAFKA_SASL_PASSWORD  = var.kafka_sasl_password
+# REDIS_HOST           = fly_ip.redis_ip_v4.address
+# REDIS_PORT           = "6379"
+# REDIS_PASSWORD       = var.redis_password
+# REDIS_TLS_ENABLED    = "false"
+# GOOGLE_CLIENT_ID     = var.google_client_id
+# GOOGLE_CLIENT_SECRET = var.google_secret_id
+# formsync_BASE_URL    = local.formsync_base_url
+# }
+
+# depends_on = [
+# null_resource.formsync_builder,
+# fly_machine.redis,
+# fly_machine.mongodb,
+# ]
+# }
