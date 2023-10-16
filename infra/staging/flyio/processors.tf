@@ -286,3 +286,92 @@ resource "fly_machine" "loader" {
     null_resource.loader_builder
   ]
 }
+
+# *********************************************** METADATA ***********************************************
+
+resource "fly_app" "metadata" {
+  name = "${var.project}-${var.environment}-metadata"
+  org  = var.organization
+}
+
+resource "fly_ip" "metadata_ip_v4" {
+  app  = fly_app.metadata.name
+  type = "v4"
+}
+
+resource "fly_ip" "metadata_ip_v6" {
+  app  = fly_app.metadata.name
+  type = "v6"
+}
+
+locals {
+  metadata_path = "${path.root}/../../form-sync/module/metadata"
+  metadata_files = sort(setunion(
+    [for f in fileset("${local.metadata_path}", "**") : "${local.metadata_path}/${f}"],
+  ))
+  metadata_hash = md5(join("", [for i in local.metadata_files : filemd5(i)]))
+}
+
+resource "null_resource" "metadata_builder" {
+  triggers = {
+    hash = local.metadata_hash
+  }
+
+  provisioner "local-exec" {
+    command = abspath("${path.module}/build-image.sh")
+    interpreter = [
+      "/bin/bash"
+    ]
+    environment = {
+      FLY_ACCESS_TOKEN    = var.fly_api_token
+      DOCKER_FILE         = abspath("${local.metadata_path}/Dockerfile")
+      DOCKER_IMAGE_NAME   = fly_app.metadata.name
+      DOCKER_IMAGE_DIGEST = local.metadata_hash
+    }
+    working_dir = abspath(local.metadata_path)
+  }
+}
+
+resource "fly_machine" "metadata" {
+  app    = fly_app.metadata.name
+  region = var.region
+  name   = "${var.project}-${var.environment}-metadata"
+
+  cpus     = 1
+  memorymb = 256
+
+  image = "registry.fly.io/${fly_app.metadata.name}:${local.metadata_hash}"
+
+  services = [
+    {
+      "protocol" : "tcp",
+      "ports" : [
+        {
+          port : 443,
+          handlers : [
+            "tls",
+            "http"
+          ]
+        },
+        {
+          "port" : 80,
+          "handlers" : [
+            "http"
+          ]
+        }
+      ],
+      "internal_port" : 8080,
+    }
+  ]
+
+  env = {
+    PRODUCTION = "true"
+    PORT       = "8080"
+    # API_KEYS            = join(",", var.processor_api_keys)
+    DB_URI = local.mongodb_uri
+  }
+
+  depends_on = [
+    null_resource.metadata_builder
+  ]
+}
