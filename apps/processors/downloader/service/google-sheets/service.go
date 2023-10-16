@@ -180,6 +180,7 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("Cannot generate temp file: %w", err)
 	}
+	s3Host, _ := util.ConvertS3URLToHost(config.AppConfig.S3Endpoint)
 
 	cmd := exec.CommandContext(
 		ctx,
@@ -195,7 +196,7 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 		"--dataSourceId", s.dataSourceId,
 		"--syncVersion", fmt.Sprintf("%d", s.syncVersion),
 		"--s3Endpoint", config.AppConfig.S3Endpoint,
-		"--s3Url", config.AppConfig.S3Url,
+		"--s3Host", s3Host,
 		"--s3Region", config.AppConfig.S3Region,
 		"--s3Bucket", config.AppConfig.S3DiffDataBucket,
 		"--s3AccessKey", config.AppConfig.S3AccessKey,

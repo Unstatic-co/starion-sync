@@ -24,7 +24,7 @@ services:
       - PORT=8080
       - API_KEYS=${API_KEYS}
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - DEST_DB_URI=${DEST_DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
@@ -34,7 +34,7 @@ services:
       - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
       - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
       - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
-      - ORCHESTRATOR_ADDRESS=temporal:7233
+      - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=configurator
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=configurator
       - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
@@ -64,7 +64,7 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=controller
@@ -73,7 +73,7 @@ services:
       - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
       - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
       - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
-      - ORCHESTRATOR_ADDRESS=temporal:7233
+      - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=controller
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=controller
       - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
@@ -103,7 +103,7 @@ services:
       - NODE_ENV=development
       - PORT=9000
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=worker
@@ -112,7 +112,7 @@ services:
       - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
       - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
       - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
-      - ORCHESTRATOR_ADDRESS=temporal:7233
+      - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=worker
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=worker
       - DOWNLOADER_URL=http://downloader:8080
@@ -146,7 +146,7 @@ services:
       - NODE_ENV=development
       - PORT=9000
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=post-processor
@@ -155,7 +155,7 @@ services:
       - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
       - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
       - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
-      - ORCHESTRATOR_ADDRESS=temporal:7233
+      - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=post-processor
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=post-processor
       - S3_URL=http://minio:9000
@@ -186,7 +186,7 @@ services:
       - NODE_ENV=development
       - PORT=9000
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=webhook
@@ -221,11 +221,11 @@ services:
     environment:
       - PORT=8080
       - API_KEYS=${PROCESSOR_API_KEYS}
-      - S3_URL=http://minio:9000
-      - S3_REGION=us-east-1
-      - S3_DIFF_DATA_BUCKET=diff-data
-      - S3_ACCESS_KEY=admin
-      - S3_SECRET_KEY=abc123456
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_REGION=${S3_REGION}
+      - S3_DIFF_DATA_BUCKET=${S3_DIFF_DATA_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
   comparer:
     depends_on:
       - minio
@@ -245,11 +245,11 @@ services:
     environment:
       - PORT=8080
       - API_KEYS=${PROCESSOR_API_KEYS}
-      - S3_URL=http://minio:9000
-      - S3_REGION=us-east-1
-      - S3_DIFF_DATA_BUCKET=diff-data
-      - S3_ACCESS_KEY=admin
-      - S3_SECRET_KEY=abc123456
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_REGION=${S3_REGION}
+      - S3_DIFF_DATA_BUCKET=${S3_DIFF_DATA_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
   loader:
     depends_on:
       - minio
@@ -270,11 +270,11 @@ services:
     environment:
       - PORT=8080
       - API_KEYS=${PROCESSOR_API_KEYS}
-      - S3_URL=http://minio:9000
-      - S3_REGION=us-east-1
-      - S3_DIFF_DATA_BUCKET=diff-data
-      - S3_ACCESS_KEY=admin
-      - S3_SECRET_KEY=abc123456
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_REGION=${S3_REGION}
+      - S3_DIFF_DATA_BUCKET=${S3_DIFF_DATA_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
       - DB_TYPE=postgres
       # - DB_HOST=postgresql
       # - DB_PORT=5432
@@ -307,7 +307,7 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=cron-trigger
@@ -316,7 +316,7 @@ services:
       - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
       - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
       - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
-      - ORCHESTRATOR_ADDRESS=temporal:7233
+      - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=cron-trigger
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=cron-trigger
       - REDIS_HOST=${REDIS_HOST}
@@ -346,7 +346,7 @@ services:
       - NODE_ENV=development
       - PORT=8080
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
       - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=webhook-trigger

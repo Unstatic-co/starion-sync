@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Starion Sync",
+      "Group": "Servers",
+      "Host": "postgresql",
+      "Port": 5432,
+      "MaintenanceDB": "starion-form-sync",
+      "Username": "admin",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer"
+    }
+  }
+}

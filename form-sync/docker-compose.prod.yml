@@ -1,0 +1,106 @@
+version: "3.9"
+services:
+  main:
+    depends_on:
+      - postgresql
+      - mongodb
+      - redis
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
+    build:
+      context: ./main
+      dockerfile: Dockerfile
+    expose:
+      - 8080
+    ports:
+      - 9000:8080
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - API_KEYS=${API_KEYS}
+      - DB_HOST=postgresql
+      - DB_PORT=5432
+      - DB_USERNAME=${POSTGRESQL_USERNAME}
+      - DB_PASSWORD=${POSTGRESQL_PASSWORD}
+      - DB_NAME=${POSTGRESQL_DATABASE_NAME}
+      - METADATA_DB_URI=${METADATA_DB_URI}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS_ENABLED=${REDIS_TLS_ENABLED}
+      - WEBHOOK_PUBLIC_KEY=${WEBHOOK_PUBLIC_KEY}
+      - METADATA_HOST_URL=${METADATA_HOST_URL}
+      - STARION_SYNC_BASE_URL=${STARION_SYNC_BASE_URL}
+      - STARION_SYNC_API_KEY=${STARION_SYNC_API_KEY}
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+  metadata:
+    depends_on:
+      - mongodb
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
+    build:
+      context: ./module/metadata
+      dockerfile: Dockerfile
+    expose:
+      - 8080
+    ports:
+      - 8000:8080
+    environment:
+      - PRODUCTION=true
+      - PORT=8080
+      - DB_URI=${METADATA_DB_URI}
+  # --------------------------------- POSTGRESQL ---------------------------------------#
+  postgresql:
+    restart: on-failure
+    image: bitnami/postgresql:15-debian-11
+    ports:
+      - 5432:5432
+    volumes:
+      - postgresql:/bitnami/postgresql
+    environment:
+      - POSTGRESQL_USERNAME=${POSTGRESQL_USERNAME}
+      - POSTGRESQL_PASSWORD=${POSTGRESQL_PASSWORD}
+      - POSTGRESQL_DATABASE=${POSTGRESQL_DATABASE_NAME}
+  # --------------------------------- REDIS ---------------------------------------#
+  redis:
+    restart: on-failure
+    image: bitnami/redis:6.2.13-debian-11-r13
+    ports:
+      - 6379:${REDIS_PORT}
+    volumes:
+      - redis:/bitnami/redis/data
+    environment:
+      - REDIS_PORT_NUMBER=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+  # --------------------------------- MONGODB ---------------------------------------#
+  mongodb:
+    restart: on-failure
+    image: bitnami/mongodb:5.0
+    platform: linux/amd64
+    ports:
+      - 27017:27017
+    environment:
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb
+      - MONGODB_ROOT_USER=${MONGODB_ROOT_USERNAME}
+      - MONGODB_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
+      - MONGODB_DATABASE=${MONGODB_DATABASE_NAME}
+      - MONGODB_REPLICA_SET_MODE=primary
+      - MONGODB_REPLICA_SET_KEY=${MONGODB_REPLICASET_NAME}
+    volumes:
+      - mongodb:/bitnami/mongodb
+volumes:
+  postgresql:
+  pgadmin:
+  redis:
+  mongodb:

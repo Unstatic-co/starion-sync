@@ -32,7 +32,7 @@ async function bootstrap() {
     options: brokerConfig.options,
   });
 
-  if (environment === 'production') {
+  if (environment === 'production' || environment === 'stagging') {
     await app.startAllMicroservices();
   } else {
     app.startAllMicroservices();

@@ -60,28 +60,28 @@ func New(params CompareServiceInitParams) *CompareService {
 }
 
 func (s *CompareService) getS3DataFileLocation(syncVersion uint) string {
-	return fmt.Sprintf(`%s/%s/data/%s-%d.parquet`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
+	return fmt.Sprintf(`%s/%s/data/%s-%d.parquet`, config.AppConfig.S3Endpoint, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
 func (s *CompareService) getS3SchemaFileLocation(syncVersion uint) string {
-	return fmt.Sprintf(`%s/%s/schema/%s-%d.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
+	return fmt.Sprintf(`%s/%s/schema/%s-%d.json`, config.AppConfig.S3Endpoint, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
 func (s *CompareService) getS3ResultFileLocation(syncVersion uint) string {
-	return fmt.Sprintf(`%s/%s/result/%s-%d.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
+	return fmt.Sprintf(`%s/%s/result/%s-%d.json`, config.AppConfig.S3Endpoint, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
 func (s *CompareService) getS3ResultAddedRowsFileLocation(syncVersion uint) string {
-	return fmt.Sprintf(`%s/%s/result/%s-%d-addedRows.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
+	return fmt.Sprintf(`%s/%s/result/%s-%d-addedRows.json`, config.AppConfig.S3Endpoint, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
 func (s *CompareService) getS3ResultDeletedRowsFileLocation(syncVersion uint) string {
-	return fmt.Sprintf(`%s/%s/result/%s-%d-deletedRows.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
+	return fmt.Sprintf(`%s/%s/result/%s-%d-deletedRows.json`, config.AppConfig.S3Endpoint, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
 func (s *CompareService) getS3ResultDeletedFieldsFileLocation(syncVersion uint) string {
-	return fmt.Sprintf(`%s/%s/result/%s-%d-deletedFields.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
+	return fmt.Sprintf(`%s/%s/result/%s-%d-deletedFields.json`, config.AppConfig.S3Endpoint, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
 func (s *CompareService) getS3ResultUpdatedFieldsFileLocation(syncVersion uint) string {
-	return fmt.Sprintf(`%s/%s/result/%s-%d-updatedFields.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
+	return fmt.Sprintf(`%s/%s/result/%s-%d-updatedFields.json`, config.AppConfig.S3Endpoint, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
 func (s *CompareService) getS3ResultAddedFieldsFileLocation(syncVersion uint) string {
-	return fmt.Sprintf(`%s/%s/result/%s-%d-addedFields.json`, config.AppConfig.S3Url, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
+	return fmt.Sprintf(`%s/%s/result/%s-%d-addedFields.json`, config.AppConfig.S3Endpoint, config.AppConfig.S3DiffDataBucket, s.dataSourceId, syncVersion)
 }
 
 func (s *CompareService) CompareData(ctx context.Context) error {
@@ -207,7 +207,7 @@ func (s *CompareService) CompareSchema(ctx context.Context) error {
 	}
 
 	handler, err := s3.NewHandlerWithConfig(&s3.S3HandlerConfig{
-		Url:       config.AppConfig.S3Url,
+		Endpoint:  config.AppConfig.S3Endpoint,
 		Region:    config.AppConfig.S3Region,
 		Bucket:    config.AppConfig.S3DiffDataBucket,
 		AccessKey: config.AppConfig.S3AccessKey,
@@ -224,7 +224,7 @@ func (s *CompareService) GetSchema(ctx context.Context) error {
 	log.Info("Getting schema for ds " + s.dataSourceId)
 	appConfig := config.AppConfig
 	s3Config := s3.S3HandlerConfig{
-		Url:       appConfig.S3Url,
+		Endpoint:  appConfig.S3Endpoint,
 		Region:    appConfig.S3Region,
 		Bucket:    appConfig.S3DiffDataBucket,
 		AccessKey: appConfig.S3AccessKey,

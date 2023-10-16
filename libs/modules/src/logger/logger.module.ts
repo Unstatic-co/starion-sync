@@ -16,32 +16,31 @@ export const LoggerModule = WinstonModule.forRootAsync({
           winston.format.colorize({ all: true }),
           winston.format.prettyPrint(),
           winston.format.printf((info) => {
-            return `${info.level} ${
-              info.context ? '[' + info.context + ']' : ''
-            }: ${info.message}`;
+            return `${info.level} ${info.context ? '[' + info.context + ']' : ''
+              }: ${info.message}`;
           }),
         ),
         handleExceptions: true,
-        level: 'debug',
+        level: logLevel,
       }),
     ];
 
-    if (environment === 'production') {
-      transports.push(
-        new winston.transports.File({
-          filename: '/logs/combine.log',
-          format: winston.format.combine(
-            winston.format.timestamp(),
-            winston.format.errors({ stack: true }),
-            winston.format.json(),
-          ),
-          handleExceptions: true,
-          maxsize: 5242880, // 5MB
-          maxFiles: 5,
-          level: logLevel,
-        }),
-      );
-    }
+    // if (environment === 'production') {
+    // transports.push(
+    // new winston.transports.File({
+    // filename: '/logs/combine.log',
+    // format: winston.format.combine(
+    // winston.format.timestamp(),
+    // winston.format.errors({ stack: true }),
+    // winston.format.json(),
+    // ),
+    // handleExceptions: true,
+    // maxsize: 5242880, // 5MB
+    // maxFiles: 5,
+    // level: logLevel,
+    // }),
+    // );
+    // }
 
     return {
       level: logLevel,
