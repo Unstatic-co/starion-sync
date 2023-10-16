@@ -242,7 +242,7 @@ resource "fly_machine" "postgres" {
   region = var.region
   name   = "${var.project}-${var.environment}-postgres"
 
-  cpus     = 1
+  cpus     = 2
   memorymb = 512
 
   image = "registry.fly.io/${fly_app.postgres.name}:${local.postgres_hash}"
