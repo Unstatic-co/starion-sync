@@ -11,4 +11,5 @@ FROM node:18.16.0-bullseye-slim
 WORKDIR /app
 COPY --from=builder /workdir/dist/apps/triggers/webhook ./dist
 COPY --from=builder /workdir/node_modules ./node_modules
+
 CMD ["node", "dist/apps/triggers/webhook/src/main.js"]

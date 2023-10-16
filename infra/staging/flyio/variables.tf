@@ -117,7 +117,7 @@ variable "microsoft_client_id" {
   sensitive = true
 }
 
-variable "microsoft_secret_id" {
+variable "microsoft_client_secret" {
   type      = string
   sensitive = true
 }

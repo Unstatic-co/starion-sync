@@ -114,6 +114,7 @@ provider "registry.terraform.io/upstash/upstash" {
   version     = "1.4.1"
   constraints = "~> 1.4.1"
   hashes = [
+    "h1:VnaZIdtgD7bZ11085QXUM7wrsmcUhsTHAG8AgN1NhVo=",
     "h1:sASTHYR0tNJ8UOKzz2tGkJfmvI73xpYZ6fPvQR2zxMM=",
     "zh:04efa92bb049868c50b64a2131a47bf2cdb56839aa7d195260eadce019908dbf",
     "zh:0b1e5841f10172cf5e9f36147608ee4440ee4498a1afcc9cc6128082c14fd66f",

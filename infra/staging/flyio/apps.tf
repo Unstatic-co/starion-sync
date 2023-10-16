@@ -126,7 +126,7 @@ resource "fly_machine" "apps" {
     LOADER_URL              = local.loader_url
     PROCESSOR_API_KEY       = random_shuffle.processor_api.result[0]
     MICROSOFT_CLIENT_ID     = var.microsoft_client_id
-    MICROSOFT_CLIENT_SECRET = var.microsoft_secret_id
+    MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
     GOOGLE_CLIENT_ID        = var.google_client_id
     GOOGLE_CLIENT_SECRET    = var.google_secret_id
   }

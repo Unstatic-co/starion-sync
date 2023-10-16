@@ -85,25 +85,25 @@ variable "orchestrator_address" {
   sensitive = true
 }
 
-variable "broker_uris" {
-  type      = string
-  sensitive = true
-}
+# variable "broker_uris" {
+# type      = string
+# sensitive = true
+# }
 
 variable "upstash_kafka_region" { // upstash
   type = string
 }
 
 
-variable "kafka_sasl_username" {
-  type      = string
-  sensitive = true
-}
+# variable "kafka_sasl_username" {
+# type      = string
+# sensitive = true
+# }
 
-variable "kafka_sasl_password" {
-  type      = string
-  sensitive = true
-}
+# variable "kafka_sasl_password" {
+# type      = string
+# sensitive = true
+# }
 
 variable "s3_endpoint" {
   type = string
@@ -142,7 +142,7 @@ variable "microsoft_client_id" {
   sensitive = true
 }
 
-variable "microsoft_secret_id" {
+variable "microsoft_client_secret" {
   type      = string
   sensitive = true
 }
