@@ -231,6 +231,11 @@ fi
 original_file=$TEMP_DIR/original.xlsx
 download-google-sheets-file "$original_file" "$download_url"
 
+xlsx_header=$(./get-xlsx-header --file "$original_file" --showHeaders)
+if [[ -z "$xlsx_header" ]]; then
+    write-external-error "$WORKSHEET_EMPTY_ERROR" "Worksheet is empty or missing header row"
+fi
+
 ### Convert
 info-log "Converting file to csv..."
 original_csv_file=$TEMP_DIR/original.csv
@@ -241,13 +246,15 @@ original_csv_file=$TEMP_DIR/original.csv
     # --sheet "$worksheet_name" \
     # --output "$original_csv_file" \
     # "$original_file"
+converted_csv_file=$TEMP_DIR/converted_csv.csv
 OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=AUTO duckdb :memory: \
-    "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$sheet_name')) TO '$original_csv_file' (HEADER, DELIMITER ',');"
+    "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$sheet_name')) TO '$converted_csv_file' (HEADER, DELIMITER ',');"
 
-# original_csv_file=$TEMP_DIR/original.csv
-# download-google-sheets-file "$original_csv_file" "$download_url"
+behead_file="$TEMP_DIR/behead-1.csv"
+"$QSV" behead -o "$behead_file" <("$QSV" select "1-$(./get-xlsx-header --file "$original_file" --showMaxIndex)" "$converted_csv_file" -o "$original_csv_file")
+"$QSV" cat rows -n <(echo "$xlsx_header") "$behead_file" -o "$original_csv_file"
 
-check-csv-empty "$original_csv_file"
+# check-csv-empty "$original_csv_file"
 
 ### Preprocess
 info-log "Preprocessing csv file..."
