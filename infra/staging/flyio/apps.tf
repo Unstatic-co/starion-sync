@@ -1,5 +1,6 @@
 locals {
-  db_uri = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin"
+  db_uri          = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin"
+  metadata_db_uri = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-form-sync?directConnection=true&replicaSet=rs0&authSource=admin"
   # dest_db_uri              = "postgres://${var.postgres_user}:${var.postgres_password}@${fly_ip.postgres_ip_v4.address}:5432/starion-sync?sslmode=disable"
   dest_db_uri              = var.dest_db_uri
   downloader_url           = "https://${fly_app.downloader.name}.fly.dev"
@@ -356,7 +357,7 @@ resource "fly_machine" "formsync" {
     API_KEYS                = join(",", var.api_keys)
     DB_URI                  = local.dest_db_uri
     DB_NAME                 = "starion-form-sync"
-    METADATA_DB_URI         = local.db_uri
+    METADATA_DB_URI         = local.metadata_db_uri
     REDIS_HOST              = fly_ip.redis_ip_v4.address
     REDIS_PORT              = "6379"
     REDIS_PASSWORD          = var.redis_password
