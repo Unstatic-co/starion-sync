@@ -1,0 +1,20 @@
+steps:
+  - name: ${_DEPLOY_IMAGE_URL}
+    id: 'Starion Sync Deploy Image'
+    dir: infra/staging
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |-
+        gcloud -h
+        docker -v
+
+substitutions:
+  # _DEPLOY_IMAGE_URL: gcr.io/${PROJECT_ID}/starion-sync-deploy
+  _DEPLOY_IMAGE_URL: ''
+timeout: 1800s
+options:
+  machine_type: UNSPECIFIED
+  dynamic_substitutions: true
+  substitution_option: ALLOW_LOOSE
+  logging: CLOUD_LOGGING_ONLY

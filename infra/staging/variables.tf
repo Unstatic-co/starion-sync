@@ -7,6 +7,15 @@ variable "environment" {
   type    = string
   default = "stagging"
 }
+variable "github_owner" {
+  type = string
+}
+variable "github_repo_name" {
+  type = string
+}
+variable "github_repo_url" {
+  type = string
+}
 
 variable "fly_api_token" {
   type      = string

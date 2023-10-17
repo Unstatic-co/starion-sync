@@ -50,27 +50,31 @@ module "flyio" {
   ]
 }
 
-# module "googlecloud" {
-# source = "./googlecloud"
+module "googlecloud" {
+  source = "./googlecloud"
 
-# project     = var.project
-# environment = var.environment
+  project     = var.project
+  environment = var.environment
 
-# gcp_project        = var.gcp_project
-# gcp_region         = var.gcp_region
-# mongodb_uri        = local.mongodb_uri
-# postgres_uri       = local.postgres_uri
-# s3_endpoint        = var.s3_endpoint
-# s3_region          = var.s3_region
-# s3_bucket          = var.s3_bucket
-# s3_access_key      = var.s3_access_key
-# s3_secret_key      = var.s3_secret_key
-# processor_api_keys = var.processor_api_keys
+  github_repo_name = var.github_repo_name
+  github_repo_url  = var.github_repo_url
+  github_owner     = var.github_owner
 
-# # depends_on = [
-# # module.flyio
-# # ]
-# }
+  gcp_project        = var.gcp_project
+  gcp_region         = var.gcp_region
+  mongodb_uri        = local.mongodb_uri
+  postgres_uri       = local.postgres_uri
+  s3_endpoint        = var.s3_endpoint
+  s3_region          = var.s3_region
+  s3_bucket          = var.s3_bucket
+  s3_access_key      = var.s3_access_key
+  s3_secret_key      = var.s3_secret_key
+  processor_api_keys = var.processor_api_keys
+
+  # depends_on = [
+  # module.flyio
+  # ]
+}
 
 module "cloudflare" {
   source = "./cloudflare"
