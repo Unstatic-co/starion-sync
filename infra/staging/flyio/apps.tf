@@ -1,9 +1,12 @@
 locals {
-  db_uri                   = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin"
-  dest_db_uri              = "postgres://${var.postgres_user}:${var.postgres_password}@${fly_ip.postgres_ip_v4.address}:5432/starion-sync?sslmode=disable"
+  db_uri = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin"
+  # dest_db_uri              = "postgres://${var.postgres_user}:${var.postgres_password}@${fly_ip.postgres_ip_v4.address}:5432/starion-sync?sslmode=disable"
+  dest_db_uri              = var.dest_db_uri
   downloader_url           = "https://${fly_app.downloader.name}.fly.dev"
   comparer_url             = "https://${fly_app.comparer.name}.fly.dev"
   loader_url               = "https://${fly_app.loader.name}.fly.dev"
+  metadata_url             = "https://${fly_app.metadata.name}.fly.dev"
+  configurator_url         = "https://${fly_app.apps.name}.fly.dev"
   webhook_trigger_base_url = "https://${fly_app.webhook_trigger.name}.fly.dev"
 }
 
@@ -135,7 +138,7 @@ resource "fly_machine" "apps" {
     MICROSOFT_CLIENT_ID     = var.microsoft_client_id
     MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
     GOOGLE_CLIENT_ID        = var.google_client_id
-    GOOGLE_CLIENT_SECRET    = var.google_secret_id
+    GOOGLE_CLIENT_SECRET    = var.google_client_secret
     TRIGGER_RESTART         = "true"
   }
 
@@ -251,7 +254,7 @@ resource "fly_machine" "webhook_trigger" {
     REDIS_PASSWORD           = var.redis_password
     REDIS_TLS_ENABLED        = "false"
     GOOGLE_CLIENT_ID         = var.google_client_id
-    GOOGLE_CLIENT_SECRET     = var.google_secret_id
+    GOOGLE_CLIENT_SECRET     = var.google_client_secret
     WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url
   }
 
@@ -262,114 +265,115 @@ resource "fly_machine" "webhook_trigger" {
   ]
 }
 
-# // **************************** Form Sync ****************************
+// **************************** Form Sync ****************************
 
-# resource "random_shuffle" "configurator_api_key" {
-# input        = var.api_keys
-# result_count = 1
-# }
+resource "random_shuffle" "configurator_api_key" {
+  input        = var.api_keys
+  result_count = 1
+}
 
-# resource "fly_app" "formsync" {
-# name = "${var.project}-${var.environment}-formsync"
-# org  = var.organization
-# }
+resource "fly_app" "formsync" {
+  name = "${var.project}-${var.environment}-formsync"
+  org  = var.organization
+}
 
-# resource "fly_ip" "formsync_ip_v4" {
-# app  = fly_app.formsync.name
-# type = "v4"
-# }
+resource "fly_ip" "formsync_ip_v4" {
+  app  = fly_app.formsync.name
+  type = "v4"
+}
 
-# resource "fly_ip" "formsync_ip_v6" {
-# app  = fly_app.formsync.name
-# type = "v6"
-# }
+resource "fly_ip" "formsync_ip_v6" {
+  app  = fly_app.formsync.name
+  type = "v6"
+}
 
-# locals {
-# formsync_path = abspath("${path.root}/../../form-sync/main")
-# formsync_files = sort(setunion(
-# [
-# "${local.formsync_path}/Dockerfile",
-# ],
-# [for f in fileset("${local.formsync_path}", "**") : "${local.formsync_path}/${f}"],
-# ))
-# formsync_hash = md5(join("", [for i in local.formsync_files : filemd5(i)]))
-# }
+locals {
+  formsync_path = abspath("${path.root}/../../form-sync/main")
+  formsync_files = sort(setunion(
+    [
+      "${local.formsync_path}/Dockerfile",
+    ],
+    [for f in fileset("${local.formsync_path}", "**") : "${local.formsync_path}/${f}"],
+  ))
+  formsync_hash = md5(join("", [for i in local.formsync_files : filemd5(i)]))
+}
 
-# resource "null_resource" "formsync_builder" {
-# triggers = {
-# hash = local.formsync_hash
-# }
+resource "null_resource" "formsync_builder" {
+  triggers = {
+    hash = local.formsync_hash
+  }
 
-# provisioner "local-exec" {
-# command = abspath("${path.module}/build-image.sh")
-# interpreter = [
-# "/bin/bash"
-# ]
-# environment = {
-# FLY_ACCESS_TOKEN    = var.fly_api_token
-# DOCKER_FILE         = abspath("${local.formsync_path}/Dockerfile")
-# DOCKER_IMAGE_NAME   = fly_app.formsync.name
-# DOCKER_IMAGE_DIGEST = local.formsync_hash
-# }
-# working_dir = abspath(local.formsync_path)
-# }
-# }
+  provisioner "local-exec" {
+    command = abspath("${path.module}/build-image.sh")
+    interpreter = [
+      "/bin/bash"
+    ]
+    environment = {
+      FLY_ACCESS_TOKEN    = var.fly_api_token
+      DOCKER_FILE         = abspath("${local.formsync_path}/Dockerfile")
+      DOCKER_IMAGE_NAME   = fly_app.formsync.name
+      DOCKER_IMAGE_DIGEST = local.formsync_hash
+    }
+    working_dir = abspath(local.formsync_path)
+  }
+}
 
-# resource "fly_machine" "formsync" {
-# app    = fly_app.formsync.name
-# region = var.region
-# name   = "${var.project}-${var.environment}-formsync"
+resource "fly_machine" "formsync" {
+  app    = fly_app.formsync.name
+  region = var.region
+  name   = "${var.project}-${var.environment}-formsync"
 
-# cpus     = 1
-# memorymb = 256
+  cpus     = 1
+  memorymb = 256
 
-# image = "registry.fly.io/${fly_app.formsync.name}:${local.formsync_hash}"
+  image = "registry.fly.io/${fly_app.formsync.name}:${local.formsync_hash}"
 
-# services = [
-# {
-# "protocol" : "tcp",
-# "ports" : [
-# {
-# port : 443,
-# handlers : [
-# "tls",
-# "http"
-# ]
-# },
-# {
-# "port" : 80,
-# "handlers" : [
-# "http"
-# ]
-# }
-# ],
-# "internal_port" : 8080,
-# }
-# ]
+  services = [
+    {
+      "protocol" : "tcp",
+      "ports" : [
+        {
+          port : 443,
+          handlers : [
+            "tls",
+            "http"
+          ]
+        },
+        {
+          "port" : 80,
+          "handlers" : [
+            "http"
+          ]
+        }
+      ],
+      "internal_port" : 8080,
+    }
+  ]
 
-# env = {
-# NODE_ENV                = var.environment
-# PORT                    = "8080"
-# API_KEYS                = join(",", var.api_keys)
-# DB_URI                  = local.db_uri
-# METADATA_DB_URI         = local.dest_db_uri
-# REDIS_HOST              = ""
-# REDIS_PORT              = ""
-# REDIS_PASSWORD          = ""
-# REDIS_TLS_ENABLED       = ""
-# WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
-# METADATA_HOST_URL       = ""
-# STARION_SYNC_BASE_URL   = ""
-# STARION_SYNC_API_KEY    = random_shuffle.configurator_api_key.result[0]
-# MICROSOFT_CLIENT_ID     = var.microsoft_client_id
-# MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
-# GOOGLE_CLIENT_ID        = var.google_client_id
-# GOOGLE_CLIENT_SECRET    = var.google_secret_id
-# }
+  env = {
+    NODE_ENV                = var.environment
+    PORT                    = "8080"
+    API_KEYS                = join(",", var.api_keys)
+    DB_URI                  = local.dest_db_uri
+    DB_NAME                 = "starion-form-sync"
+    METADATA_DB_URI         = local.db_uri
+    REDIS_HOST              = fly_ip.redis_ip_v4.address
+    REDIS_PORT              = "6379"
+    REDIS_PASSWORD          = var.redis_password
+    REDIS_TLS_ENABLED       = "false"
+    METADATA_HOST_URL       = local.metadata_url
+    STARION_SYNC_BASE_URL   = local.configurator_url
+    WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
+    STARION_SYNC_API_KEY    = random_shuffle.configurator_api_key.result[0]
+    MICROSOFT_CLIENT_ID     = var.microsoft_client_id
+    MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
+    GOOGLE_CLIENT_ID        = var.google_client_id
+    GOOGLE_CLIENT_SECRET    = var.google_client_secret
+  }
 
-# depends_on = [
-# null_resource.formsync_builder,
-# fly_machine.redis,
-# fly_machine.mongodb,
-# ]
-# }
+  depends_on = [
+    null_resource.formsync_builder,
+    fly_machine.redis,
+    fly_machine.mongodb,
+  ]
+}

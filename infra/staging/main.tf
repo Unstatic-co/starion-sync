@@ -40,7 +40,9 @@ module "flyio" {
   microsoft_client_id     = var.microsoft_client_id
   microsoft_client_secret = var.microsoft_client_secret
   google_client_id        = var.google_client_id
-  google_secret_id        = var.google_secret_id
+  google_client_secret    = var.google_client_secret
+
+  dest_db_uri = var.dest_db_uri # temporary
 
   depends_on = [
     # module.googlecloud,

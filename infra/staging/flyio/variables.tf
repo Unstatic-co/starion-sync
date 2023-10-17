@@ -136,7 +136,12 @@ variable "google_client_id" {
   sensitive = true
 }
 
-variable "google_secret_id" {
+variable "google_client_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "dest_db_uri" {
   type      = string
   sensitive = true
 }
