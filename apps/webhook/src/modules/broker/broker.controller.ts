@@ -77,8 +77,8 @@ export class BrokerController {
     this.logger.debug('test-event-to-webhook', message);
   }
 
-  @Post('test-sent-from-webhook')
-  async testSent() {
-    await this.brokerService.testSentEvent();
-  }
+  // @Post('test-sent-from-webhook')
+  // async testSent() {
+  // await this.brokerService.testSentEvent();
+  // }
 }

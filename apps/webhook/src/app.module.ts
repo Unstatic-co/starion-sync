@@ -7,13 +7,13 @@ import {
   ConfigName,
   RedisConfig,
   appConfigRegister,
+  brokerConfigRegister,
   databaseConfigRegister,
   redisConfigRegister,
 } from '@lib/core/config';
 import { DatabaseModule, LoggerModule } from '@lib/modules';
 import { BrokerModule } from './modules/broker/broker.module';
 import { WebhookModule } from './modules/webhook/webhook.module';
-import { brokerConfigRegister } from './config/broker.config';
 import { webhookConfigRegister } from './config/webhook.config';
 import { BullModule, BullRootModuleOptions } from '@nestjs/bull';
 @Module({
@@ -23,8 +23,8 @@ import { BullModule, BullRootModuleOptions } from '@nestjs/bull';
       load: [
         appConfigRegister,
         databaseConfigRegister,
-        brokerConfigRegister,
         redisConfigRegister,
+        brokerConfigRegister,
         webhookConfigRegister,
       ],
     }),

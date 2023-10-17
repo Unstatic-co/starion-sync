@@ -137,6 +137,15 @@ variable "processor_api_keys" {
   sensitive = true
 }
 
+variable "webhook_public_key" {
+  type = string
+}
+
+variable "webhook_private_key" {
+  type      = string
+  sensitive = true
+}
+
 variable "microsoft_client_id" {
   type      = string
   sensitive = true

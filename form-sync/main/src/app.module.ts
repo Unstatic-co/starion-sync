@@ -48,13 +48,10 @@ import { redisStore } from 'cache-manager-redis-yet';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const dbConfig = configService.get<DatabaseConfig>(ConfigName.DATABASE);
-        const { host, port, user, password, database } = dbConfig;
+        const { uri, database } = dbConfig;
         return {
           type: 'postgres',
-          host,
-          port,
-          username: user,
-          password,
+          url: uri,
           database,
           entities: entities,
           synchronize: true,

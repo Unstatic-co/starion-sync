@@ -105,8 +105,7 @@ resource "fly_machine" "apps" {
 
   env = {
     NODE_ENV                = var.environment
-    LOG_LEVEL               = "info"
-    API_KEYS                = "api-key"
+    LOG_LEVEL               = "debug"
     BROKER_URIS             = var.broker_uris
     DB_TYPE                 = "mongodb"
     DB_URI                  = local.db_uri
@@ -121,14 +120,23 @@ resource "fly_machine" "apps" {
     REDIS_PASSWORD          = var.redis_password
     REDIS_TLS_ENABLED       = "false"
     ORCHESTRATOR_ADDRESS    = var.orchestrator_address
+    S3_URL                  = var.s3_endpoint
+    S3_REGION               = var.s3_region
+    S3_DIFF_DATA_BUCKET     = var.s3_bucket
+    S3_ACCESS_KEY           = var.s3_access_key
+    S3_SECRET_KEY           = var.s3_secret_key
     DOWNLOADER_URL          = local.downloader_url
     COMPARER_URL            = local.comparer_url
     LOADER_URL              = local.loader_url
-    PROCESSOR_API_KEY       = random_shuffle.processor_api.result[0]
+    API_KEYS                = join(",", var.api_keys)
+    PROCESSOR_API_KEY       = random_shuffle.processor_api_key.result[0]
+    WEBHOOK_PRIVATE_KEY     = var.webhook_private_key
+    WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
     MICROSOFT_CLIENT_ID     = var.microsoft_client_id
     MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
     GOOGLE_CLIENT_ID        = var.google_client_id
     GOOGLE_CLIENT_SECRET    = var.google_secret_id
+    TRIGGER_RESTART         = "true"
   }
 
   depends_on = [
@@ -140,7 +148,7 @@ resource "fly_machine" "apps" {
   ]
 }
 
-resource "random_shuffle" "processor_api" {
+resource "random_shuffle" "processor_api_key" {
   input        = var.processor_api_keys
   result_count = 1
 }
@@ -256,6 +264,11 @@ resource "fly_machine" "webhook_trigger" {
 
 # // **************************** Form Sync ****************************
 
+# resource "random_shuffle" "configurator_api_key" {
+# input        = var.api_keys
+# result_count = 1
+# }
+
 # resource "fly_app" "formsync" {
 # name = "${var.project}-${var.environment}-formsync"
 # org  = var.organization
@@ -272,7 +285,7 @@ resource "fly_machine" "webhook_trigger" {
 # }
 
 # locals {
-# formsync_path = abspath("${path.root}/../../apps/triggers/webhook")
+# formsync_path = abspath("${path.root}/../../form-sync/main")
 # formsync_files = sort(setunion(
 # [
 # "${local.formsync_path}/Dockerfile",
@@ -298,7 +311,7 @@ resource "fly_machine" "webhook_trigger" {
 # DOCKER_IMAGE_NAME   = fly_app.formsync.name
 # DOCKER_IMAGE_DIGEST = local.formsync_hash
 # }
-# working_dir = abspath("${path.root}/../../")
+# working_dir = abspath(local.formsync_path)
 # }
 # }
 
@@ -335,25 +348,23 @@ resource "fly_machine" "webhook_trigger" {
 # ]
 
 # env = {
-# NODE_ENV             = var.environment
-# LOG_LEVEL            = "info"
-# PORT                 = "8080"
-# DB_TYPE              = "mongodb"
-# DB_URI               = local.db_uri
-# DEST_DB_URI          = local.dest_db_uri
-# BROKER_TYPE          = "kafka"
-# BROKER_URIS          = var.broker_uris
-# KAFKA_SSL_ENABLED    = "true"
-# KAFKA_SASL_ENABLED   = "true"
-# KAFKA_SASL_USERNAME  = var.kafka_sasl_username
-# KAFKA_SASL_PASSWORD  = var.kafka_sasl_password
-# REDIS_HOST           = fly_ip.redis_ip_v4.address
-# REDIS_PORT           = "6379"
-# REDIS_PASSWORD       = var.redis_password
-# REDIS_TLS_ENABLED    = "false"
-# GOOGLE_CLIENT_ID     = var.google_client_id
-# GOOGLE_CLIENT_SECRET = var.google_secret_id
-# formsync_BASE_URL    = local.formsync_base_url
+# NODE_ENV                = var.environment
+# PORT                    = "8080"
+# API_KEYS                = join(",", var.api_keys)
+# DB_URI                  = local.db_uri
+# METADATA_DB_URI         = local.dest_db_uri
+# REDIS_HOST              = ""
+# REDIS_PORT              = ""
+# REDIS_PASSWORD          = ""
+# REDIS_TLS_ENABLED       = ""
+# WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
+# METADATA_HOST_URL       = ""
+# STARION_SYNC_BASE_URL   = ""
+# STARION_SYNC_API_KEY    = random_shuffle.configurator_api_key.result[0]
+# MICROSOFT_CLIENT_ID     = var.microsoft_client_id
+# MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
+# GOOGLE_CLIENT_ID        = var.google_client_id
+# GOOGLE_CLIENT_SECRET    = var.google_secret_id
 # }
 
 # depends_on = [

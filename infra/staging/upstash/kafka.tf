@@ -14,7 +14,7 @@ resource "upstash_kafka_credential" "starion-sync" {
 # ***************************** TOPICS *****************************
 
 resource "upstash_kafka_topic" "datasource_error" {
-  topic_name       = "datasource.error"
+  topic_name       = "dataSource.error"
   partitions       = 1
   retention_time   = 625135
   retention_size   = 725124

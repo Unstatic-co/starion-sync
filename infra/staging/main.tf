@@ -35,6 +35,8 @@ module "flyio" {
   # loader_url              = module.googlecloud.loader_url
   api_keys                = var.api_keys
   processor_api_keys      = var.processor_api_keys
+  webhook_public_key      = var.webhook_public_key
+  webhook_private_key     = var.webhook_private_key
   microsoft_client_id     = var.microsoft_client_id
   microsoft_client_secret = var.microsoft_client_secret
   google_client_id        = var.google_client_id
