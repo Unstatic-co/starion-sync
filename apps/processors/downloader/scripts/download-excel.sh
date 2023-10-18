@@ -515,16 +515,22 @@ fi
 ## Preprocess: Replace error values & Encode header
 # encode header to `_${hex}` (underscore + hexadecimal encoding of col name) format to easily querying in DB
 info-log "Replacing error values & Encoding header..."
+input_file=$appended_id_file
+
+replaced_error_file="$TEMP_DIR/replaced_error.csv"
+echo "$(./get-csv-header -file "$input_file" -sep ,)" >"$replaced_error_file"
+"$QSV" behead <("$QSV" replace -s "!$ID_COL_NAME" "$ERROR_VALUE_REGEX" "$ERROR_VALUE_TOKEN" "$input_file") >>"$replaced_error_file"
+
 header_encoded_file="$TEMP_DIR/header-endcoded.csv"
-new_headers="$("./get-csv-header" -file "$appended_id_file" -encode -sep ,)"
+new_headers="$("./get-csv-header" -file "$input_file" -encode -sep ,)"
 echo "$new_headers" >"$header_encoded_file"
-"$QSV" behead <("$QSV" replace -s "!$ID_COL_NAME" "$ERROR_VALUE_REGEX" "$ERROR_VALUE_TOKEN" "$appended_id_file") >>"$header_encoded_file"
+"$QSV" behead "$replaced_error_file" >>"$header_encoded_file"
 ## End ##
 
 ### Schema
 info-log "Inferring schema..."
 detected_schema_file="$TEMP_DIR/schema.json"
-"$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$header_encoded_file" >"$detected_schema_file"
+"$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$replaced_error_file" >"$detected_schema_file"
 # upload
 info-log "Uploading schema..."
 duckdb_schema_file="$TEMP_DIR/null_become_string_fields"
