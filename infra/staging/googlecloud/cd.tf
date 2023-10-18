@@ -42,20 +42,20 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy_image_builder" {
 resource "google_cloudbuild_trigger" "starion_sync_deploy" {
   name     = "${var.project}-deploy"
   location = var.gcp_region
-  # location = "global"
+  filename = "infra/staging/cloudbuild/cloudbuild.yml"
 
-  source_to_build {
-    uri       = var.github_repo_url
-    ref       = "refs/heads/${var.environment}"
-    repo_type = "GITHUB"
-  }
+  # source_to_build {
+  # uri       = var.github_repo_url
+  # ref       = "refs/heads/${var.environment}"
+  # repo_type = "GITHUB"
+  # }
 
-  git_file_source {
-    path      = "infra/cloudbuild/cloudbuild.yaml"
-    uri       = var.github_repo_url
-    revision  = "refs/heads/${var.environment}"
-    repo_type = "GITHUB"
-  }
+  # git_file_source {
+  # path      = "infra/cloudbuild/cloudbuild.yaml"
+  # uri       = var.github_repo_url
+  # revision  = "refs/heads/${var.environment}"
+  # repo_type = "GITHUB"
+  # }
 
   // If this is set on a build, it will become pending when it is run, 
   // and will need to be explicitly approved to start.
@@ -65,5 +65,16 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy" {
 
   substitutions = {
     _DEPLOY_IMAGE_URL = "${data.google_container_registry_image.starion_sync_deploy_image.image_url}"
+  }
+
+  github {
+    owner = var.github_owner
+    name  = var.github_repo_name
+    # pull_request {
+    # branch = var.environment
+    # }
+    push {
+      branch = "test-build-stagging"
+    }
   }
 }

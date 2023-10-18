@@ -297,20 +297,25 @@ fi
 original_file=$TEMP_DIR/original.xlsx
 download-excel-file "$original_file"
 
+xlsx_header=$(./get-xlsx-header --file "$original_file" --showHeaders)
+debug-log "Xlsx header: $xlsx_header"
+if [[ -z "$xlsx_header" ]]; then
+    write-external-error "$WORKSHEET_EMPTY_ERROR" "Worksheet is empty or missing header row"
+fi
+
 ### Convert
 info-log "Converting file to csv..."
 original_csv_file=$TEMP_DIR/original.csv
-# "$QSV" excel \
-    # --quiet \
-    # --flexible \
-    # --trim \
-    # --sheet "$worksheet_name" \
-    # --output "$original_csv_file" \
-    # "$original_file"
+converted_csv_file=$TEMP_DIR/converted_csv.csv
 OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=AUTO duckdb :memory: \
-    "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$worksheet_name')) TO '$original_csv_file' (HEADER, DELIMITER ',');"
+    "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$worksheet_name')) TO '$converted_csv_file' (HEADER FALSE, DELIMITER ',');"
 
-check-csv-empty "$original_csv_file"
+trimmed_ghost_cells="$TEMP_DIR/ghost-cells.csv"
+maxColIndex=$(./get-xlsx-header --file "$original_file" --showMaxIndex)
+"$QSV" select "1-$((maxColIndex+1))" <(tac "$converted_csv_file" | awk '/[^,]/ {found=1} found' | tac) -o "$trimmed_ghost_cells"
+"$QSV" cat rows -n <(echo "$xlsx_header") "$trimmed_ghost_cells" -o "$original_csv_file"
+
+# check-csv-empty "$original_csv_file"``
 
 ### Preprocess
 info-log "Preprocessing csv file..."
@@ -519,7 +524,7 @@ echo "$new_headers" >"$header_encoded_file"
 ### Schema
 info-log "Inferring schema..."
 detected_schema_file="$TEMP_DIR/schema.json"
-"$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$appended_id_file" >"$detected_schema_file"
+"$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$header_encoded_file" >"$detected_schema_file"
 # upload
 info-log "Uploading schema..."
 duckdb_schema_file="$TEMP_DIR/null_become_string_fields"
