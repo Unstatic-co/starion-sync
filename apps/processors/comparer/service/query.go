@@ -13,21 +13,21 @@ import (
 type ClickHouseType string
 
 const (
-	Int32        ClickHouseType = "Int32"
-	Int64        ClickHouseType = "Int64"
-	Float32      ClickHouseType = "Float32"
-	Float64      ClickHouseType = "Float64"
-	Decimal64_15 ClickHouseType = "Decimal64(15)"
-	String       ClickHouseType = "String"
-	Date         ClickHouseType = "Date"
-	DateTime     ClickHouseType = "DateTime"
-	Bool         ClickHouseType = "Bool"
-	Array        ClickHouseType = "Array"
+	Int32         ClickHouseType = "Int32"
+	Int64         ClickHouseType = "Int64"
+	Float32       ClickHouseType = "Float32"
+	Float64       ClickHouseType = "Float64"
+	Decimal128_15 ClickHouseType = "Decimal128(15)"
+	String        ClickHouseType = "String"
+	Date          ClickHouseType = "Date"
+	DateTime      ClickHouseType = "DateTime"
+	Bool          ClickHouseType = "Bool"
+	Array         ClickHouseType = "Array"
 )
 
 var ClickHouseTypeMap = map[schema.DataType]ClickHouseType{
 	schema.String:  String,
-	schema.Number:  Decimal64_15,
+	schema.Number:  Decimal128_15,
 	schema.Date:    String,
 	schema.Boolean: Bool,
 	schema.Array:   Array,
