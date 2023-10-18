@@ -8,6 +8,8 @@ steps:
       - |-
         gcloud -h
         docker -v
+        echo "from nginx:alpine" > Dockerfile
+        docker build -t test .
 
 substitutions:
   # _DEPLOY_IMAGE_URL: gcr.io/${PROJECT_ID}/starion-sync-deploy

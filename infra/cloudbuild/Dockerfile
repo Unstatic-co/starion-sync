@@ -41,4 +41,4 @@ RUN rm /usr/local/bin/docker \
 
 COPY --from=terraform_builder /terraform /usr/local/bin
 
-# ENTRYPOINT ["tail", "-f", "/dev/null"]
+ENTRYPOINT ["tail", "-f", "/dev/null"]
