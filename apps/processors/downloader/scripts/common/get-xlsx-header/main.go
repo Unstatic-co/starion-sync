@@ -19,13 +19,17 @@ func main() {
 	file := flag.String("file", "", "Xlsx file")
 	showMaxIndex := flag.Bool("showMaxIndex", false, "Output max index of headers")
 	showHeaders := flag.Bool("showHeaders", true, "Output headers")
+	sheetName := flag.String("sheetName", "", "Sheet name")
 	// emptySignal := flag.String("emptySignal", "__StarionEmpty", "Output value if sheet is empty")
 
 	flag.Parse()
 
 	xl, _ := xlsxreader.OpenFile(*file)
 
-	readChan := xl.ReadRows(xl.Sheets[0])
+	if *sheetName == "" {
+		sheetName = &xl.Sheets[0]
+	}
+	readChan := xl.ReadRows(*sheetName)
 
 	firstRow := <-readChan
 	xl.Close()

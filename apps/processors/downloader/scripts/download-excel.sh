@@ -297,7 +297,7 @@ fi
 original_file=$TEMP_DIR/original.xlsx
 download-excel-file "$original_file"
 
-xlsx_header=$(./get-xlsx-header --file "$original_file" --showHeaders)
+xlsx_header=$(./get-xlsx-header --file "$original_file" --sheetName "$worksheet_name" --showHeaders)
 debug-log "Xlsx header: $xlsx_header"
 if [[ -z "$xlsx_header" ]]; then
     write-external-error "$WORKSHEET_EMPTY_ERROR" "Worksheet is empty or missing header row"
@@ -311,7 +311,7 @@ OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=AUTO duckdb :memory: \
     "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$worksheet_name')) TO '$converted_csv_file' (HEADER FALSE, DELIMITER ',');"
 
 trimmed_ghost_cells="$TEMP_DIR/ghost-cells.csv"
-maxColIndex=$(./get-xlsx-header --file "$original_file" --showMaxIndex)
+maxColIndex=$(./get-xlsx-header --file "$original_file" --sheetName "$worksheet_name" --showMaxIndex)
 "$QSV" select "1-$((maxColIndex+1))" <(tac "$converted_csv_file" | awk '/[^,]/ {found=1} found' | tac) -o "$trimmed_ghost_cells"
 "$QSV" cat rows -n <(echo "$xlsx_header") "$trimmed_ghost_cells" -o "$original_csv_file"
 
