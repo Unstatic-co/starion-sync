@@ -457,7 +457,7 @@ echo "$new_headers" >"$header_encoded_file"
 ### Schema
 info-log "Inferring schema..."
 detected_schema_file="$TEMP_DIR/schema.json"
-"$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$appended_id_file" >"$detected_schema_file"
+"$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$header_encoded_file" >"$detected_schema_file"
 # upload
 info-log "Uploading schema..."
 duckdb_schema_file="$TEMP_DIR/null_become_string_fields"
