@@ -33,12 +33,18 @@ func main() {
 	if firstRow.Index != 1 {
 		// fmt.Print(*emptySignal)
 	} else {
+		maxColumnIndex := firstRow.Cells[len(firstRow.Cells)-1].ColumnIndex()
 		if *showMaxIndex {
-			fmt.Print(firstRow.Cells[len(firstRow.Cells)-1].ColumnIndex())
+			fmt.Print(maxColumnIndex)
 		} else if *showHeaders {
-			headers := make([]string, 0)
+			headers := make([]string, maxColumnIndex+1)
+			for i, _ := range headers {
+				headers[i] = ""
+			}
 			for _, cell := range firstRow.Cells {
-				headers = append(headers, fmt.Sprintf("%s", cell.Value))
+				// fmt.Printf("index %d\n", cell.ColumnIndex())
+				// headers = append(headers, fmt.Sprintf("%s", cell.Value))
+				headers[cell.ColumnIndex()] = fmt.Sprintf("%s", cell.Value)
 			}
 			fmt.Print(strings.Join(headers, ","))
 		}

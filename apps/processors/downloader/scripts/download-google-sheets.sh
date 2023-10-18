@@ -151,7 +151,7 @@ function write-external-error() {
 function check-csv-empty() {
     local file=$1
     if [[ -z $(head -n 1 "$file" | awk -F, '{for(i=1;i<=NF;i++) if($i != "") {print $i; exit 0;} exit 0; }') ]]; then
-        write-external-error "$WORKSHEET_EMPTY_ERROR" "Worksheet is empty or missing header row"
+        write-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
     fi
 }
 
@@ -232,35 +232,30 @@ original_file=$TEMP_DIR/original.xlsx
 download-google-sheets-file "$original_file" "$download_url"
 
 xlsx_header=$(./get-xlsx-header --file "$original_file" --showHeaders)
+debug-log "Xlsx header: $xlsx_header"
 if [[ -z "$xlsx_header" ]]; then
-    write-external-error "$WORKSHEET_EMPTY_ERROR" "Worksheet is empty or missing header row"
+    write-external-error "$WORKSHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
 fi
 
 ### Convert
 info-log "Converting file to csv..."
 original_csv_file=$TEMP_DIR/original.csv
-# "$QSV" excel \
-    # --quiet \
-    # --flexible \
-    # --trim \
-    # --sheet "$worksheet_name" \
-    # --output "$original_csv_file" \
-    # "$original_file"
 converted_csv_file=$TEMP_DIR/converted_csv.csv
 OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=AUTO duckdb :memory: \
-    "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$sheet_name')) TO '$converted_csv_file' (HEADER, DELIMITER ',');"
+    "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$sheet_name')) TO '$converted_csv_file' (HEADER FALSE, DELIMITER ',');"
 
-behead_file="$TEMP_DIR/behead-1.csv"
-"$QSV" behead -o "$behead_file" <("$QSV" select "1-$(./get-xlsx-header --file "$original_file" --showMaxIndex)" "$converted_csv_file" -o "$original_csv_file")
-"$QSV" cat rows -n <(echo "$xlsx_header") "$behead_file" -o "$original_csv_file"
+trimmed_ghost_cells="$TEMP_DIR/ghost-cells.csv"
+maxColIndex=$(./get-xlsx-header --file "$original_file" --showMaxIndex)
+"$QSV" select "1-$((maxColIndex+1))" <(tac "$converted_csv_file" | awk '/[^,]/ {found=1} found' | tac) -o "$trimmed_ghost_cells"
+"$QSV" cat rows -n <(echo "$xlsx_header") "$trimmed_ghost_cells" -o "$original_csv_file"
 
-# check-csv-empty "$original_csv_file"
+# check-csv-empty "$original_csv_file"``
 
 ### Preprocess
 info-log "Preprocessing csv file..."
 preprocess_file=$TEMP_DIR/preprocess.csv
 
-"$QSV" input --trim-headers --trim-fields <(tac "$original_csv_file" | awk '/[^,]/ {found=1} found' | tac) -o "$preprocess_file"
+"$QSV" input --trim-headers --trim-fields "$original_csv_file" -o "$preprocess_file"
 input_file="$preprocess_file"
 
 rows_number="$("$QSV" count "$original_csv_file")"
