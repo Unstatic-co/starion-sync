@@ -44,7 +44,11 @@ func main() {
 			for _, cell := range firstRow.Cells {
 				// fmt.Printf("index %d\n", cell.ColumnIndex())
 				// headers = append(headers, fmt.Sprintf("%s", cell.Value))
-				headers[cell.ColumnIndex()] = fmt.Sprintf("%s", cell.Value)
+				header := fmt.Sprintf("%s", cell.Value)
+				if strings.Contains(header, ",") {
+					header = fmt.Sprintf("\"%s\"", header)
+				}
+				headers[cell.ColumnIndex()] = header
 			}
 			fmt.Print(strings.Join(headers, ","))
 		}
