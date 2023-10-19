@@ -4,6 +4,7 @@ import (
 	"comparer/libs/schema"
 	"comparer/pkg/config"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/samber/lo"
@@ -51,8 +52,8 @@ type QueryContext struct {
 	AddedFieldsS3Location   string
 	DeletedFieldsS3Location string
 
-	prevFields  []string
-	curFields   []string
+	prevFields  []string // sorted
+	curFields   []string // sorted
 	allFields   []string
 	keptFields  []string
 	addedFields []string
@@ -86,6 +87,10 @@ func (c *QueryContext) Setup() {
 	for key := range fieldMap {
 		allFields = append(allFields, key)
 	}
+
+	// sort fields for hash correctly
+	sort.Strings(prevFields)
+	sort.Strings(curFields)
 
 	c.prevFields = prevFields
 	c.curFields = curFields
@@ -397,18 +402,17 @@ func (c *QueryContext) GenerateAddedFieldsTableQuery(curTableName, diffTableName
 		`
             INSERT INTO FUNCTION
                 s3(
+                    '%[2]s',
                     '%[3]s',
                     '%[4]s',
-                    '%[5]s',
                     'JSONCompact'
                 )
 			SELECT
-				%[6]s AS id, formatRowNoNewline('JSONEachRow',%[7]s) AS addedFields
+				%[5]s AS id, formatRowNoNewline('JSONEachRow',%[6]s) AS addedFields
 			FROM
-				%[1]s JOIN %[2]s ON %[2]s.|%[6]s| = %[1]s.|%[6]s|
+				%[1]s
         `,
 		curTableName,
-		diffTableName,
 		c.AddedFieldsS3Location,
 		config.AppConfig.S3AccessKey,
 		config.AppConfig.S3SecretKey,
