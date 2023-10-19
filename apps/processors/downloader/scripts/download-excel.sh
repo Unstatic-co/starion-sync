@@ -562,7 +562,7 @@ duckdb_convert_data_query="
     SET s3_url_style='path';
     SET s3_use_ssl=false;
     SET s3_endpoint='$s3_host';
-    COPY (SELECT * FROM read_csv('$header_encoded_file', all_varchar=TRUE, auto_detect=TRUE, header=TRUE)) TO 's3://$s3_bucket/$s3_file_path' (FORMAT 'parquet');
+    COPY (SELECT * FROM read_csv('$header_encoded_file', all_varchar=TRUE, auto_detect=TRUE, header=TRUE, quote='\"', escape='\"')) TO 's3://$s3_bucket/$s3_file_path' (FORMAT 'parquet');
 "
 if [[ "$debug" == "on" ]]; then
     duckdb_convert_data_query += "COPY t TO 's3://$s3_bucket/$s3_json_file_path' (FORMAT 'JSON');"
