@@ -56,7 +56,7 @@ resource "fly_machine" "downloader" {
   name   = "${var.project}-${var.environment}-downloader"
 
   cpus     = 1
-  memorymb = 512
+  memorymb = 1024
 
   image = "registry.fly.io/${fly_app.downloader.name}:${local.downloader_hash}"
 
@@ -244,7 +244,7 @@ resource "fly_machine" "loader" {
   name   = "${var.project}-${var.environment}-loader"
 
   cpus     = 1
-  memorymb = 256
+  memorymb = 512
 
   image = "registry.fly.io/${fly_app.loader.name}:${local.loader_hash}"
 

@@ -549,6 +549,7 @@ info-log "Uploading schema..."
 # "$QSV" tojsonl "$header_encoded_file" --output "$json_file"
 
 # ### Convert data
+info-log "Converting parquet and uploading data..."
 s3_file_path="data/$data_source_id-$sync_version.parquet"
 s3_json_file_path="data/$data_source_id-$sync_version.json"
 duckdb_convert_data_query="
@@ -564,3 +565,4 @@ if [[ "$debug" == "on" ]]; then
     duckdb_convert_data_query += "COPY t TO 's3://$s3_bucket/$s3_json_file_path' (FORMAT 'JSON');"
 fi
 duckdb :memory: "$duckdb_convert_data_query"
+info-log "Uploaded data to s3"

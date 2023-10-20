@@ -498,3 +498,4 @@ if [[ "$debug" == "on" ]]; then
     duckdb_convert_data_query += "COPY t TO 's3://$s3_bucket/$s3_json_file_path' (FORMAT 'JSON');"
 fi
 duckdb :memory: "$duckdb_convert_data_query"
+info-log "Uploaded data to s3"
