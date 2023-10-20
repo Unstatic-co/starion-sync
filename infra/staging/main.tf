@@ -60,8 +60,10 @@ module "googlecloud" {
   github_repo_url  = var.github_repo_url
   github_owner     = var.github_owner
 
-  gcp_project        = var.gcp_project
-  gcp_region         = var.gcp_region
+  gcp_project       = var.gcp_project
+  gcp_region        = var.gcp_region
+  gcp_secret_prefix = var.gcp_secret_prefix
+
   mongodb_uri        = local.mongodb_uri
   postgres_uri       = local.postgres_uri
   s3_endpoint        = var.s3_endpoint
