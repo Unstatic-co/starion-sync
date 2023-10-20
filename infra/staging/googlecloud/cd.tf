@@ -42,7 +42,7 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy_image_builder" {
 resource "google_cloudbuild_trigger" "starion_sync_deploy" {
   name     = "${var.project}-deploy"
   location = var.gcp_region
-  filename = "infra/staging/cloudbuild/stagging.cloudbuild.yml"
+  filename = "infra/cloudbuild/stagging.cloudbuild.yml"
 
   # source_to_build {
   # uri       = var.github_repo_url
