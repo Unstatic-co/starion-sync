@@ -78,7 +78,8 @@ steps:
         export TF_VAR_dest_db_uri=$$DEST_DB_URI
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
 
-  # terraform plan --var-file="../environments/stagging.tfvars"
+        terraform plan -var-file="../environments/stagging.tfvars"
+        echo "hehe"
 
 substitutions:
   # _DEPLOY_IMAGE_URL: gcr.io/${PROJECT_ID}/starion-sync-deploy
