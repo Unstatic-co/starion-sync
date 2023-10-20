@@ -1,6 +1,6 @@
 steps:
-  - name: ${_DEPLOY_IMAGE_URL}
-    id: 'Starion Sync Deploy Image'
+  - id: 'Starion Sync Deploy Image'
+    name: ${_DEPLOY_IMAGE_URL}
     dir: infra/staging
     entrypoint: 'bash'
     args:
@@ -8,6 +8,16 @@ steps:
       - |-
         gcloud -h
         docker -v
+  - id: 'tf init'
+    name: 'hashicorp/terraform:1.6.1'
+    dir: infra/staging
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd terraform
+        terraform fmt -check
+        terraform init -backend-config=gcs.tfbackend
 
 substitutions:
   # _DEPLOY_IMAGE_URL: gcr.io/${PROJECT_ID}/starion-sync-deploy

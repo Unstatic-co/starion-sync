@@ -60,7 +60,7 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy" {
   // If this is set on a build, it will become pending when it is run, 
   // and will need to be explicitly approved to start.
   approval_config {
-    approval_required = true
+    approval_required = false
   }
 
   substitutions = {
