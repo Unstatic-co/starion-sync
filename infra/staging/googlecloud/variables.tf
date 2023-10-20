@@ -14,7 +14,6 @@ variable "github_owner" {
 variable "github_repo_name" {
   type = string
 }
-
 variable "github_repo_url" {
   type = string
 }
@@ -23,10 +22,13 @@ variable "gcp_project" {
   type    = string
   default = "starion-stagging"
 }
-
 variable "gcp_region" {
   type    = string
   default = "us-central1"
+}
+variable "gcp_secret_prefix" {
+  type    = string
+  default = "STARION_SYNC"
 }
 
 variable "mongodb_uri" {

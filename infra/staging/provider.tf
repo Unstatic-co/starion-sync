@@ -17,6 +17,8 @@ terraform {
       version = "~> 1.4.1"
     }
   }
+
+  backend "gcs" {}
 }
 
 provider "fly" {

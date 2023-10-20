@@ -210,6 +210,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error when uploading schema: %+v\n", err)
 	}
+	log.Println("Schema uploaded successfully")
 
 	if *saveDuckdbTableSchema != "" && len(duckdbTableSchema) > 0 {
 		err := os.WriteFile(*saveDuckdbTableSchema, []byte(strings.Join(duckdbTableSchema, ",")), 0644)

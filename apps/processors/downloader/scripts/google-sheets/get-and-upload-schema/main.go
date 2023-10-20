@@ -7,7 +7,6 @@ import (
 	"downloader/util/s3"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -174,7 +173,11 @@ func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSo
 	}
 	log.Println("Uploading schema to s3...")
 	schemaFileKey := fmt.Sprintf("schema/%s-%s.json", dataSourceId, syncVersion)
-	return handler.UploadFileWithBytes(schemaFileKey, schemaJson)
+	err = handler.UploadFileWithBytes(schemaFileKey, schemaJson)
+	if err != nil {
+		log.Printf("Error when uploading schema: %+v\n", err)
+	}
+	return nil
 }
 
 func main() {
@@ -205,10 +208,12 @@ func main() {
 	)
 	if err != nil {
 		log.Fatalf("Error when uploading schema: %+v\n", err)
+	} else {
+		log.Println("Schema uploaded successfully")
 	}
 
 	if *saveDuckdbTableSchema != "" && len(duckdbTableSchema) > 0 {
-		err := ioutil.WriteFile(*saveDuckdbTableSchema, []byte(strings.Join(duckdbTableSchema, ",")), 0644)
+		err := os.WriteFile(*saveDuckdbTableSchema, []byte(strings.Join(duckdbTableSchema, ",")), 0644)
 		if err != nil {
 			fmt.Printf("Error writing null fields to file: %v\n", err)
 			return

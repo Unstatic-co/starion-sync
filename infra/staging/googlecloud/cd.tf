@@ -42,7 +42,7 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy_image_builder" {
 resource "google_cloudbuild_trigger" "starion_sync_deploy" {
   name     = "${var.project}-deploy"
   location = var.gcp_region
-  filename = "infra/staging/cloudbuild/cloudbuild.yml"
+  filename = "infra/cloudbuild/stagging.cloudbuild.yml"
 
   # source_to_build {
   # uri       = var.github_repo_url
@@ -60,10 +60,11 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy" {
   // If this is set on a build, it will become pending when it is run, 
   // and will need to be explicitly approved to start.
   approval_config {
-    approval_required = true
+    approval_required = false
   }
 
   substitutions = {
+    _SECRET_PREFIX    = var.gcp_secret_prefix
     _DEPLOY_IMAGE_URL = "${data.google_container_registry_image.starion_sync_deploy_image.image_url}"
   }
 
