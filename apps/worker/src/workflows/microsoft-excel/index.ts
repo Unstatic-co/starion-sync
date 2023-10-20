@@ -25,8 +25,13 @@ const { downloadExcel } = proxyActivities<MicrosoftExcelActivities>({
   // scheduleToCloseTimeout: '10y',
 });
 
-const { compareExcel, loadExcel } = proxyActivities<MicrosoftExcelActivities>({
-  startToCloseTimeout: '30 second',
+const { compareExcel } = proxyActivities<MicrosoftExcelActivities>({
+  startToCloseTimeout: '1m',
+  // scheduleToCloseTimeout: '10y',
+});
+
+const { loadExcel } = proxyActivities<MicrosoftExcelActivities>({
+  startToCloseTimeout: '4m',
   // scheduleToCloseTimeout: '10y',
 });
 

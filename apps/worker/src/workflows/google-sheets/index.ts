@@ -25,11 +25,15 @@ const { downloadGoogleSheets } = proxyActivities<GoogleSheetsActivities>({
   // scheduleToCloseTimeout: '10y',
 });
 
-const { compareGoogleSheets, loadGoogleSheets } =
-  proxyActivities<GoogleSheetsActivities>({
-    startToCloseTimeout: '30 second',
-    // scheduleToCloseTimeout: '10y',
-  });
+const { compareGoogleSheets } = proxyActivities<GoogleSheetsActivities>({
+  startToCloseTimeout: '1m',
+  // scheduleToCloseTimeout: '10y',
+});
+
+const { loadGoogleSheets } = proxyActivities<GoogleSheetsActivities>({
+  startToCloseTimeout: '4m',
+  // scheduleToCloseTimeout: '10y',
+});
 
 const { getSyncDataGoogleSheets } = proxyActivities<GoogleSheetsActivities>({
   startToCloseTimeout: '5 second',

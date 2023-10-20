@@ -476,11 +476,6 @@ info-log "Uploading schema..."
     --dataSourceId "$data_source_id" \
     --syncVersion "$sync_version"
 
-# ### Convert JSON
-# info-log "Converting json..."
-# json_file="$TEMP_DIR/data.json"
-# "$QSV" tojsonl "$header_encoded_file" --output "$json_file"
-
 # ### Convert data
 info-log "Converting parquet and uploading data..."
 s3_file_path="data/$data_source_id-$sync_version.parquet"
@@ -491,6 +486,7 @@ duckdb_convert_data_query="
     SET s3_access_key_id='$s3_access_key';
     SET s3_secret_access_key='$s3_secret_key';
     SET s3_url_style='path';
+    SET s3_use_ssl='$s3_ssl';
     SET s3_endpoint='$s3_host';
     COPY (SELECT * FROM read_csv('$header_encoded_file', all_varchar=TRUE, auto_detect=TRUE, header=TRUE, quote='\"', escape='\"')) TO 's3://$s3_bucket/$s3_file_path' (FORMAT 'parquet');
 "
