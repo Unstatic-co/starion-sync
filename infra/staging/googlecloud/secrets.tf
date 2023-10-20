@@ -14,6 +14,14 @@ resource "google_secret_manager_secret" "cf_api_token" {
   }
 }
 
+resource "google_secret_manager_secret" "upstash_api_key" {
+  secret_id = "${var.gcp_secret_prefix}_UPSTASH_API_KEY"
+
+  replication {
+    auto {}
+  }
+}
+
 resource "google_secret_manager_secret" "redis_password" {
   secret_id = "${var.gcp_secret_prefix}_REDIS_PASSWORD"
 
@@ -88,6 +96,14 @@ resource "google_secret_manager_secret" "microsoft_client_secret" {
 
 resource "google_secret_manager_secret" "dest_db_uri" {
   secret_id = "${var.gcp_secret_prefix}_DEST_DB_URI"
+
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret" "dest_orchestrator_address" {
+  secret_id = "${var.gcp_secret_prefix}_ORCHESTRATOR_ADDRESS"
 
   replication {
     auto {}

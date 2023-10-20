@@ -10,7 +10,7 @@
 
 FROM alpine:3.17.0 AS terraform_builder
 WORKDIR /app
-ARG TERRAFORM_VERSION=0.8.1
+ARG TERRAFORM_VERSION=1.6.1
 RUN apk add --no-cache unzip curl \
     && curl -Lo terraform.zip "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip" \
     && unzip terraform.zip -d /terraform
