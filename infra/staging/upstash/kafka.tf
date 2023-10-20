@@ -26,7 +26,7 @@ resource "upstash_kafka_topic" "datasource_error" {
 
 resource "upstash_kafka_topic" "datasource_deleted" {
   topic_name       = "dataSource.deleted"
-  partitions       = 1
+  partitions       = 2
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
@@ -48,7 +48,7 @@ resource "upstash_kafka_topic" "connection_created" {
 
 resource "upstash_kafka_topic" "connection_deleted" {
   topic_name       = "connection.deleted"
-  partitions       = 1
+  partitions       = 2
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
@@ -93,6 +93,17 @@ resource "upstash_kafka_topic" "syncflow_succeed" {
 resource "upstash_kafka_topic" "syncflow_completed" {
   topic_name       = "syncflow.completed"
   partitions       = 1
+  retention_time   = 625135
+  retention_size   = 725124
+  max_message_size = 829213
+  cleanup_policy   = "delete"
+
+  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+}
+
+resource "upstash_kafka_topic" "notify_table" {
+  topic_name       = "notifyTable"
+  partitions       = 5
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213

@@ -466,8 +466,7 @@ detected_schema_file="$TEMP_DIR/schema.json"
 "$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$replaced_error_file" >"$detected_schema_file"
 # upload
 info-log "Uploading schema..."
-duckdb_schema_file="$TEMP_DIR/null_become_string_fields"
-./excel/get-and-upload-schema \
+./get-and-upload-schema \
     --schemaFile "$detected_schema_file" \
     --s3Endpoint "$s3_endpoint" \
     --s3Region "$s3_region" \
@@ -475,8 +474,7 @@ duckdb_schema_file="$TEMP_DIR/null_become_string_fields"
     --s3AccessKey "$s3_access_key" \
     --s3SecretKey "$s3_secret_key" \
     --dataSourceId "$data_source_id" \
-    --syncVersion "$sync_version" \
-    --saveDuckdbTableSchema "$duckdb_schema_file"
+    --syncVersion "$sync_version"
 
 # ### Convert JSON
 # info-log "Converting json..."
@@ -484,7 +482,7 @@ duckdb_schema_file="$TEMP_DIR/null_become_string_fields"
 # "$QSV" tojsonl "$header_encoded_file" --output "$json_file"
 
 # ### Convert data
-duckdb_schema="$(cat $duckdb_schema_file)"
+info-log "Converting parquet and uploading data..."
 s3_file_path="data/$data_source_id-$sync_version.parquet"
 s3_json_file_path="data/$data_source_id-$sync_version.json"
 duckdb_convert_data_query="
@@ -493,7 +491,6 @@ duckdb_convert_data_query="
     SET s3_access_key_id='$s3_access_key';
     SET s3_secret_access_key='$s3_secret_key';
     SET s3_url_style='path';
-    SET s3_use_ssl=false;
     SET s3_endpoint='$s3_host';
     COPY (SELECT * FROM read_csv('$header_encoded_file', all_varchar=TRUE, auto_detect=TRUE, header=TRUE, quote='\"', escape='\"')) TO 's3://$s3_bucket/$s3_file_path' (FORMAT 'parquet');
 "
