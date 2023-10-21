@@ -55,6 +55,7 @@ resource "fly_machine" "downloader" {
   region = var.region
   name   = "${var.project}-${var.environment}-downloader"
 
+  cputype  = "shared"
   cpus     = 1
   memorymb = 1024
 
@@ -149,6 +150,7 @@ resource "fly_machine" "comparer" {
   region = var.region
   name   = "${var.project}-${var.environment}-comparer"
 
+  cputype  = "shared"
   cpus     = 1
   memorymb = 256
 
@@ -243,6 +245,7 @@ resource "fly_machine" "loader" {
   region = var.region
   name   = "${var.project}-${var.environment}-loader"
 
+  cputype  = "shared"
   cpus     = 1
   memorymb = 512
 
@@ -338,6 +341,7 @@ resource "fly_machine" "metadata" {
   region = var.region
   name   = "${var.project}-${var.environment}-metadata"
 
+  cputype  = "shared"
   cpus     = 1
   memorymb = 256
 

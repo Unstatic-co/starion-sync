@@ -39,6 +39,48 @@ steps:
       - |
         terraform fmt -check
         terraform init -backend-config=gcs.tfbackend
+
+  - id: 'TF PLAN'
+    name: 'hashicorp/terraform:1.6.1'
+    dir: infra/staging
+    entrypoint: 'sh'
+    secretEnv:
+      [
+        'FLY_API_TOKEN',
+        'CF_API_TOKEN',
+        'UPSTASH_API_KEY',
+        'REDIS_PASSWORD',
+        'MONGODB_PASSWORD',
+        'S3_ACCESS_KEY',
+        'S3_SECRET_KEY',
+        'API_KEYS',
+        'PROCESSOR_API_KEYS',
+        'WEBHOOK_PRIVATE_KEY',
+        'GOOGLE_CLIENT_SECRET',
+        'MICROSOFT_CLIENT_SECRET',
+        'DEST_DB_URI',
+        'ORCHESTRATOR_ADDRESS',
+      ]
+    args:
+      - '-c'
+      - |
+        export TF_VAR_fly_api_token=$$FLY_API_TOKEN
+        export TF_VAR_cf_api_token=$$CF_API_TOKEN
+        export TF_VAR_upstash_api_key=$$UPSTASH_API_KEY
+        export TF_VAR_redis_password=$$REDIS_PASSWORD
+        export TF_VAR_mongodb_password=$$MONGODB_PASSWORD
+        export TF_VAR_s3_access_key=$$S3_ACCESS_KEY
+        export TF_VAR_s3_secret_key=$$S3_SECRET_KEY
+        export TF_VAR_api_keys='["$$API_KEYS"]'
+        export TF_VAR_processor_api_keys='["$$PROCESSOR_API_KEYS"]'
+        export TF_VAR_webhook_private_key=$$WEBHOOK_PRIVATE_KEY
+        export TF_VAR_google_client_secret=$$GOOGLE_CLIENT_SECRET
+        export TF_VAR_microsoft_client_secret=$$MICROSOFT_CLIENT_SECRET
+        export TF_VAR_dest_db_uri=$$DEST_DB_URI
+        export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
+
+        terraform plan -var-file="../environments/stagging.tfvars" -out=tfplan
+
   - id: 'DEPLOY'
     name: ${_DEPLOY_IMAGE_URL}
     dir: infra/staging
@@ -78,9 +120,7 @@ steps:
         export TF_VAR_dest_db_uri=$$DEST_DB_URI
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
 
-        terraform plan -var-file="../environments/stagging.tfvars" -out=tfplan
         terraform apply -auto-approve tfplan
-        echo 'hehe'
 
 substitutions:
 timeout: 1800s

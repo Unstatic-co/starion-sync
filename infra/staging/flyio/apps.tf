@@ -76,6 +76,7 @@ resource "fly_machine" "apps" {
   region = var.region
   name   = "${var.project}-${var.environment}-apps"
 
+  cputype  = "shared"
   cpus     = 2
   memorymb = 2048
 
@@ -210,6 +211,7 @@ resource "fly_machine" "webhook_trigger" {
   region = var.region
   name   = "${var.project}-${var.environment}-webhook-trigger"
 
+  cputype  = "shared"
   cpus     = 1
   memorymb = 256
 
@@ -324,6 +326,7 @@ resource "fly_machine" "formsync" {
   region = var.region
   name   = "${var.project}-${var.environment}-formsync"
 
+  cputype  = "shared"
   cpus     = 1
   memorymb = 256
 
