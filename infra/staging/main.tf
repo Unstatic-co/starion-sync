@@ -33,8 +33,8 @@ module "flyio" {
   # downloader_url          = module.googlecloud.downloader_url
   # comparer_url            = module.googlecloud.comparer_url
   # loader_url              = module.googlecloud.loader_url
-  api_keys                = var.api_keys
-  processor_api_keys      = var.processor_api_keys
+  api_keys                = split(",", var.api_keys)
+  processor_api_keys      = split(",", var.processor_api_keys)
   webhook_public_key      = var.webhook_public_key
   webhook_private_key     = var.webhook_private_key
   microsoft_client_id     = var.microsoft_client_id
@@ -71,7 +71,7 @@ module "googlecloud" {
   s3_bucket          = var.s3_bucket
   s3_access_key      = var.s3_access_key
   s3_secret_key      = var.s3_secret_key
-  processor_api_keys = var.processor_api_keys
+  processor_api_keys = split(",", var.processor_api_keys)
 
   # depends_on = [
   # module.flyio

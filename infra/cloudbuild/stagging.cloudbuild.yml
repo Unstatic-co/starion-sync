@@ -71,8 +71,8 @@ steps:
         export TF_VAR_mongodb_password=$$MONGODB_PASSWORD
         export TF_VAR_s3_access_key=$$S3_ACCESS_KEY
         export TF_VAR_s3_secret_key=$$S3_SECRET_KEY
-        export TF_VAR_api_keys='["$$API_KEYS"]'
-        export TF_VAR_processor_api_keys='["$$PROCESSOR_API_KEYS"]'
+        export TF_VAR_api_keys=$$API_KEYS
+        export TF_VAR_processor_api_keys=$$PROCESSOR_API_KEYS
         export TF_VAR_webhook_private_key=$$WEBHOOK_PRIVATE_KEY
         export TF_VAR_google_client_secret=$$GOOGLE_CLIENT_SECRET
         export TF_VAR_microsoft_client_secret=$$MICROSOFT_CLIENT_SECRET
@@ -112,8 +112,8 @@ steps:
         export TF_VAR_mongodb_password=$$MONGODB_PASSWORD
         export TF_VAR_s3_access_key=$$S3_ACCESS_KEY
         export TF_VAR_s3_secret_key=$$S3_SECRET_KEY
-        export TF_VAR_api_keys='["$$API_KEYS"]'
-        export TF_VAR_processor_api_keys='["$$PROCESSOR_API_KEYS"]'
+        export TF_VAR_api_keys=$$API_KEYS
+        export TF_VAR_processor_api_keys=$$PROCESSOR_API_KEYS
         export TF_VAR_webhook_private_key=$$WEBHOOK_PRIVATE_KEY
         export TF_VAR_google_client_secret=$$GOOGLE_CLIENT_SECRET
         export TF_VAR_microsoft_client_secret=$$MICROSOFT_CLIENT_SECRET
