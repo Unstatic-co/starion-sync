@@ -137,12 +137,12 @@ variable "s3_secret_key" {
 }
 
 variable "api_keys" {
-  type      = list(string)
+  type      = string // splitted by comma
   sensitive = true
 }
 
 variable "processor_api_keys" {
-  type      = list(string)
+  type      = string // splitted by comma
   sensitive = true
 }
 

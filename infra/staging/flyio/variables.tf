@@ -90,17 +90,18 @@ variable "s3_secret_key" {
   sensitive = true
 }
 
-# variable "downloader_url" {
-# type = string
-# }
-
-# variable "comparer_url" {
-# type = string
-# }
-
-# variable "loader_url" {
-# type = string
-# }
+variable "downloader_url" {
+  type = string
+}
+variable "comparer_url" {
+  type = string
+}
+variable "loader_url" {
+  type = string
+}
+variable "metadata_url" {
+  type = string
+}
 
 variable "api_keys" {
   type      = list(string)

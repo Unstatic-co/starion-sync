@@ -2,11 +2,11 @@ locals {
   db_uri          = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin"
   metadata_db_uri = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-form-sync?directConnection=true&replicaSet=rs0&authSource=admin"
   # dest_db_uri              = "postgres://${var.postgres_user}:${var.postgres_password}@${fly_ip.postgres_ip_v4.address}:5432/starion-sync?sslmode=disable"
-  dest_db_uri              = var.dest_db_uri
-  downloader_url           = "https://${fly_app.downloader.name}.fly.dev"
-  comparer_url             = "https://${fly_app.comparer.name}.fly.dev"
-  loader_url               = "https://${fly_app.loader.name}.fly.dev"
-  metadata_url             = "https://${fly_app.metadata.name}.fly.dev"
+  dest_db_uri = var.dest_db_uri
+  # downloader_url           = "https://${fly_app.downloader.name}.fly.dev"
+  # comparer_url             = "https://${fly_app.comparer.name}.fly.dev"
+  # loader_url               = "https://${fly_app.loader.name}.fly.dev"
+  # metadata_url             = "https://${fly_app.metadata.name}.fly.dev"
   configurator_url         = "https://${fly_app.apps.name}.fly.dev"
   webhook_trigger_base_url = "https://${fly_app.webhook_trigger.name}.fly.dev"
 }
@@ -76,6 +76,7 @@ resource "fly_machine" "apps" {
   region = var.region
   name   = "${var.project}-${var.environment}-apps"
 
+  cputype  = "shared"
   cpus     = 2
   memorymb = 2048
 
@@ -129,9 +130,9 @@ resource "fly_machine" "apps" {
     S3_DIFF_DATA_BUCKET     = var.s3_bucket
     S3_ACCESS_KEY           = var.s3_access_key
     S3_SECRET_KEY           = var.s3_secret_key
-    DOWNLOADER_URL          = local.downloader_url
-    COMPARER_URL            = local.comparer_url
-    LOADER_URL              = local.loader_url
+    DOWNLOADER_URL          = var.downloader_url
+    COMPARER_URL            = var.comparer_url
+    LOADER_URL              = var.loader_url
     API_KEYS                = join(",", var.api_keys)
     PROCESSOR_API_KEY       = random_shuffle.processor_api_key.result[0]
     WEBHOOK_PRIVATE_KEY     = var.webhook_private_key
@@ -210,6 +211,7 @@ resource "fly_machine" "webhook_trigger" {
   region = var.region
   name   = "${var.project}-${var.environment}-webhook-trigger"
 
+  cputype  = "shared"
   cpus     = 1
   memorymb = 256
 
@@ -324,6 +326,7 @@ resource "fly_machine" "formsync" {
   region = var.region
   name   = "${var.project}-${var.environment}-formsync"
 
+  cputype  = "shared"
   cpus     = 1
   memorymb = 256
 
@@ -362,7 +365,7 @@ resource "fly_machine" "formsync" {
     REDIS_PORT              = "6379"
     REDIS_PASSWORD          = var.redis_password
     REDIS_TLS_ENABLED       = "false"
-    METADATA_HOST_URL       = local.metadata_url
+    METADATA_HOST_URL       = var.metadata_url
     STARION_SYNC_BASE_URL   = local.configurator_url
     WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
     STARION_SYNC_API_KEY    = random_shuffle.configurator_api_key.result[0]

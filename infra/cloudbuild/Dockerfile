@@ -15,7 +15,7 @@ RUN apk add --no-cache unzip curl \
     && curl -Lo terraform.zip "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip" \
     && unzip terraform.zip -d /terraform
 
-FROM --platform=linux/amd64 google/cloud-sdk:slim
+FROM --platform=linux/amd64 google/cloud-sdk:451.0.1-slim
 
 # docker dependencies
 RUN apt-get update \

@@ -1,5 +1,5 @@
-# resource "cloudflare_r2_bucket" "sync-data" {
-# account_id = "f037e56e89293a057740de681ac9abbe"
-# name       = "${var.project}-${var.environment}-data"
-# location   = "enam"
-# }
+resource "cloudflare_r2_bucket" "sync_data" {
+  account_id = var.cf_account_id
+  name       = "${var.project}-${var.environment}-sync-data"
+  # location   = "enam"
+}
