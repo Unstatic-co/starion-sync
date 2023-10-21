@@ -39,6 +39,10 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy_image_builder" {
 
 # *************************************** DEPLOY TRIGGER ***************************************
 
+data "google_service_account" "deploy_service_account" {
+  account_id = "${var.project}-deploy"
+}
+
 resource "google_cloudbuild_trigger" "starion_sync_deploy" {
   name     = "${var.project}-deploy"
   location = var.gcp_region
@@ -71,8 +75,13 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy" {
   github {
     owner = var.github_owner
     name  = var.github_repo_name
-    pull_request {
+    # pull_request {
+    # branch = "${var.environment}|test-build-stagging"
+    # }
+    push {
       branch = "${var.environment}|test-build-stagging"
     }
   }
+
+  service_account = data.google_service_account.deploy_service_account.email
 }
