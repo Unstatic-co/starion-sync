@@ -80,6 +80,7 @@ steps:
 
         terraform plan -var-file="../environments/stagging.tfvars" -out=tfplan
         terraform apply -auto-approve tfplan
+        echo 'hehe'
 
 substitutions:
 timeout: 1800s
