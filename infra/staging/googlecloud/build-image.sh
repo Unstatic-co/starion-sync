@@ -3,7 +3,7 @@
 set -eo pipefail
 
 is_missing=false
-for env in PROJECT IMAGE_NAME WORKDIR; do
+for env in REGION PROJECT REPO IMAGE_NAME WORKDIR; do
     # Indirect
     value="${!env}"
     if [[ -z "$value" ]]; then
@@ -15,4 +15,4 @@ if $is_missing; then
     exit 1
 fi
 
-gcloud builds submit --tag "gcr.io/$PROJECT/$IMAGE_NAME" "$WORKDIR"
+gcloud builds submit --tag "$REGION-docker.pkg.dev/$PROJECT/$REPO/$IMAGE_NAME" "$WORKDIR"

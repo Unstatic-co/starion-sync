@@ -1,10 +1,10 @@
 # ******************* DOWNLOADER *******************
 
-data "google_container_registry_image" "downloader" {
-  name   = "downloader"
-  tag    = local.downloader_hash
-  digest = local.downloader_hash
-}
+# data "google_container_registry_image" "downloader" {
+# name   = "downloader"
+# tag    = local.downloader_hash
+# digest = local.downloader_hash
+# }
 
 locals {
   downloader_path = "${path.root}/../../apps/processors/downloader"
@@ -12,6 +12,11 @@ locals {
     [for f in fileset("${local.downloader_path}", "**") : "${local.downloader_path}/${f}"],
   ))
   downloader_hash = md5(join("", [for i in local.downloader_files : filemd5(i)]))
+}
+
+locals {
+  downloader_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${google_artifact_registry_repository.docker_repository.name}/downloader:${local.downloader_hash}"
+  downloader_image_name = "downloader:${local.downloader_hash}"
 }
 
 resource "null_resource" "downloader_builder" {
@@ -25,9 +30,11 @@ resource "null_resource" "downloader_builder" {
       "/bin/bash"
     ]
     environment = {
+      REGION     = var.gcp_region
       PROJECT    = var.gcp_project
+      REPO       = google_artifact_registry_repository.docker_repository.name
       WORKDIR    = abspath(local.downloader_path)
-      IMAGE_NAME = "${data.google_container_registry_image.downloader.name}:${local.downloader_hash}"
+      IMAGE_NAME = local.downloader_image_name
     }
     working_dir = abspath(path.module)
   }
@@ -40,7 +47,7 @@ resource "google_cloud_run_service" "downloader" {
   template {
     spec {
       containers {
-        image = data.google_container_registry_image.downloader.image_url
+        image = local.downloader_image_url
         resources {
           limits = {
             cpu    = 1
@@ -109,11 +116,11 @@ resource "google_cloud_run_service_iam_member" "downloader_invoker" {
 
 # ******************* COMPARER *******************
 
-data "google_container_registry_image" "comparer" {
-  name   = "comparer"
-  tag    = local.comparer_hash
-  digest = local.comparer_hash
-}
+# data "google_container_registry_image" "comparer" {
+# name   = "comparer"
+# tag    = local.comparer_hash
+# digest = local.comparer_hash
+# }
 
 locals {
   comparer_path = "${path.root}/../../apps/processors/comparer"
@@ -121,6 +128,11 @@ locals {
     [for f in fileset("${local.comparer_path}", "**") : "${local.comparer_path}/${f}"],
   ))
   comparer_hash = md5(join("", [for i in local.comparer_files : filemd5(i)]))
+}
+
+locals {
+  comparer_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${google_artifact_registry_repository.docker_repository.name}/comparer:${local.comparer_hash}"
+  comparer_image_name = "comparer:${local.comparer_hash}"
 }
 
 resource "null_resource" "comparer_builder" {
@@ -134,9 +146,11 @@ resource "null_resource" "comparer_builder" {
       "/bin/bash"
     ]
     environment = {
+      REGION     = var.gcp_region
       PROJECT    = var.gcp_project
+      REPO       = google_artifact_registry_repository.docker_repository.name
       WORKDIR    = abspath(local.comparer_path)
-      IMAGE_NAME = "${data.google_container_registry_image.comparer.name}:${local.comparer_hash}"
+      IMAGE_NAME = local.comparer_image_name
     }
     working_dir = abspath(path.module)
   }
@@ -149,7 +163,7 @@ resource "google_cloud_run_service" "comparer" {
   template {
     spec {
       containers {
-        image = data.google_container_registry_image.comparer.image_url
+        image = local.comparer_image_url
         resources {
           limits = {
             cpu    = 1
@@ -218,11 +232,11 @@ resource "google_cloud_run_service_iam_member" "comparer_invoker" {
 
 # ******************* LOADER *******************
 
-data "google_container_registry_image" "loader" {
-  name   = "loader"
-  tag    = local.loader_hash
-  digest = local.loader_hash
-}
+# data "google_container_registry_image" "loader" {
+# name   = "loader"
+# tag    = local.loader_hash
+# digest = local.loader_hash
+# }
 
 locals {
   loader_path = "${path.root}/../../apps/processors/loader"
@@ -230,6 +244,11 @@ locals {
     [for f in fileset("${local.loader_path}", "**") : "${local.loader_path}/${f}"],
   ))
   loader_hash = md5(join("", [for i in local.loader_files : filemd5(i)]))
+}
+
+locals {
+  loader_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${google_artifact_registry_repository.docker_repository.name}/loader:${local.loader_hash}"
+  loader_image_name = "loader:${local.loader_hash}"
 }
 
 resource "null_resource" "loader_builder" {
@@ -243,9 +262,11 @@ resource "null_resource" "loader_builder" {
       "/bin/bash"
     ]
     environment = {
+      REGION     = var.gcp_region
       PROJECT    = var.gcp_project
+      REPO       = google_artifact_registry_repository.docker_repository.name
       WORKDIR    = abspath(local.loader_path)
-      IMAGE_NAME = "${data.google_container_registry_image.loader.name}:${local.loader_hash}"
+      IMAGE_NAME = local.loader_image_name
     }
     working_dir = abspath(path.module)
   }
@@ -258,7 +279,7 @@ resource "google_cloud_run_service" "loader" {
   template {
     spec {
       containers {
-        image = data.google_container_registry_image.loader.image_url
+        image = local.loader_image_url
         resources {
           limits = {
             cpu    = 1
@@ -349,6 +370,11 @@ locals {
   metadata_hash = md5(join("", [for i in local.metadata_files : filemd5(i)]))
 }
 
+locals {
+  metadata_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${google_artifact_registry_repository.docker_repository.name}/metadata:${local.metadata_hash}"
+  metadata_image_name = "metadata:${local.metadata_hash}"
+}
+
 resource "null_resource" "metadata_builder" {
   triggers = {
     hash = local.metadata_hash
@@ -360,9 +386,11 @@ resource "null_resource" "metadata_builder" {
       "/bin/bash"
     ]
     environment = {
+      REGION     = var.gcp_region
       PROJECT    = var.gcp_project
+      REPO       = google_artifact_registry_repository.docker_repository.name
       WORKDIR    = abspath(local.metadata_path)
-      IMAGE_NAME = "${data.google_container_registry_image.metadata.name}:${local.metadata_hash}"
+      IMAGE_NAME = local.metadata_image_name
     }
     working_dir = abspath(path.module)
   }
@@ -375,7 +403,7 @@ resource "google_cloud_run_service" "metadata" {
   template {
     spec {
       containers {
-        image = data.google_container_registry_image.metadata.image_url
+        image = local.metadata_image_url
         resources {
           limits = {
             cpu    = 1

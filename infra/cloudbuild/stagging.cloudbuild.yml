@@ -80,6 +80,7 @@ steps:
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
 
         terraform plan -var-file="../environments/stagging.tfvars" -out=tfplan
+        echo 'hehe'
 
   - id: 'DEPLOY'
     name: ${_DEPLOY_IMAGE_URL}

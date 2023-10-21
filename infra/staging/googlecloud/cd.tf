@@ -1,7 +1,17 @@
 # *************************************** DEPLOY IMAGE ***************************************
 
-data "google_container_registry_image" "starion_sync_deploy_image" {
-  name = "starion-sync-deploy-image"
+# data "google_container_registry_image" "starion_sync_deploy_image" {
+# name = "starion-sync-deploy-image"
+# }
+
+locals {
+  cloudbuild_path = "${path.root}/../cloudbuild"
+  deploy_image_files = sort(setunion(
+    [
+      "${path.root}/../cloudbuild/Dockerfile",
+    ],
+  ))
+  deploy_image_url = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${google_artifact_registry_repository.docker_repository.name}/deploy-image:latest"
 }
 
 resource "google_cloudbuild_trigger" "starion_sync_deploy_image_builder" {
@@ -15,7 +25,7 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy_image_builder" {
       args = ["builds", "submit", "--tag", "$${_IMAGE_URL}"]
     }
     substitutions = {
-      _IMAGE_URL = data.google_container_registry_image.starion_sync_deploy_image.image_url
+      _IMAGE_URL = local.deploy_image_url
     }
     timeout = "3000s"
     options {
@@ -57,7 +67,7 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy" {
 
   substitutions = {
     _SECRET_PREFIX    = var.gcp_secret_prefix
-    _DEPLOY_IMAGE_URL = "${data.google_container_registry_image.starion_sync_deploy_image.image_url}"
+    _DEPLOY_IMAGE_URL = local.deploy_image_url
   }
 
   github {
