@@ -39,6 +39,9 @@ RUN rm /usr/local/bin/docker \
     && apt-get install -y --no-install-recommends docker-ce docker-ce-cli containerd.io \
     && rm -rf /var/lib/apt/lists/* /var/tmp/*
 
+# install flyctl
+RUN curl -L https://fly.io/install.sh | sh
+
 COPY --from=terraform_builder /terraform /usr/local/bin
 
 # ENTRYPOINT ["tail", "-f", "/dev/null"]
