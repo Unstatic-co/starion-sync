@@ -93,12 +93,13 @@ variable "s3_secret_key" {
 variable "downloader_url" {
   type = string
 }
-
 variable "comparer_url" {
   type = string
 }
-
 variable "loader_url" {
+  type = string
+}
+variable "metadata_url" {
   type = string
 }
 

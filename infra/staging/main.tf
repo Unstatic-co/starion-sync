@@ -33,6 +33,7 @@ module "flyio" {
   downloader_url          = module.googlecloud.downloader_url
   comparer_url            = module.googlecloud.comparer_url
   loader_url              = module.googlecloud.loader_url
+  metadata_url            = module.googlecloud.metadata_url
   api_keys                = split(",", var.api_keys)
   processor_api_keys      = split(",", var.processor_api_keys)
   webhook_public_key      = var.webhook_public_key

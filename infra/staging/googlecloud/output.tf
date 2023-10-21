@@ -9,3 +9,7 @@ output "comparer_url" {
 output "loader_url" {
   value = google_cloud_run_service.loader.status[0].url
 }
+
+output "metadata_url" {
+  value = google_cloud_run_service.metadata.status[0].url
+}

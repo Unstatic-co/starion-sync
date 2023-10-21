@@ -2,11 +2,11 @@ locals {
   db_uri          = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin"
   metadata_db_uri = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4.address}:27017/starion-form-sync?directConnection=true&replicaSet=rs0&authSource=admin"
   # dest_db_uri              = "postgres://${var.postgres_user}:${var.postgres_password}@${fly_ip.postgres_ip_v4.address}:5432/starion-sync?sslmode=disable"
-  dest_db_uri              = var.dest_db_uri
-  downloader_url           = "https://${fly_app.downloader.name}.fly.dev"
-  comparer_url             = "https://${fly_app.comparer.name}.fly.dev"
-  loader_url               = "https://${fly_app.loader.name}.fly.dev"
-  metadata_url             = "https://${fly_app.metadata.name}.fly.dev"
+  dest_db_uri = var.dest_db_uri
+  # downloader_url           = "https://${fly_app.downloader.name}.fly.dev"
+  # comparer_url             = "https://${fly_app.comparer.name}.fly.dev"
+  # loader_url               = "https://${fly_app.loader.name}.fly.dev"
+  # metadata_url             = "https://${fly_app.metadata.name}.fly.dev"
   configurator_url         = "https://${fly_app.apps.name}.fly.dev"
   webhook_trigger_base_url = "https://${fly_app.webhook_trigger.name}.fly.dev"
 }
@@ -365,7 +365,7 @@ resource "fly_machine" "formsync" {
     REDIS_PORT              = "6379"
     REDIS_PASSWORD          = var.redis_password
     REDIS_TLS_ENABLED       = "false"
-    METADATA_HOST_URL       = local.metadata_url
+    METADATA_HOST_URL       = var.metadata_url
     STARION_SYNC_BASE_URL   = local.configurator_url
     WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
     STARION_SYNC_API_KEY    = random_shuffle.configurator_api_key.result[0]
