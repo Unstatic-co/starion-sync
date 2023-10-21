@@ -31,15 +31,17 @@ variable "gcp_project" {
   type    = string
   default = "starion-stagging"
 }
-
 variable "gcp_region" {
   type    = string
   default = "us-central1"
 }
-
 variable "gcp_secret_prefix" {
   type    = string
   default = "STARION_SYNC"
+}
+variable "gcp_docker_repository_name" {
+  type    = string
+  default = "starion-sync-images"
 }
 
 variable "cf_api_token" {

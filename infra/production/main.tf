@@ -5,6 +5,19 @@ locals {
   broker_uri   = "${module.upstash.kafka_uri}:9092"
 }
 
+module "digitalocean" {
+  source = "./digitalocean"
+
+  project     = var.project
+  environment = var.environment
+
+  do_token = var.do_token
+
+  providers = {
+    digitalocean = digitalocean
+  }
+}
+
 module "flyio" {
   source = "./flyio"
   providers = {
