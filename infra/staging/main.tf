@@ -14,25 +14,25 @@ module "flyio" {
   project     = var.project
   environment = var.environment
 
-  region               = var.fly_region
-  fly_api_token        = var.fly_api_token
-  redis_password       = var.redis_password
-  mongodb_user         = var.mongodb_user
-  mongodb_password     = var.mongodb_password
-  postgres_user        = var.postgres_user
-  postgres_password    = var.postgres_password
-  orchestrator_address = var.orchestrator_address
-  broker_uris          = local.broker_uri
-  kafka_sasl_username  = module.upstash.kafka_username
-  kafka_sasl_password  = module.upstash.kafka_password
-  s3_endpoint          = var.s3_endpoint
-  s3_region            = var.s3_region
-  s3_bucket            = var.s3_bucket
-  s3_access_key        = var.s3_access_key
-  s3_secret_key        = var.s3_secret_key
-  # downloader_url          = module.googlecloud.downloader_url
-  # comparer_url            = module.googlecloud.comparer_url
-  # loader_url              = module.googlecloud.loader_url
+  region                  = var.fly_region
+  fly_api_token           = var.fly_api_token
+  redis_password          = var.redis_password
+  mongodb_user            = var.mongodb_user
+  mongodb_password        = var.mongodb_password
+  postgres_user           = var.postgres_user
+  postgres_password       = var.postgres_password
+  orchestrator_address    = var.orchestrator_address
+  broker_uris             = local.broker_uri
+  kafka_sasl_username     = module.upstash.kafka_username
+  kafka_sasl_password     = module.upstash.kafka_password
+  s3_endpoint             = var.s3_endpoint
+  s3_region               = var.s3_region
+  s3_bucket               = var.s3_bucket
+  s3_access_key           = var.s3_access_key
+  s3_secret_key           = var.s3_secret_key
+  downloader_url          = module.googlecloud.downloader_url
+  comparer_url            = module.googlecloud.comparer_url
+  loader_url              = module.googlecloud.loader_url
   api_keys                = split(",", var.api_keys)
   processor_api_keys      = split(",", var.processor_api_keys)
   webhook_public_key      = var.webhook_public_key
@@ -45,7 +45,7 @@ module "flyio" {
   dest_db_uri = var.dest_db_uri # temporary
 
   depends_on = [
-    # module.googlecloud,
+    module.googlecloud,
     module.upstash
   ]
 }
@@ -65,10 +65,10 @@ module "googlecloud" {
   gcp_secret_prefix = var.gcp_secret_prefix
 
   mongodb_uri        = local.mongodb_uri
-  postgres_uri       = local.postgres_uri
-  s3_endpoint        = var.s3_endpoint
+  postgres_uri       = var.dest_db_uri
+  s3_endpoint        = module.cloudflare.s3_endpoint
   s3_region          = var.s3_region
-  s3_bucket          = var.s3_bucket
+  s3_bucket          = module.cloudflare.s3_bucket_name
   s3_access_key      = var.s3_access_key
   s3_secret_key      = var.s3_secret_key
   processor_api_keys = split(",", var.processor_api_keys)

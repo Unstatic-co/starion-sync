@@ -1,7 +1,9 @@
 # ******************* DOWNLOADER *******************
 
 data "google_container_registry_image" "downloader" {
-  name = "downloader"
+  name   = "downloader"
+  tag    = local.downloader_hash
+  digest = local.downloader_hash
 }
 
 locals {
@@ -38,7 +40,7 @@ resource "google_cloud_run_service" "downloader" {
   template {
     spec {
       containers {
-        image = "${data.google_container_registry_image.downloader.image_url}:${local.downloader_hash}"
+        image = data.google_container_registry_image.downloader.image_url
         resources {
           limits = {
             cpu    = 1
@@ -108,7 +110,9 @@ resource "google_cloud_run_service_iam_member" "downloader_invoker" {
 # ******************* COMPARER *******************
 
 data "google_container_registry_image" "comparer" {
-  name = "comparer"
+  name   = "comparer"
+  tag    = local.comparer_hash
+  digest = local.comparer_hash
 }
 
 locals {
@@ -132,7 +136,7 @@ resource "null_resource" "comparer_builder" {
     environment = {
       PROJECT    = var.gcp_project
       WORKDIR    = abspath(local.comparer_path)
-      IMAGE_NAME = data.google_container_registry_image.comparer.name
+      IMAGE_NAME = "${data.google_container_registry_image.comparer.name}:${local.comparer_hash}"
     }
     working_dir = abspath(path.module)
   }
@@ -215,7 +219,9 @@ resource "google_cloud_run_service_iam_member" "comparer_invoker" {
 # ******************* LOADER *******************
 
 data "google_container_registry_image" "loader" {
-  name = "loader"
+  name   = "loader"
+  tag    = local.loader_hash
+  digest = local.loader_hash
 }
 
 locals {
@@ -239,7 +245,7 @@ resource "null_resource" "loader_builder" {
     environment = {
       PROJECT    = var.gcp_project
       WORKDIR    = abspath(local.loader_path)
-      IMAGE_NAME = data.google_container_registry_image.loader.name
+      IMAGE_NAME = "${data.google_container_registry_image.loader.name}:${local.loader_hash}"
     }
     working_dir = abspath(path.module)
   }
@@ -323,6 +329,95 @@ resource "google_cloud_run_service" "loader" {
 resource "google_cloud_run_service_iam_member" "loader_invoker" {
   location = google_cloud_run_service.loader.location
   service  = google_cloud_run_service.loader.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+# ******************* METADATA *******************
+
+data "google_container_registry_image" "metadata" {
+  name   = "metadata"
+  tag    = local.metadata_hash
+  digest = local.metadata_hash
+}
+
+locals {
+  metadata_path = "${path.root}/../../form-sync/module/metadata"
+  metadata_files = sort(setunion(
+    [for f in fileset("${local.metadata_path}", "**") : "${local.metadata_path}/${f}"],
+  ))
+  metadata_hash = md5(join("", [for i in local.metadata_files : filemd5(i)]))
+}
+
+resource "null_resource" "metadata_builder" {
+  triggers = {
+    hash = local.metadata_hash
+  }
+
+  provisioner "local-exec" {
+    command = abspath("${path.module}/build-image.sh")
+    interpreter = [
+      "/bin/bash"
+    ]
+    environment = {
+      PROJECT    = var.gcp_project
+      WORKDIR    = abspath(local.metadata_path)
+      IMAGE_NAME = "${data.google_container_registry_image.metadata.name}:${local.metadata_hash}"
+    }
+    working_dir = abspath(path.module)
+  }
+}
+
+resource "google_cloud_run_service" "metadata" {
+  name     = "metadata"
+  location = var.gcp_region
+
+  template {
+    spec {
+      containers {
+        image = data.google_container_registry_image.metadata.image_url
+        resources {
+          limits = {
+            cpu    = 1
+            memory = "128Mi"
+          }
+        }
+        env {
+          name  = "PRODUCTION"
+          value = "true"
+        }
+        env {
+          name  = "LOG_LEVEL"
+          value = "debug"
+        }
+        // env {
+        // name  = "API_KEYS"
+        // value = join(",", var.processor_api_keys)
+        // }
+        env {
+          name  = "DB_URI"
+          value = var.mongodb_uri
+        }
+      }
+      timeout_seconds       = 310
+      container_concurrency = 5
+    }
+    metadata {
+      annotations = {
+        # "run.googleapis.com/execution-environment" = "gen2"
+        "autoscaling.knative.dev/maxScale" = "10"
+      }
+    }
+  }
+
+  depends_on = [
+    null_resource.metadata_builder,
+  ]
+}
+
+resource "google_cloud_run_service_iam_member" "metadata_invoker" {
+  location = google_cloud_run_service.metadata.location
+  service  = google_cloud_run_service.metadata.name
   role     = "roles/run.invoker"
   member   = "allUsers"
 }

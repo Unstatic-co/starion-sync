@@ -308,7 +308,7 @@ info-log "Converting file to csv..."
 original_csv_file=$TEMP_DIR/original.csv
 converted_csv_file=$TEMP_DIR/converted_csv.csv
 OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=AUTO duckdb :memory: \
-    "load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$worksheet_name')) TO '$converted_csv_file' (HEADER FALSE, DELIMITER ',');"
+    "install spatial; load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$worksheet_name')) TO '$converted_csv_file' (HEADER FALSE, DELIMITER ',');"
 
 trimmed_ghost_cells="$TEMP_DIR/ghost-cells.csv"
 maxColIndex=$(./get-xlsx-header --file "$original_file" --sheetName "$worksheet_name" --showMaxIndex)
@@ -548,7 +548,7 @@ info-log "Converting parquet and uploading data..."
 s3_file_path="data/$data_source_id-$sync_version.parquet"
 s3_json_file_path="data/$data_source_id-$sync_version.json"
 duckdb_convert_data_query="
-    LOAD httpfs;
+    INSTALL httpfs; LOAD httpfs;
     SET s3_region='$s3_region';
     SET s3_access_key_id='$s3_access_key';
     SET s3_secret_access_key='$s3_secret_key';

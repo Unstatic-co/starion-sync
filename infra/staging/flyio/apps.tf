@@ -130,9 +130,9 @@ resource "fly_machine" "apps" {
     S3_DIFF_DATA_BUCKET     = var.s3_bucket
     S3_ACCESS_KEY           = var.s3_access_key
     S3_SECRET_KEY           = var.s3_secret_key
-    DOWNLOADER_URL          = local.downloader_url
-    COMPARER_URL            = local.comparer_url
-    LOADER_URL              = local.loader_url
+    DOWNLOADER_URL          = var.downloader_url
+    COMPARER_URL            = var.comparer_url
+    LOADER_URL              = var.loader_url
     API_KEYS                = join(",", var.api_keys)
     PROCESSOR_API_KEY       = random_shuffle.processor_api_key.result[0]
     WEBHOOK_PRIVATE_KEY     = var.webhook_private_key
