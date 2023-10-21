@@ -42,11 +42,6 @@ variable "gcp_secret_prefix" {
   default = "STARION_SYNC"
 }
 
-variable "cf_api_key" {
-  type      = string
-  sensitive = true
-}
-
 variable "cf_api_token" {
   type      = string
   sensitive = true
