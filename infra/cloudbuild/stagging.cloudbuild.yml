@@ -82,8 +82,6 @@ steps:
         terraform apply -auto-approve tfplan
 
 substitutions:
-  # _DEPLOY_IMAGE_URL: gcr.io/${PROJECT_ID}/starion-sync-deploy
-  # _DEPLOY_IMAGE_URL: ''
 timeout: 1800s
 options:
   machine_type: UNSPECIFIED
