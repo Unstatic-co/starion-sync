@@ -41,7 +41,8 @@ RUN rm /usr/local/bin/docker \
 
 # install flyctl
 RUN curl -L https://fly.io/install.sh | sh
+ENV PATH "$PATH:/root/.fly/bin"
 
 COPY --from=terraform_builder /terraform /usr/local/bin
 
-# ENTRYPOINT ["tail", "-f", "/dev/null"]
+ENTRYPOINT ["tail", "-f", "/dev/null"]
