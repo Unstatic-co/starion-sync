@@ -39,6 +39,9 @@ variable "gcp_secret_prefix" {
   type    = string
   default = "STARION_SYNC"
 }
+variable "gcp_deploy_service_account_id" {
+  type = string
+}
 variable "gcp_docker_repository_name" {
   type    = string
   default = "starion-sync-images"

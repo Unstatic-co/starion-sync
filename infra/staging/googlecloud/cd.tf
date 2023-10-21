@@ -40,26 +40,14 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy_image_builder" {
 # *************************************** DEPLOY TRIGGER ***************************************
 
 data "google_service_account" "deploy_service_account" {
-  account_id = "${var.project}-deploy"
+  account_id = var.gcp_deploy_service_account_id
+  # project    = var.gcp_project
 }
 
 resource "google_cloudbuild_trigger" "starion_sync_deploy" {
   name     = "${var.project}-deploy"
   location = var.gcp_region
   filename = "infra/cloudbuild/stagging.cloudbuild.yml"
-
-  # source_to_build {
-  # uri       = var.github_repo_url
-  # ref       = "refs/heads/${var.environment}"
-  # repo_type = "GITHUB"
-  # }
-
-  # git_file_source {
-  # path      = "infra/cloudbuild/cloudbuild.yaml"
-  # uri       = var.github_repo_url
-  # revision  = "refs/heads/${var.environment}"
-  # repo_type = "GITHUB"
-  # }
 
   // If this is set on a build, it will become pending when it is run, 
   // and will need to be explicitly approved to start.
@@ -83,5 +71,5 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy" {
     }
   }
 
-  service_account = data.google_service_account.deploy_service_account.email
+  service_account = "projects/${data.google_service_account.deploy_service_account.project}/serviceAccounts/${data.google_service_account.deploy_service_account.email}"
 }

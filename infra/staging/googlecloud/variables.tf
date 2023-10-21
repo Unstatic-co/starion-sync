@@ -34,6 +34,9 @@ variable "gcp_docker_repository_name" {
   type    = string
   default = "starion-sync-images"
 }
+variable "gcp_deploy_service_account_id" {
+  type = string
+}
 
 variable "mongodb_uri" {
   type      = string
