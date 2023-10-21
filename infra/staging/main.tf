@@ -86,6 +86,7 @@ module "cloudflare" {
 
   cf_zone_id    = var.cf_zone_id
   cf_account_id = var.cf_account_id
+  cf_api_token  = var.cf_api_token
 }
 
 module "upstash" {

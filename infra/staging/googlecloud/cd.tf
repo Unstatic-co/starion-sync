@@ -66,6 +66,7 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy" {
   substitutions = {
     _SECRET_PREFIX    = var.gcp_secret_prefix
     _DEPLOY_IMAGE_URL = "${data.google_container_registry_image.starion_sync_deploy_image.image_url}"
+    _TEST_SUB         = "test-sub"
   }
 
   github {

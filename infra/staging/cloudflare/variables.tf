@@ -8,9 +8,9 @@ variable "environment" {
   default = "stagging"
 }
 
-# variable "cf_api_token" {
-# type = string
-# }
+variable "cf_api_token" {
+  type = string
+}
 
 variable "cf_zone_id" {
   type = string
