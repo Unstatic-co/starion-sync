@@ -32,7 +32,7 @@ availableSecrets:
 steps:
   - id: 'TF INIT'
     name: 'hashicorp/terraform:1.6.1'
-    dir: infra/staging
+    dir: infra/modules
     entrypoint: 'sh'
     args:
       - '-c'
@@ -42,7 +42,7 @@ steps:
 
   - id: 'TF PLAN'
     name: 'hashicorp/terraform:1.6.1'
-    dir: infra/staging
+    dir: infra/modules
     entrypoint: 'sh'
     secretEnv:
       [
@@ -84,7 +84,7 @@ steps:
 
   - id: 'DEPLOY'
     name: ${_DEPLOY_IMAGE_URL}
-    dir: infra/staging
+    dir: infra/modules
     entrypoint: 'bash'
     secretEnv:
       [
@@ -121,7 +121,7 @@ steps:
         export TF_VAR_dest_db_uri=$$DEST_DB_URI
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
 
-        terraform apply -auto-approve tfplan
+        terraform apply -no-color -auto-approve tfplan
 
 substitutions:
 timeout: 1800s
