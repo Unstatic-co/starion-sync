@@ -6,6 +6,7 @@ github_repo_url  = "https://github.com/Unstatic-co/starion-sync"
 github_repo_name = "starion-sync"
 
 fly_region                    = "lax"
+do_region                     = "nyc1"
 gcp_project                   = "starion-stagging"
 gcp_region                    = "us-central1"
 gcp_secret_prefix             = "STARION_SYNC_"
@@ -16,9 +17,8 @@ cf_zone_id                    = ""
 upstash_email                 = "hahoai@unstatic.co"
 upstash_kafka_region          = "us-east-1"
 
-mongodb_user      = "admin"
-postgres_user     = "admin"
-postgres_password = "123456"
+mongodb_user  = "admin"
+postgres_user = "admin"
 # broker_uris          = ""
 # kafka_sasl_username     = ""
 # kafka_sasl_password     = ""
@@ -30,5 +30,3 @@ webhook_public_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ
 
 microsoft_client_id = "4bca9f40-7c40-48bb-9d25-faff5dfa926d"
 google_client_id    = "547922925132-naqkb1pboc8ua54cj5gar0p43t030q70.apps.googleusercontent.com"
-
-# dest_db_uri = "" # temporary

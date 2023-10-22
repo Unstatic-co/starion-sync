@@ -74,10 +74,10 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy" {
     owner = var.github_owner
     name  = var.github_repo_name
     # pull_request {
-    # branch = "${var.environment}|test-build-stagging"
+    # branch = "${var.environment}|test-build-${var.environment}"
     # }
     push {
-      branch = "${var.environment}|test-build-stagging"
+      branch = "${var.environment}|test-build-${var.environment}"
     }
   }
 

@@ -304,7 +304,7 @@ resource "google_cloud_run_service" "loader" {
         }
         env {
           name  = "DB_URI"
-          value = var.postgres_uri
+          value = var.dest_db_uri
         }
         env {
           name  = "S3_ENDPOINT"
@@ -424,7 +424,7 @@ resource "google_cloud_run_service" "metadata" {
         // }
         env {
           name  = "DB_URI"
-          value = var.mongodb_uri
+          value = var.metadata_db_uri
         }
       }
       timeout_seconds       = 310

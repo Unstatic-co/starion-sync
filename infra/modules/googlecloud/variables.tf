@@ -8,6 +8,11 @@ variable "environment" {
   default = "stagging"
 }
 
+variable "is_production" {
+  type    = bool
+  default = false
+}
+
 variable "github_owner" {
   type = string
 }
@@ -38,12 +43,12 @@ variable "gcp_deploy_service_account_id" {
   type = string
 }
 
-variable "mongodb_uri" {
+variable "metadata_db_uri" {
   type      = string
   sensitive = true
 }
 
-variable "postgres_uri" {
+variable "dest_db_uri" { # staging (temporary) & production
   type      = string
   sensitive = true
 }

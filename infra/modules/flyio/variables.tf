@@ -8,6 +8,11 @@ variable "environment" {
   default = "stagging"
 }
 
+variable "is_production" {
+  type    = bool
+  default = false
+}
+
 variable "fly_api_token" {
   type      = string
   sensitive = true
@@ -23,27 +28,37 @@ variable "region" {
   default = "nyc1"
 }
 
-variable "redis_password" {
+variable "redis_password" { # stagging
   type      = string
   sensitive = true
 }
 
-variable "mongodb_user" {
+variable "mongodb_user" { # stagging
   type      = string
   sensitive = true
 }
 
-variable "mongodb_password" {
+variable "mongodb_password" { # stagging
   type      = string
   sensitive = true
 }
 
-variable "postgres_user" {
+variable "postgres_user" { # stagging
   type      = string
   sensitive = true
 }
 
-variable "postgres_password" {
+variable "postgres_password" { # stagging
+  type      = string
+  sensitive = true
+}
+
+variable "db_uri" { # production
+  type      = string
+  sensitive = true
+}
+
+variable "dest_db_uri" { # staging (temporary) & production
   type      = string
   sensitive = true
 }
@@ -138,11 +153,6 @@ variable "google_client_id" {
 }
 
 variable "google_client_secret" {
-  type      = string
-  sensitive = true
-}
-
-variable "dest_db_uri" {
   type      = string
   sensitive = true
 }

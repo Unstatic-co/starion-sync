@@ -7,6 +7,8 @@ variable "environment" {
   type    = string
   default = "stagging"
 }
+
+
 variable "github_owner" {
   type = string
 }
@@ -17,11 +19,11 @@ variable "github_repo_url" {
   type = string
 }
 
+
 variable "fly_api_token" {
   type      = string
   sensitive = true
 }
-
 variable "fly_region" {
   type    = string
   default = "lax"
@@ -51,11 +53,9 @@ variable "cf_api_token" {
   type      = string
   sensitive = true
 }
-
 variable "cf_zone_id" {
   type = string
 }
-
 variable "cf_account_id" {
   type = string
 }
@@ -64,34 +64,53 @@ variable "upstash_api_key" {
   type      = string
   sensitive = true
 }
-
 variable "upstash_email" {
   type = string
 }
 
-variable "redis_password" {
+variable "do_token" {
   type      = string
   sensitive = true
 }
-
-variable "mongodb_user" {
-  type      = string
-  sensitive = true
+variable "do_region" {
+  type = string
 }
 
-variable "mongodb_password" {
+
+variable "redis_password" { # stagging
   type      = string
   sensitive = true
+  default   = null
 }
 
-variable "postgres_user" {
+variable "mongodb_user" { # stagging
   type      = string
   sensitive = true
+  default   = null
 }
 
-variable "postgres_password" {
+variable "mongodb_password" { # stagging
   type      = string
   sensitive = true
+  default   = null
+}
+
+variable "postgres_user" { # stagging
+  type      = string
+  sensitive = true
+  default   = null
+}
+
+variable "postgres_password" { # stagging
+  type      = string
+  sensitive = true
+  default   = null
+}
+
+variable "dest_db_uri" { # staging (temporary)
+  type      = string
+  sensitive = true
+  default   = null
 }
 
 variable "orchestrator_address" {
@@ -99,25 +118,9 @@ variable "orchestrator_address" {
   sensitive = true
 }
 
-# variable "broker_uris" {
-# type      = string
-# sensitive = true
-# }
-
 variable "upstash_kafka_region" { // upstash
   type = string
 }
-
-
-# variable "kafka_sasl_username" {
-# type      = string
-# sensitive = true
-# }
-
-# variable "kafka_sasl_password" {
-# type      = string
-# sensitive = true
-# }
 
 variable "s3_endpoint" {
   type = string
@@ -179,23 +182,3 @@ variable "google_client_secret" {
   type      = string
   sensitive = true
 }
-
-# variable "db_uri" {
-# type      = string
-# sensitive = true
-# }
-
-variable "dest_db_uri" {
-  type      = string
-  sensitive = true
-}
-
-# variable "broker_uris" {
-# type      = string
-# sensitive = true
-# }
-
-# variable "orchestrator_address" {
-# type      = string
-# sensitive = true
-# }

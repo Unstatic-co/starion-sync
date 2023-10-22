@@ -6,10 +6,14 @@ availableSecrets:
       env: 'CF_API_TOKEN'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_UPSTASH_API_KEY/versions/latest
       env: 'UPSTASH_API_KEY'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_DO_TOKEN/versions/latest
+      env: 'DO_TOKEN'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_REDIS_PASSWORD/versions/latest
       env: 'REDIS_PASSWORD'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_MONGODB_PASSWORD/versions/latest
       env: 'MONGODB_PASSWORD'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_POSTGRES_PASSWORD/versions/latest
+      env: 'POSTGRES_PASSWORD'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_S3_ACCESS_KEY/versions/latest
       env: 'S3_ACCESS_KEY'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_S3_SECRET_KEY/versions/latest
@@ -49,8 +53,10 @@ steps:
         'FLY_API_TOKEN',
         'CF_API_TOKEN',
         'UPSTASH_API_KEY',
+        'DO_TOKEN',
         'REDIS_PASSWORD',
         'MONGODB_PASSWORD',
+        'POSTGRES_PASSWORD',
         'S3_ACCESS_KEY',
         'S3_SECRET_KEY',
         'API_KEYS',
@@ -67,8 +73,10 @@ steps:
         export TF_VAR_fly_api_token=$$FLY_API_TOKEN
         export TF_VAR_cf_api_token=$$CF_API_TOKEN
         export TF_VAR_upstash_api_key=$$UPSTASH_API_KEY
+        export TF_VAR_do_token=$$DO_TOKEN
         export TF_VAR_redis_password=$$REDIS_PASSWORD
         export TF_VAR_mongodb_password=$$MONGODB_PASSWORD
+        export TF_VAR_postgres_password=$$POSTGRES_PASSWORD
         export TF_VAR_s3_access_key=$$S3_ACCESS_KEY
         export TF_VAR_s3_secret_key=$$S3_SECRET_KEY
         export TF_VAR_api_keys=$$API_KEYS
@@ -91,8 +99,10 @@ steps:
         'FLY_API_TOKEN',
         'CF_API_TOKEN',
         'UPSTASH_API_KEY',
+        'DO_TOKEN',
         'REDIS_PASSWORD',
         'MONGODB_PASSWORD',
+        'POSTGRES_PASSWORD',
         'S3_ACCESS_KEY',
         'S3_SECRET_KEY',
         'API_KEYS',
@@ -109,8 +119,10 @@ steps:
         export TF_VAR_fly_api_token=$$FLY_API_TOKEN
         export TF_VAR_cf_api_token=$$CF_API_TOKEN
         export TF_VAR_upstash_api_key=$$UPSTASH_API_KEY
+        export TF_VAR_do_token=$$DO_TOKEN
         export TF_VAR_redis_password=$$REDIS_PASSWORD
         export TF_VAR_mongodb_password=$$MONGODB_PASSWORD
+        export TF_VAR_postgres_password=$$POSTGRES_PASSWORD
         export TF_VAR_s3_access_key=$$S3_ACCESS_KEY
         export TF_VAR_s3_secret_key=$$S3_SECRET_KEY
         export TF_VAR_api_keys=$$API_KEYS

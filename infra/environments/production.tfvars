@@ -6,6 +6,7 @@ github_repo_url  = "https://github.com/Unstatic-co/starion-sync"
 github_repo_name = "starion-sync"
 
 fly_region                    = "lax"
+do_region                     = "nyc1"
 gcp_project                   = "starion-stagging"
 gcp_region                    = "us-central1"
 gcp_secret_prefix             = "STARION_SYNC_"
