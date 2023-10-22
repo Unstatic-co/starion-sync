@@ -7,7 +7,7 @@
 # }
 
 locals {
-  downloader_path = "${path.root}/../../apps/processors/downloader"
+  downloader_path = "${path.root}/../apps/processors/downloader"
   downloader_files = sort(setunion(
     [for f in fileset("${local.downloader_path}", "**") : "${local.downloader_path}/${f}"],
   ))
@@ -123,7 +123,7 @@ resource "google_cloud_run_service_iam_member" "downloader_invoker" {
 # }
 
 locals {
-  comparer_path = "${path.root}/../../apps/processors/comparer"
+  comparer_path = "${path.root}/../apps/processors/comparer"
   comparer_files = sort(setunion(
     [for f in fileset("${local.comparer_path}", "**") : "${local.comparer_path}/${f}"],
   ))
@@ -239,7 +239,7 @@ resource "google_cloud_run_service_iam_member" "comparer_invoker" {
 # }
 
 locals {
-  loader_path = "${path.root}/../../apps/processors/loader"
+  loader_path = "${path.root}/../apps/processors/loader"
   loader_files = sort(setunion(
     [for f in fileset("${local.loader_path}", "**") : "${local.loader_path}/${f}"],
   ))
@@ -363,7 +363,7 @@ data "google_container_registry_image" "metadata" {
 }
 
 locals {
-  metadata_path = "${path.root}/../../form-sync/module/metadata"
+  metadata_path = "${path.root}/../form-sync/module/metadata"
   metadata_files = sort(setunion(
     [for f in fileset("${local.metadata_path}", "**") : "${local.metadata_path}/${f}"],
   ))

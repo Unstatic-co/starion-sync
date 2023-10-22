@@ -34,17 +34,17 @@ availableSecrets:
 steps:
   - id: 'TF INIT'
     name: 'hashicorp/terraform:1.6.1'
-    dir: infra/staging
+    dir: infra
     entrypoint: 'sh'
     args:
       - '-c'
       - |
         terraform fmt -check
-        terraform init -backend-config=gcs.tfbackend
+        terraform init -backend-config=production.gcs.tfbackend
 
   - id: 'TF PLAN'
     name: 'hashicorp/terraform:1.6.1'
-    dir: infra/staging
+    dir: infra
     entrypoint: 'sh'
     secretEnv:
       [
@@ -83,11 +83,11 @@ steps:
         export TF_VAR_dest_db_uri=$$DEST_DB_URI
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
 
-        terraform plan -var-file="../environments/stagging.tfvars" -out=tfplan
+        terraform plan -var-file="environments/production.tfvars" -out=tfplan
 
   - id: 'DEPLOY'
     name: ${_DEPLOY_IMAGE_URL}
-    dir: infra/staging
+    dir: infra
     entrypoint: 'bash'
     secretEnv:
       [

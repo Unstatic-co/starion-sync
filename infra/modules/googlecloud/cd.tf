@@ -5,10 +5,10 @@
 # }
 
 locals {
-  cloudbuild_path = "${path.root}/../cloudbuild"
+  cloudbuild_path = "${path.root}/cloudbuild"
   deploy_image_files = sort(setunion(
     [
-      "${path.root}/../cloudbuild/Dockerfile",
+      "${path.root}/cloudbuild/Dockerfile",
     ],
   ))
   deploy_image_url = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${google_artifact_registry_repository.docker_repository.name}/deploy-image:latest"
@@ -57,7 +57,7 @@ data "google_service_account" "deploy_service_account" {
 resource "google_cloudbuild_trigger" "starion_sync_deploy" {
   name     = "${var.project}-deploy"
   location = var.gcp_region
-  filename = "infra/cloudbuild/stagging.cloudbuild.yml"
+  filename = "infra/cloudbuild/${var.environment}.cloudbuild.yml"
 
   // If this is set on a build, it will become pending when it is run, 
   // and will need to be explicitly approved to start.

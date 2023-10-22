@@ -6,7 +6,7 @@ locals {
 }
 
 module "flyio" {
-  source = "./flyio"
+  source = "./modules/flyio"
   providers = {
     fly = fly
   }
@@ -52,7 +52,7 @@ module "flyio" {
 }
 
 module "googlecloud" {
-  source = "./googlecloud"
+  source = "./modules/googlecloud"
 
   project     = var.project
   environment = var.environment
@@ -82,7 +82,7 @@ module "googlecloud" {
 }
 
 module "cloudflare" {
-  source = "./cloudflare"
+  source = "./modules/cloudflare"
 
   project     = var.project
   environment = var.environment
@@ -93,7 +93,7 @@ module "cloudflare" {
 }
 
 module "upstash" {
-  source = "./upstash"
+  source = "./modules/upstash"
 
   project     = var.project
   environment = var.environment

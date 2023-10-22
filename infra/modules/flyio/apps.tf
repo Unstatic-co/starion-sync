@@ -27,12 +27,12 @@ resource "fly_ip" "apps_ip_v6" {
 }
 
 locals {
-  configurator_path   = "${path.root}/../../apps/configurator"
-  controller_path     = "${path.root}/../../apps/controller"
-  worker_path         = "${path.root}/../../apps/worker"
-  post_processor_path = "${path.root}/../../apps/post-processor"
-  webhook_path        = "${path.root}/../../apps/webhook"
-  cron_trigger_path   = "${path.root}/../../apps/triggers/cron-trigger"
+  configurator_path   = "${path.root}/../apps/configurator"
+  controller_path     = "${path.root}/../apps/controller"
+  worker_path         = "${path.root}/../apps/worker"
+  post_processor_path = "${path.root}/../apps/post-processor"
+  webhook_path        = "${path.root}/../apps/webhook"
+  cron_trigger_path   = "${path.root}/../apps/triggers/cron-trigger"
   apps_files = sort(setunion(
     [
       "${path.module}/build/apps/Dockerfile",
@@ -67,7 +67,7 @@ resource "null_resource" "apps_builder" {
 
       # ARGS = "--build-arg PASS=${var.redis_password}}"
     }
-    working_dir = abspath("${path.root}/../../")
+    working_dir = abspath("${path.root}/../")
   }
 }
 
@@ -176,7 +176,7 @@ resource "fly_ip" "webhook_trigger_ip_v6" {
 }
 
 locals {
-  webhook_trigger_path = abspath("${path.root}/../../apps/triggers/webhook")
+  webhook_trigger_path = abspath("${path.root}/../apps/triggers/webhook")
   webhook_trigger_files = sort(setunion(
     [
       "${local.webhook_trigger_path}/Dockerfile",
@@ -202,7 +202,7 @@ resource "null_resource" "webhook_trigger_builder" {
       DOCKER_IMAGE_NAME   = fly_app.webhook_trigger.name
       DOCKER_IMAGE_DIGEST = local.webhook_trigger_hash
     }
-    working_dir = abspath("${path.root}/../../")
+    working_dir = abspath("${path.root}/../")
   }
 }
 
@@ -291,7 +291,7 @@ resource "fly_ip" "formsync_ip_v6" {
 }
 
 locals {
-  formsync_path = abspath("${path.root}/../../form-sync/main")
+  formsync_path = abspath("${path.root}/../form-sync/main")
   formsync_files = sort(setunion(
     [
       "${local.formsync_path}/Dockerfile",
