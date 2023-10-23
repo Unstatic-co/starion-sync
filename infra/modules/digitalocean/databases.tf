@@ -40,7 +40,7 @@ resource "digitalocean_database_cluster" "postgres" {
   region     = var.do_region
 
   name       = "postgres"
-  engine     = "postgresql"
+  engine     = "pg"
   version    = "15"
   size       = "db-s-1vcpu-1gb"
   node_count = 1

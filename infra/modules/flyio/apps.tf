@@ -1,13 +1,16 @@
 locals {
-  db_uri          = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4[0].address}:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin"
-  metadata_db_uri = "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4[0].address}:27017/starion-form-sync?directConnection=true&replicaSet=rs0&authSource=admin"
-  # dest_db_uri              = "postgres://${var.postgres_user}:${var.postgres_password}@${fly_ip.postgres_ip_v4.address}:5432/starion-sync?sslmode=disable"
-  dest_db_uri = var.dest_db_uri
+  db_uri            = local.mongodb_count > 0 ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4[0].address}:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin" : var.db_uri
+  metadata_db_uri   = local.mongodb_count > 0 ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4[0].address}:27017/starion-form-sync?directConnection=true&replicaSet=rs0&authSource=admin" : var.db_uri
+  dest_db_uri       = local.postgres_count > 0 ? "postgres://${var.postgres_user}:${var.postgres_password}@${fly_ip.postgres_ip_v4[0].address}:5432/starion-sync?sslmode=disable" : var.dest_db_uri
+  redis_host        = local.redis_count > 0 ? fly_ip.redis_ip_v4[0].address : var.redis_host
+  redis_port        = local.redis_count > 0 ? "6379" : var.redis_port
+  redis_password    = local.redis_count > 0 ? var.redis_password : var.redis_password
+  redis_tls_enabled = local.redis_count > 0 ? "false" : "true"
   # downloader_url           = "https://${fly_app.downloader.name}.fly.dev"
   # comparer_url             = "https://${fly_app.comparer.name}.fly.dev"
   # loader_url               = "https://${fly_app.loader.name}.fly.dev"
   # metadata_url             = "https://${fly_app.metadata.name}.fly.dev"
-  configurator_url         = "https://${fly_app.apps[0].name}.fly.dev"
+  configurator_url         = var.is_production ? "https://${fly_app.configurator[0].name}.fly.dev" : "https://${fly_app.apps[0].name}.fly.dev"
   webhook_trigger_base_url = "https://${fly_app.webhook_trigger.name}.fly.dev"
 }
 
@@ -126,10 +129,10 @@ resource "fly_machine" "apps" {
     KAFKA_SASL_ENABLED      = "true"
     KAFKA_SASL_USERNAME     = var.kafka_sasl_username
     KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
-    REDIS_HOST              = fly_ip.redis_ip_v4[0].address
-    REDIS_PORT              = "6379"
-    REDIS_PASSWORD          = var.redis_password
-    REDIS_TLS_ENABLED       = "false"
+    REDIS_HOST              = local.redis_host
+    REDIS_PORT              = local.redis_port
+    REDIS_PASSWORD          = local.redis_password
+    REDIS_TLS_ENABLED       = local.redis_tls_enabled
     ORCHESTRATOR_ADDRESS    = var.orchestrator_address
     S3_URL                  = var.s3_endpoint
     S3_REGION               = var.s3_region
@@ -258,10 +261,10 @@ resource "fly_machine" "webhook_trigger" {
     KAFKA_SASL_ENABLED       = "true"
     KAFKA_SASL_USERNAME      = var.kafka_sasl_username
     KAFKA_SASL_PASSWORD      = var.kafka_sasl_password
-    REDIS_HOST               = fly_ip.redis_ip_v4[0].address
-    REDIS_PORT               = "6379"
-    REDIS_PASSWORD           = var.redis_password
-    REDIS_TLS_ENABLED        = "false"
+    REDIS_HOST               = local.redis_host
+    REDIS_PORT               = local.redis_port
+    REDIS_PASSWORD           = local.redis_password
+    REDIS_TLS_ENABLED        = local.redis_tls_enabled
     GOOGLE_CLIENT_ID         = var.google_client_id
     GOOGLE_CLIENT_SECRET     = var.google_client_secret
     WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url
@@ -367,10 +370,10 @@ resource "fly_machine" "formsync" {
     DB_URI                  = local.dest_db_uri
     DB_NAME                 = "starion-form-sync"
     METADATA_DB_URI         = local.metadata_db_uri
-    REDIS_HOST              = fly_ip.redis_ip_v4[0].address
-    REDIS_PORT              = "6379"
-    REDIS_PASSWORD          = var.redis_password
-    REDIS_TLS_ENABLED       = "false"
+    REDIS_HOST              = local.redis_host
+    REDIS_PORT              = local.redis_port
+    REDIS_PASSWORD          = local.redis_password
+    REDIS_TLS_ENABLED       = local.redis_tls_enabled
     METADATA_HOST_URL       = var.metadata_url
     STARION_SYNC_BASE_URL   = local.configurator_url
     WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
@@ -477,10 +480,10 @@ resource "fly_machine" "cron_trigger" {
     KAFKA_SASL_ENABLED  = "true"
     KAFKA_SASL_USERNAME = var.kafka_sasl_username
     KAFKA_SASL_PASSWORD = var.kafka_sasl_password
-    REDIS_HOST          = fly_ip.redis_ip_v4[0].address
-    REDIS_PORT          = "6379"
-    REDIS_PASSWORD      = var.redis_password
-    REDIS_TLS_ENABLED   = "false"
+    REDIS_HOST          = local.redis_host
+    REDIS_PORT          = local.redis_port
+    REDIS_PASSWORD      = local.redis_password
+    REDIS_TLS_ENABLED   = local.redis_tls_enabled
   }
 
   depends_on = [
@@ -581,10 +584,10 @@ resource "fly_machine" "configurator" {
     KAFKA_SASL_ENABLED             = "true"
     KAFKA_SASL_USERNAME            = var.kafka_sasl_username
     KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
-    REDIS_HOST                     = fly_ip.redis_ip_v4[0].address
-    REDIS_PORT                     = "6379"
-    REDIS_PASSWORD                 = var.redis_password
-    REDIS_TLS_ENABLED              = "false"
+    REDIS_HOST                     = local.redis_host
+    REDIS_PORT                     = local.redis_port
+    REDIS_PASSWORD                 = local.redis_password
+    REDIS_TLS_ENABLED              = local.redis_tls_enabled
     ORCHESTRATOR_ADDRESS           = var.orchestrator_address
     ORCHESTRATOR_WORKER_TASKQUEUE  = "configurator"
     ORCHESTRATOR_DEFAULT_TASKQUEUE = "configurator"
@@ -1011,10 +1014,10 @@ resource "fly_machine" "webhook" {
     KAFKA_SASL_ENABLED      = "true"
     KAFKA_SASL_USERNAME     = var.kafka_sasl_username
     KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
-    REDIS_HOST              = fly_ip.redis_ip_v4[0].address
-    REDIS_PORT              = "6379"
-    REDIS_PASSWORD          = var.redis_password
-    REDIS_TLS_ENABLED       = "false"
+    REDIS_HOST              = local.redis_host
+    REDIS_PORT              = local.redis_port
+    REDIS_PASSWORD          = local.redis_password
+    REDIS_TLS_ENABLED       = local.redis_tls_enabled
     WEBHOOK_PRIVATE_KEY     = var.webhook_private_key
   }
 

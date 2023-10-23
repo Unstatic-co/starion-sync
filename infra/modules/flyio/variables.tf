@@ -28,6 +28,12 @@ variable "region" {
   default = "nyc1"
 }
 
+variable "redis_host" {
+  type = string
+}
+variable "redis_port" {
+  type = string
+}
 variable "redis_password" { # stagging
   type      = string
   sensitive = true
