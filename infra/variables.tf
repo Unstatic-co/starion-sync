@@ -122,10 +122,6 @@ variable "upstash_kafka_region" { // upstash
   type = string
 }
 
-variable "s3_endpoint" {
-  type = string
-}
-
 variable "s3_region" {
   type = string
 }

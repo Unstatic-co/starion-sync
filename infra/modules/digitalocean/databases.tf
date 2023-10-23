@@ -10,6 +10,10 @@ resource "digitalocean_database_cluster" "redis" {
   size            = "db-s-1vcpu-1gb"
   eviction_policy = "noeviction"
   node_count      = 1
+
+  depends_on = [
+    digitalocean_project.starion_sync
+  ]
 }
 
 resource "digitalocean_database_cluster" "mongodb" {
@@ -18,12 +22,15 @@ resource "digitalocean_database_cluster" "mongodb" {
   project_id = digitalocean_project.starion_sync[0].id
   region     = var.do_region
 
-  name            = "mongodb"
-  engine          = "mongodb"
-  version         = "6"
-  size            = "db-s-1vcpu-1gb"
-  eviction_policy = "noeviction"
-  node_count      = 1
+  name       = "mongodb"
+  engine     = "mongodb"
+  version    = "6"
+  size       = "db-s-1vcpu-1gb"
+  node_count = 1
+
+  depends_on = [
+    digitalocean_project.starion_sync
+  ]
 }
 
 resource "digitalocean_database_cluster" "postgres" {
@@ -32,10 +39,13 @@ resource "digitalocean_database_cluster" "postgres" {
   project_id = digitalocean_project.starion_sync[0].id
   region     = var.do_region
 
-  name            = "postgres"
-  engine          = "postgresql"
-  version         = "15"
-  size            = "db-s-1vcpu-1gb"
-  eviction_policy = "noeviction"
-  node_count      = 1
+  name       = "postgres"
+  engine     = "pg"
+  version    = "15"
+  size       = "db-s-1vcpu-1gb"
+  node_count = 1
+
+  depends_on = [
+    digitalocean_project.starion_sync
+  ]
 }

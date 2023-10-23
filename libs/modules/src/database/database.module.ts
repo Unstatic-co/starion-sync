@@ -29,7 +29,12 @@ export class DatabaseModule {
     const { type, host, port, user, password, database, uri } = dbConfig;
     switch (type) {
       case DatabaseType.MONGODB:
-        return MongooseModule.forRoot(uri);
+        return MongooseModule.forRoot(uri, {
+          tlsInsecure: true,
+          tlsAllowInvalidCertificates: true,
+          tlsAllowInvalidHostnames: true,
+          sslValidate: false,
+        });
       case DatabaseType.MYSQL:
         return TypeOrmModule.forRoot({
           type: 'mysql',
@@ -42,7 +47,12 @@ export class DatabaseModule {
           synchronize: true,
         });
       default:
-        return MongooseModule.forRoot(uri);
+        return MongooseModule.forRoot(uri, {
+          tlsInsecure: true,
+          tlsAllowInvalidCertificates: true,
+          tlsAllowInvalidHostnames: true,
+          sslValidate: false,
+        });
     }
   }
 

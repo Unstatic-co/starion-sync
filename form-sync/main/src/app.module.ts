@@ -65,6 +65,8 @@ import { redisStore } from 'cache-manager-redis-yet';
         const dbConfig = configService.get<DatabaseConfig>(ConfigName.DATABASE);
         return {
           uri: dbConfig.metadataDbUri,
+          sslValidate: false,
+          tlsInsecure: true,
         };
       },
       inject: [ConfigService],

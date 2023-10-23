@@ -1,9 +1,10 @@
 
 locals {
-  postgres_uri  = "postgres://${var.postgres_user}:${var.postgres_password}@starion-sync-stagging-postgres.fly.dev:5432/starion-sync?sslmode=disable"                     # stagging
-  mongodb_uri   = "mongodb://${var.mongodb_user}:${var.mongodb_password}@starion-sync-stagging-mongodb.fly.dev:27017/starion-sync?directConnection=true&authSource=admin" # stagging
-  broker_uri    = "${module.upstash.kafka_uri}:9092"
-  is_production = var.environment == "production" ? true : false
+  postgres_stagging_uri = "postgres://${var.postgres_user}:${var.postgres_password}@starion-sync-stagging-postgres.fly.dev:5432/starion-sync?sslmode=disable"                          # stagging
+  mongodb_stagging_uri  = "mongodb://${var.mongodb_user}:${var.mongodb_password}@starion-sync-stagging-mongodb.fly.dev:27017/starion-sync?directConnection=true&authSource=admin"      # stagging
+  metadata_db_uri       = "mongodb://${var.mongodb_user}:${var.mongodb_password}@starion-sync-stagging-mongodb.fly.dev:27017/starion-form-sync?directConnection=true&authSource=admin" # stagging
+  broker_uri            = "${module.upstash.kafka_uri}:9092"
+  is_production         = var.environment == "production" ? true : false
 }
 
 module "digitalocean" {
@@ -33,18 +34,20 @@ module "flyio" {
 
   region                  = var.fly_region
   fly_api_token           = var.fly_api_token
-  redis_password          = var.redis_password
   mongodb_user            = var.mongodb_user
   mongodb_password        = var.mongodb_password
   postgres_user           = var.postgres_user
   postgres_password       = var.postgres_password
-  db_uri                  = local.is_production ? module.digitalocean.mongodb_uri : local.postgres_uri
+  redis_host              = module.digitalocean.redis_host
+  redis_port              = module.digitalocean.redis_port
+  redis_password          = local.is_production ? module.digitalocean.redis_password : var.redis_password
+  db_uri                  = local.is_production ? module.digitalocean.mongodb_uri : local.postgres_stagging_uri
   dest_db_uri             = local.is_production ? module.digitalocean.postgres_uri : var.dest_db_uri # stagging (temporary) & production
   orchestrator_address    = var.orchestrator_address
   broker_uris             = local.broker_uri
   kafka_sasl_username     = module.upstash.kafka_username
   kafka_sasl_password     = module.upstash.kafka_password
-  s3_endpoint             = var.s3_endpoint
+  s3_endpoint             = module.cloudflare.s3_endpoint
   s3_region               = var.s3_region
   s3_bucket               = var.s3_bucket
   s3_access_key           = var.s3_access_key
@@ -65,6 +68,7 @@ module "flyio" {
 
   depends_on = [
     module.digitalocean,
+    module.cloudflare,
     module.googlecloud,
     module.upstash
   ]
@@ -87,7 +91,7 @@ module "googlecloud" {
   gcp_deploy_service_account_id = var.gcp_deploy_service_account_id
   gcp_docker_repository_name    = var.gcp_docker_repository_name
 
-  metadata_db_uri    = local.mongodb_uri
+  metadata_db_uri    = local.is_production ? module.digitalocean.mongodb_uri : local.metadata_db_uri
   dest_db_uri        = var.dest_db_uri
   s3_endpoint        = module.cloudflare.s3_endpoint
   s3_region          = var.s3_region
@@ -95,6 +99,11 @@ module "googlecloud" {
   s3_access_key      = var.s3_access_key
   s3_secret_key      = var.s3_secret_key
   processor_api_keys = split(",", var.processor_api_keys)
+
+  depends_on = [
+    module.cloudflare,
+    module.digitalocean
+  ]
 }
 
 module "cloudflare" {

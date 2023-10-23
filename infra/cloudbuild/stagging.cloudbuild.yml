@@ -88,7 +88,6 @@ steps:
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
 
         terraform plan -var-file="environments/stagging.tfvars" -out=tfplan
-        echo 'hehe'
 
   - id: 'DEPLOY'
     name: ${_DEPLOY_IMAGE_URL}
@@ -134,7 +133,7 @@ steps:
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
 
         terraform apply -no-color -auto-approve tfplan
-
+#        terraform destroy -var-file="environments/stagging.tfvars" -auto-approve
 substitutions:
 timeout: 1800s
 options:
