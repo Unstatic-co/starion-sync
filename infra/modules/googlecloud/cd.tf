@@ -51,7 +51,7 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy_image_builder" {
 
 data "google_service_account" "deploy_service_account" {
   account_id = var.gcp_deploy_service_account_id
-  # project    = var.gcp_project
+  project    = var.gcp_project
 }
 
 resource "google_cloudbuild_trigger" "starion_sync_deploy" {

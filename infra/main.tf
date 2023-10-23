@@ -65,6 +65,7 @@ module "flyio" {
 
   depends_on = [
     module.digitalocean,
+    module.cloudflare,
     module.googlecloud,
     module.upstash
   ]
@@ -95,6 +96,10 @@ module "googlecloud" {
   s3_access_key      = var.s3_access_key
   s3_secret_key      = var.s3_secret_key
   processor_api_keys = split(",", var.processor_api_keys)
+
+  depends_on = [
+    module.cloudflare
+  ]
 }
 
 module "cloudflare" {
