@@ -92,7 +92,7 @@ module "googlecloud" {
   gcp_docker_repository_name    = var.gcp_docker_repository_name
 
   metadata_db_uri    = local.is_production ? module.digitalocean.mongodb_uri : local.metadata_db_stagging_uri
-  dest_db_uri        = var.dest_db_uri
+  dest_db_uri        = local.is_production ? module.digitalocean.postgres_uri : var.dest_db_uri
   s3_endpoint        = module.cloudflare.s3_endpoint
   s3_region          = var.s3_region
   s3_bucket          = module.cloudflare.s3_bucket_name
