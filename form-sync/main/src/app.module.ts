@@ -53,6 +53,9 @@ import { redisStore } from 'cache-manager-redis-yet';
           type: 'postgres',
           url: uri,
           database,
+          ssl: {
+            rejectUnauthorized: false,
+          },
           entities: entities,
           synchronize: true,
         };
@@ -121,4 +124,4 @@ import { redisStore } from 'cache-manager-redis-yet';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

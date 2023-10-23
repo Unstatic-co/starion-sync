@@ -42,7 +42,7 @@ module "flyio" {
   redis_port              = module.digitalocean.redis_port
   redis_password          = local.is_production ? module.digitalocean.redis_password : var.redis_password
   db_uri                  = local.is_production ? module.digitalocean.mongodb_uri : local.postgres_stagging_uri
-  dest_db_uri             = local.is_production ? module.digitalocean.postgres_uri : var.dest_db_uri # stagging (temporary) & production
+  dest_db_uri             = local.is_production ? replace(module.digitalocean.postgres_uri, "sslmode=require", "") : var.dest_db_uri # stagging (temporary) & production
   orchestrator_address    = var.orchestrator_address
   broker_uris             = local.broker_uri
   kafka_sasl_username     = module.upstash.kafka_username
