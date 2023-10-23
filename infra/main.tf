@@ -44,7 +44,7 @@ module "flyio" {
   broker_uris             = local.broker_uri
   kafka_sasl_username     = module.upstash.kafka_username
   kafka_sasl_password     = module.upstash.kafka_password
-  s3_endpoint             = var.s3_endpoint
+  s3_endpoint             = module.cloudflare.s3_endpoint
   s3_region               = var.s3_region
   s3_bucket               = var.s3_bucket
   s3_access_key           = var.s3_access_key
