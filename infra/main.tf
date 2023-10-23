@@ -98,7 +98,8 @@ module "googlecloud" {
   processor_api_keys = split(",", var.processor_api_keys)
 
   depends_on = [
-    module.cloudflare
+    module.cloudflare,
+    module.digitalocean
   ]
 }
 
