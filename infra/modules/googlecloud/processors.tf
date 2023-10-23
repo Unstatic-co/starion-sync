@@ -15,7 +15,7 @@ locals {
 }
 
 locals {
-  downloader_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${google_artifact_registry_repository.docker_repository.name}/downloader:${local.downloader_hash}"
+  downloader_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${var.gcp_docker_repository_name}/downloader:${local.downloader_hash}"
   downloader_image_name = "downloader:${local.downloader_hash}"
 }
 
@@ -32,7 +32,7 @@ resource "null_resource" "downloader_builder" {
     environment = {
       REGION     = var.gcp_region
       PROJECT    = var.gcp_project
-      REPO       = google_artifact_registry_repository.docker_repository.name
+      REPO       = var.gcp_docker_repository_name
       WORKDIR    = abspath(local.downloader_path)
       IMAGE_NAME = local.downloader_image_name
     }
@@ -131,7 +131,7 @@ locals {
 }
 
 locals {
-  comparer_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${google_artifact_registry_repository.docker_repository.name}/comparer:${local.comparer_hash}"
+  comparer_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${var.gcp_docker_repository_name}/comparer:${local.comparer_hash}"
   comparer_image_name = "comparer:${local.comparer_hash}"
 }
 
@@ -148,7 +148,7 @@ resource "null_resource" "comparer_builder" {
     environment = {
       REGION     = var.gcp_region
       PROJECT    = var.gcp_project
-      REPO       = google_artifact_registry_repository.docker_repository.name
+      REPO       = var.gcp_docker_repository_name
       WORKDIR    = abspath(local.comparer_path)
       IMAGE_NAME = local.comparer_image_name
     }
@@ -247,7 +247,7 @@ locals {
 }
 
 locals {
-  loader_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${google_artifact_registry_repository.docker_repository.name}/loader:${local.loader_hash}"
+  loader_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${var.gcp_docker_repository_name}/loader:${local.loader_hash}"
   loader_image_name = "loader:${local.loader_hash}"
 }
 
@@ -264,7 +264,7 @@ resource "null_resource" "loader_builder" {
     environment = {
       REGION     = var.gcp_region
       PROJECT    = var.gcp_project
-      REPO       = google_artifact_registry_repository.docker_repository.name
+      REPO       = var.gcp_docker_repository_name
       WORKDIR    = abspath(local.loader_path)
       IMAGE_NAME = local.loader_image_name
     }
@@ -371,7 +371,7 @@ locals {
 }
 
 locals {
-  metadata_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${google_artifact_registry_repository.docker_repository.name}/metadata:${local.metadata_hash}"
+  metadata_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${var.gcp_docker_repository_name}/metadata:${local.metadata_hash}"
   metadata_image_name = "metadata:${local.metadata_hash}"
 }
 
@@ -388,7 +388,7 @@ resource "null_resource" "metadata_builder" {
     environment = {
       REGION     = var.gcp_region
       PROJECT    = var.gcp_project
-      REPO       = google_artifact_registry_repository.docker_repository.name
+      REPO       = var.gcp_docker_repository_name
       WORKDIR    = abspath(local.metadata_path)
       IMAGE_NAME = local.metadata_image_name
     }

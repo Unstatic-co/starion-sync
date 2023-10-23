@@ -11,7 +11,7 @@ locals {
       "${path.root}/cloudbuild/Dockerfile",
     ],
   ))
-  deploy_image_url = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${google_artifact_registry_repository.docker_repository.name}/deploy-image:latest"
+  deploy_image_url = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${var.gcp_docker_repository_name}/deploy-image:latest"
 }
 
 resource "google_cloudbuild_trigger" "starion_sync_deploy_image_builder" {
