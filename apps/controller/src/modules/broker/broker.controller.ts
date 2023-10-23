@@ -16,17 +16,20 @@ export class BrokerController {
 
   @EventPattern(EventNames.WORKFLOW_TRIGGERED)
   async handleWorkflowTriggeredEvent(payload: WorkflowTriggeredPayload) {
-    this.logger.debug('handleWorkflowTriggeredEvent', payload);
-    return this.orchestratorService.executeWorkflow(handleWorkflowTriggeredWf, {
+    this.logger.log(`handleWorkflowTriggeredEvent: triggerId = ${payload.id}`);
+    await this.orchestratorService.executeWorkflow(handleWorkflowTriggeredWf, {
       workflowId: `${payload.id}`,
       args: [payload],
-      workflowExecutionTimeout: 5000,
+      // workflowExecutionTimeout: 5000,
       workflowIdReusePolicy:
         WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE,
+      searchAttributes: {
+        DataSourceId: [payload.sourceId],
+      },
     });
   }
 
-  @EventPattern('test-event-to-controller')
+  // @EventPattern('test-event-to-controller')
   async testEvent(message: any) {
     this.logger.debug('test-event-to-controller', message);
   }

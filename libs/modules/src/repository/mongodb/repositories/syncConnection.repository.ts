@@ -3,6 +3,7 @@ import {
   CreateSyncConnectionData,
   ISyncConnectionRepository,
   UpdateSyncConnectionData,
+  UpdateSyncConnectionStateData,
 } from '../../classes/repositories';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -51,7 +52,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.syncConnectionModel.findOne(conditions);
     if (options?.session) {
@@ -68,7 +69,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.syncConnectionModel.findOne(conditions);
     if (options?.session) {
@@ -119,6 +120,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
               name: syncflow.name,
               type: WorkflowType.SYNCFLOW,
             },
+            sourceId: Utils.toObjectId(data.sourceId),
             config: syncflowData.trigger.config,
           });
           await trigger.save({ session });
@@ -171,6 +173,51 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
         throw new Error('DataSource not found');
       }
       const updates = {};
+      await syncConnection
+        .updateOne({
+          $set: updates,
+        })
+        .session(session);
+      if (options?.new) {
+        result = await this.syncConnectionModel
+          .findOne({
+            _id: Utils.toObjectId(data.id),
+          })
+          .session(session);
+      }
+    };
+
+    if (options?.session) {
+      await processFunc();
+    } else {
+      await session.withTransaction(processFunc);
+    }
+    if (options?.new) {
+      return result;
+    }
+  }
+
+  public async updateState(
+    data: UpdateSyncConnectionStateData,
+    options?: QueryOptions,
+  ) {
+    let result;
+    const session = options?.session
+      ? options.session
+      : await this.connection.startSession();
+
+    const processFunc = async () => {
+      const syncConnection = await this.syncConnectionModel
+        .findOne({
+          _id: Utils.toObjectId(data.id),
+        })
+        .session(session);
+      if (!syncConnection) {
+        throw new Error('Sync connection not found');
+      }
+      const updates = {};
+      data.status && (updates['state.status'] = data.status);
+      data.healthStatus && (updates['state.healthStatus'] = data.healthStatus);
       await syncConnection
         .updateOne({
           $set: updates,

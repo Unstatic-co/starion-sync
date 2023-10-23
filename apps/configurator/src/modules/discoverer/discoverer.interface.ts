@@ -10,3 +10,15 @@ export interface DiscoveredExcelDataSource extends DiscoveredDataSource {
   position: number;
   visibility: string;
 }
+
+export interface DiscoveredGoogleSheetsDataSource extends DiscoveredDataSource {
+  id: string;
+  sheetId: number;
+  title: string;
+  index: number;
+  sheetType: string;
+  gridProperties: {
+    rowCount: number;
+    columnCount: number;
+  };
+}

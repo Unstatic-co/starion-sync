@@ -2,12 +2,11 @@ package v1
 
 import (
 	"downloader/pkg/app"
-	"downloader/pkg/e"
 	"downloader/service/excel"
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 type DownloadExcelRequest struct {
@@ -18,7 +17,7 @@ type DownloadExcelRequest struct {
 	AccessToken  string `form:"accessToken" valid:"Required"`
 	SessionId    string `form:"sessionId"`
 	DataSourceId string `form:"dataSourceId" valid:"Required"`
-	SyncVersion  int    `form:"syncVersion" valid:"Required; Min(0)"`
+	SyncVersion  *int   `form:"syncVersion" binding:"required,number"`
 	Timezone     string `form:"timezone" valid:"Required"`
 }
 type DownloadExcelResponse struct {
@@ -31,9 +30,9 @@ func DownloadExcel(c *gin.Context) {
 		body DownloadExcelRequest
 	)
 
-	httpCode, errCode := app.BindAndValid(c, &body)
-	if errCode != e.SUCCESS {
-		appG.Response(httpCode, errCode, nil)
+	err := app.BindAndValid(c, &body)
+	if err != nil {
+		appG.Error(err)
 		return
 	}
 
@@ -45,19 +44,19 @@ func DownloadExcel(c *gin.Context) {
 		AccessToken:  body.AccessToken,
 		SessionId:    body.SessionId,
 		DataSourceId: body.DataSourceId,
-		SyncVersion:  body.SyncVersion,
+		SyncVersion:  *body.SyncVersion,
 		Timezone:     body.Timezone,
 	})
 
 	requestContext := c.Request.Context()
-	err := excelService.Download(requestContext)
+	err = excelService.Download(requestContext)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error running download excel for ds %s: ", body.DataSourceId), err)
-		appG.Response(e.ERROR, e.DOWNLOAD_ERROR, nil)
+		err = fmt.Errorf("Error running download excel for ds %s: %w", body.DataSourceId, err)
+		appG.Error(err)
 		return
 	}
 
-	appG.Response(e.SUCCESS, e.SUCCESS, &DownloadExcelResponse{
-		Message: "Download Success!",
-	})
+	excelService.Close(requestContext)
+
+	appG.Response(http.StatusOK, nil)
 }

@@ -1,0 +1,59 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: configurator-log
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          app: configurator
+          __path__: /logs/configurator/**/*.log
+  - job_name: controller-log
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          app: controller
+          __path__: /logs/controller/**/*.log
+  - job_name: worker-log
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          app: worker
+          __path__: /logs/worker/**/*.log
+  - job_name: post-processor-log
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          app: post-processor
+          __path__: /logs/post-processor/**/*.log
+  - job_name: webhook-log
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          app: webhook
+          __path__: /logs/webhook/**/*.log
+  - job_name: cron-trigger-log
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          app: cron-trigger
+          __path__: /logs/cron-trigger/**/*.log
+    # pipeline_stages:
+    # - docker: {}
+    # - match:
+    # selector: '{job="application_logs"}'
+    # stages:
+    # - drop: {}

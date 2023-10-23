@@ -9,11 +9,19 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/samber/lo"
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v5"
 )
+
+var duckDbTypeMap = map[schema.DataType]string{
+	schema.String:  "VARCHAR",
+	schema.Number:  "DOUBLE",
+	schema.Date:    "VARCHAR",
+	schema.Boolean: "BOOLEAN",
+}
 
 func inferBooleanType(enum []interface{}) bool {
 	if len(enum) != 2 {
@@ -36,7 +44,7 @@ func inferBooleanType(enum []interface{}) bool {
 	return false
 }
 
-func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
+func getSchemaFromJsonSchemaFile(filePath string) (schema.TableSchema, []string) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatalf("Cannot open schema file %s\n", filePath)
@@ -54,10 +62,11 @@ func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 	}
 
 	tableSchema := make(schema.TableSchema)
+	duckdbSchemaFields := make([]string, 0)
 
 	for fieldName, property := range _baseSchema.Properties {
 		var fieldSchema schema.FieldSchema
-		hashedFieldName := "_" + util.GetMD5Hash(fieldName)
+		hashedFieldName := util.HashFieldName(fieldName)
 
 		// If field is primary key
 		if hashedFieldName == schema.HashedPrimaryField {
@@ -80,31 +89,39 @@ func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 			enum := lo.Filter(property.Enum, func(item any, _ int) bool { return item != "" && item != nil })
 
 			var detectedType schema.DataType
+			var originalType exceltype.ExcelDataType
 
 			switch fieldType {
 			case "string":
 				switch format {
 				case "date-time":
-					detectedType = schema.DateTime
+					detectedType = schema.Date
+					originalType = exceltype.Number
 				case "date":
-					detectedType = schema.DateTime
+					detectedType = schema.Date
+					originalType = exceltype.Number
 				default:
 					// detect enum
 					if inferBooleanType(enum) {
 						detectedType = schema.Boolean
+						originalType = exceltype.Logical
 						enum = []interface{}{true, false}
 					} else {
 						detectedType = schema.String
+						originalType = exceltype.String
 					}
 				}
 			case "null":
 				// If column does not have data
 				log.Printf("Field %s has unprocessable data type `null`, using string datatype to sync...\n", fieldName)
 				detectedType = schema.String
+				originalType = exceltype.String
 			case "integer":
 				detectedType = schema.Number
+				originalType = exceltype.Number
 			case "number":
 				detectedType = schema.Number
+				originalType = exceltype.Number
 			case "array":
 				log.Fatalf(
 					"Encountered unsupported type: %s (with detected subtype %+v)\n",
@@ -131,17 +148,18 @@ func getSchemaFromJsonSchemaFile(filePath string) schema.TableSchema {
 			fieldSchema = schema.FieldSchema{
 				Name:         fieldName,
 				Type:         detectedType,
-				OriginalType: string(detectedType),
+				OriginalType: string(originalType),
 				Nullable:     true,
 				Enum:         fieldEnum,
 			}
 
 		}
 
+		duckdbSchemaFields = append(duckdbSchemaFields, fmt.Sprintf("'%s': '%s'", hashedFieldName, duckDbTypeMap[fieldSchema.Type]))
 		tableSchema[hashedFieldName] = fieldSchema
 	}
 
-	return tableSchema
+	return tableSchema, duckdbSchemaFields
 }
 
 func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string) error {
@@ -155,26 +173,32 @@ func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSo
 	}
 	log.Println("Uploading schema to s3...")
 	schemaFileKey := fmt.Sprintf("schema/%s-%s.json", dataSourceId, syncVersion)
-	return handler.UploadFileWithBytes(schemaFileKey, schemaJson)
+	err = handler.UploadFileWithBytes(schemaFileKey, schemaJson)
+	if err != nil {
+		log.Fatalf("Error when uploading schema to s3: %+v\n", err)
+		return err
+	}
+	return nil
 }
 
 func main() {
 	schemaFile := flag.String("schemaFile", "", "schema")
-	s3Url := flag.String("s3Url", "", "s3 url")
+	s3Endpoint := flag.String("s3Endpoint", "", "s3 url")
 	s3Region := flag.String("s3Region", "", "s3 region")
 	s3Bucket := flag.String("s3Bucket", "", "s3 bucket")
 	s3AccessKey := flag.String("s3AccessKey", "", "s3 access key")
 	s3SecretKey := flag.String("s3SecretKey", "", "s3 secret key")
 	dataSourceId := flag.String("dataSourceId", "", "data source id")
 	syncVersion := flag.String("syncVersion", "", "sync version")
+	saveDuckdbTableSchema := flag.String("saveDuckdbTableSchema", "", "save null become string (empty columns) fields to path")
 
 	flag.Parse()
 
-	schema := getSchemaFromJsonSchemaFile(*schemaFile)
+	schema, duckdbTableSchema := getSchemaFromJsonSchemaFile(*schemaFile)
 	err := uploadSchema(
 		schema,
 		s3.S3HandlerConfig{
-			Url:       *s3Url,
+			Endpoint:  *s3Endpoint,
 			Region:    *s3Region,
 			Bucket:    *s3Bucket,
 			AccessKey: *s3AccessKey,
@@ -185,5 +209,13 @@ func main() {
 	)
 	if err != nil {
 		log.Fatalf("Error when uploading schema: %+v\n", err)
+	}
+
+	if *saveDuckdbTableSchema != "" && len(duckdbTableSchema) > 0 {
+		err := os.WriteFile(*saveDuckdbTableSchema, []byte(strings.Join(duckdbTableSchema, ",")), 0644)
+		if err != nil {
+			fmt.Printf("Error writing null fields to file: %v\n", err)
+			return
+		}
 	}
 }

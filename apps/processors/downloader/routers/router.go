@@ -1,6 +1,8 @@
 package routers
 
 import (
+	"downloader/pkg/auth"
+	"downloader/pkg/e"
 	"downloader/pkg/logging"
 	v1 "downloader/routers/v1"
 
@@ -13,6 +15,9 @@ func InitRouter() *gin.Engine {
 	r.SetTrustedProxies(nil)
 
 	r.Use(logging.LoggingMiddleware())
+	r.Use(auth.ApiKeyMiddleware())
+	r.Use(e.ErrorHandler())
+	// r.Use(gin.CustomRecovery(e.RecoveryHandler()))
 	r.Use(gin.Recovery())
 
 	apiV1 := r.Group("/api/v1")
@@ -22,6 +27,9 @@ func InitRouter() *gin.Engine {
 
 	apiV1Excel := apiV1.Group("/excel")
 	apiV1Excel.POST("/download", v1.DownloadExcel)
+
+	apiV1GoogleSheets := apiV1.Group("/google-sheets")
+	apiV1GoogleSheets.POST("/download", v1.DownloadGoogleSheets)
 
 	return r
 }

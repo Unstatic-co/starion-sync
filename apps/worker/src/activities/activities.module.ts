@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { GoogleSheetsActivities } from './google-sheets/googleSheet.activities';
 import { CommonActivities } from './common.activities';
 import { TestActivities } from './test.activities';
 import { DatabaseModule } from '@lib/modules';
@@ -10,7 +9,8 @@ import { WorkflowModule } from '../modules/workflow/worflow.module';
 import { WorkflowActivities } from './workflow.activities';
 import { BrokerModule } from '../modules/broker/broker.module';
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
-import { MicrosoftModule } from '@lib/modules/third-party';
+import { GoogleModule, MicrosoftModule } from '@lib/modules/third-party';
+import { GoogleSheetsActivities } from './google-sheets';
 
 @Module({
   imports: [
@@ -21,6 +21,7 @@ import { MicrosoftModule } from '@lib/modules/third-party';
     BrokerModule,
     WorkflowModule,
     MicrosoftModule,
+    GoogleModule,
   ],
   providers: [
     CommonActivities,

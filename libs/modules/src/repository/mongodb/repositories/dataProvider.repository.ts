@@ -34,7 +34,7 @@ export class DataProviderRepository implements IDataProviderRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.dataProviderModel.findOne(conditions);
     if (options?.session) {
@@ -51,7 +51,7 @@ export class DataProviderRepository implements IDataProviderRepository {
       isDeleted: false,
     };
     if (options?.includeDeleted) {
-      Object.assign(conditions, { isDeleted: true });
+      delete conditions.isDeleted;
     }
     let query = this.dataProviderModel.findOne(conditions);
     if (options?.session) {

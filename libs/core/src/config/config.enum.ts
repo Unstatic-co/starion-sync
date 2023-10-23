@@ -6,6 +6,9 @@ export enum ConfigName {
   ORCHESTRATOR = 'orchestrator',
   REDIS = 'redis',
   SERVICES = 'services',
+  STORAGE = 'storage',
   PROCESSOR = 'processor',
+  WEBHOOK = 'webhook',
   MICROSOFT = 'microsoft',
+  GOOGLE = 'google',
 }

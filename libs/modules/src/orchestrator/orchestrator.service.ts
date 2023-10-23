@@ -24,6 +24,7 @@ export class OrchestratorService {
     options: {
       taskQueue?: string;
       waitResult?: boolean;
+      errorOnDuplicate?: boolean; // default false
     } & Partial<WorkflowStartOptions>,
   ) {
     const workflowName =
@@ -50,6 +51,9 @@ export class OrchestratorService {
       }
     } catch (err) {
       if (err instanceof WorkflowExecutionAlreadyStartedError) {
+        if (options.errorOnDuplicate) {
+          throw err;
+        }
         this.logger.debug(`Reusing existing workflow: ${workflowName}`);
         handle = await this.orchestratorClient.workflow.getHandle(workflowName);
       } else {

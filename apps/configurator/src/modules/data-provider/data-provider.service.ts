@@ -9,6 +9,7 @@ import {
   DataProvider,
   ExcelProviderConfig,
   ProviderConfig,
+  GoogleSheetsProviderConfig,
   ProviderId,
   ProviderType,
 } from '@lib/core';
@@ -75,14 +76,6 @@ export class DataProviderService implements IDataProviderService {
         isAlreadyCreated,
       };
     }
-    try {
-      await this.dataDiscovererService.check(type, config);
-    } catch (error) {
-      throw new ApiError(
-        ErrorCode.HEALTH_CHECK_FAILED,
-        `Failed to check provider: ${error.message}`,
-      );
-    }
     return {
       data: await this.dataProviderRepository.create({
         type,
@@ -117,11 +110,11 @@ export class DataProviderService implements IDataProviderService {
   }
 
   public async discover(providerId: ProviderId) {
-    return this.dataDiscovererService.discover(providerId);
+    return this.dataDiscovererService.discoverProvider(providerId);
   }
 
   public async discoverByConfig(type: ProviderType, config: ProviderConfig) {
-    return this.dataDiscovererService.discoverByConfig(type, config);
+    return this.dataDiscovererService.discoverProviderByConfig(type, config);
   }
 
   public getOrGenerateProviderExternalId(
@@ -136,6 +129,9 @@ export class DataProviderService implements IDataProviderService {
         } else {
           return `${driveId}-${workbookId}`;
         }
+      case ProviderType.GOOGLE_SHEETS:
+        const { spreadsheetId } = config as GoogleSheetsProviderConfig;
+        return spreadsheetId;
       default:
         throw new Error(`Unknown provider type ${type}`);
     }

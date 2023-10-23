@@ -9,11 +9,12 @@ import {
   brokerConfigRegister,
   databaseConfigRegister,
   destinationDatabaseConfigRegister,
+  googleConfigRegister,
   microsoftConfigRegister,
   orchestratorConfigRegister,
   processorConfigRegister,
 } from '@lib/core/config';
-import { DatabaseModule } from '@lib/modules';
+import { DatabaseModule, LoggerModule } from '@lib/modules';
 import { BrokerModule } from './modules/broker/broker.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { WorkflowModule } from './modules/workflow/worflow.module';
@@ -31,8 +32,10 @@ import { WorkerModule } from './modules/worker/worker.module';
         orchestratorConfigRegister,
         processorConfigRegister,
         microsoftConfigRegister,
+        googleConfigRegister,
       ],
     }),
+    LoggerModule,
     DatabaseModule.forRootAsync(),
     BrokerModule,
     ScheduleModule.forRoot(),

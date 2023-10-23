@@ -1,8 +1,11 @@
 import { NativeConnection, Worker } from '@temporalio/worker';
 import { CommonActivities } from '../../activities/common.activities';
-import { GoogleSheetsActivities } from '../../activities/google-sheets/googleSheet.activities';
 import { Logger } from '@nestjs/common';
-import { MicrosoftExcelActivities, TestActivities } from '../../activities';
+import {
+  GoogleSheetsActivities,
+  MicrosoftExcelActivities,
+  TestActivities,
+} from '../../activities';
 import { InjectTokens } from '@lib/modules';
 import { InjectTokens as AppInjectTokens } from '../../common/inject-tokens';
 import { WorkflowActivities } from '../../activities/workflow.activities';
@@ -29,7 +32,7 @@ export const WorkerProvider = {
     testActivitiesService: TestActivities,
     brokerActivities: BrokerActivities,
     workflowActivities: WorkflowActivities,
-    googleSheetsActivitiesService: GoogleSheetsActivities,
+    googleSheetsActivities: GoogleSheetsActivities,
     microsoftExcelActivities: MicrosoftExcelActivities,
   ) => {
     const activities = {
@@ -60,6 +63,20 @@ export const WorkerProvider = {
       ),
       loadExcel: microsoftExcelActivities.loadExcel.bind(
         microsoftExcelActivities,
+      ),
+      // google sheets
+      getSyncDataGoogleSheets:
+        googleSheetsActivities.getSyncDataGoogleSheets.bind(
+          googleSheetsActivities,
+        ),
+      downloadGoogleSheets: googleSheetsActivities.downloadGoogleSheets.bind(
+        googleSheetsActivities,
+      ),
+      compareGoogleSheets: googleSheetsActivities.compareGoogleSheets.bind(
+        googleSheetsActivities,
+      ),
+      loadGoogleSheets: googleSheetsActivities.loadGoogleSheets.bind(
+        googleSheetsActivities,
       ),
     };
 

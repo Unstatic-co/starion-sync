@@ -12,6 +12,7 @@ import {
 } from '@lib/core';
 import { UnacceptableActivityError } from 'apps/controller/src/common/exception';
 import { ISyncflowRepository, InjectTokens } from '@lib/modules';
+import { externalActivityWrapper } from '../../activities/wrapper';
 
 @Injectable()
 export class MicrosoftExcelSyncflowController implements SyncflowController {
@@ -29,19 +30,19 @@ export class MicrosoftExcelSyncflowController implements SyncflowController {
       dataSource.config.auth.refreshToken,
     );
     const client = await this.microsoftGraphService.createClient(accessToken);
-    const ctag = await this.microsoftGraphService
-      .getWorkbookFileInfo({
-        client,
-        workbookId: (dataSource.config as ExcelDataSourceConfig).workbookId,
-        select: ['cTag'],
-      })
-      .then((res) => res.cTag);
+    let ctag: string;
+    await externalActivityWrapper(async () => {
+      ctag = await this.microsoftGraphService
+        .getWorkbookFileInfo({
+          client,
+          workbookId: (dataSource.config as ExcelDataSourceConfig).workbookId,
+          select: ['cTag'],
+        })
+        .then((res) => res.cTag);
+    }, 'getWorkbookFileInfo');
     if (
       ctag === (syncflow.state.cursor as MicrosoftExcelFullSyncCursor)?.ctag
     ) {
-      this.logger.debug(
-        `Syncflow ${syncflow.id} with ds not changed, skipping`,
-      );
       throw new UnacceptableActivityError(
         `Syncflow ${syncflow.id} with ds not changed, skipping`,
         { shouldWorkflowFail: false },

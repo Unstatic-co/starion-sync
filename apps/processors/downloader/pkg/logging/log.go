@@ -2,8 +2,10 @@ package logging
 
 import (
 	"downloader/pkg/config"
+	"os"
 
 	"github.com/sirupsen/logrus"
+	// lumerjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 func Setup() {
@@ -13,5 +15,13 @@ func Setup() {
 	} else {
 		logrus.SetLevel(logLevel)
 		logrus.SetFormatter(&logrus.JSONFormatter{})
+		// logrus.SetOutput(&lumerjack.Logger{
+		// Filename:   "/var/log/all.log",
+		// MaxSize:    30, // megabytes
+		// MaxBackups: 3,
+		// MaxAge:     10,   //days
+		// Compress:   true, // disabled by default
+		// })
+		logrus.SetOutput(os.Stdout)
 	}
 }

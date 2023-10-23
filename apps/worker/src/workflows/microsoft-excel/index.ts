@@ -1,14 +1,16 @@
 import {
+  DataSourceErrorPayload,
+  ErrorType,
   EventNames,
   SyncflowScheduledPayload,
   SyncflowSucceedPayload,
   WorkflowStatus,
 } from '@lib/core';
-import { workflowWrapper } from '../wrapper';
 import { WorkflowActivities } from '../../activities/workflow.activities';
 import { proxyActivities } from '@temporalio/workflow';
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import { MicrosoftExcelActivities } from '../../activities';
+import { getActivityErrorDetail, workflowWrapper } from '../wrapper';
 
 const {
   checkAndUpdateStatusBeforeStartSyncflow,
@@ -16,27 +18,29 @@ const {
   updateSyncflowState,
 } = proxyActivities<WorkflowActivities>({
   startToCloseTimeout: '10 second',
-  scheduleToCloseTimeout: '10y',
 });
 
 const { downloadExcel } = proxyActivities<MicrosoftExcelActivities>({
-  startToCloseTimeout: '1m',
-  scheduleToCloseTimeout: '10y',
+  startToCloseTimeout: '4m',
+  // scheduleToCloseTimeout: '10y',
 });
 
-const { compareExcel, loadExcel } = proxyActivities<MicrosoftExcelActivities>({
-  startToCloseTimeout: '30 second',
-  scheduleToCloseTimeout: '10y',
+const { compareExcel } = proxyActivities<MicrosoftExcelActivities>({
+  startToCloseTimeout: '1m',
+  // scheduleToCloseTimeout: '10y',
+});
+
+const { loadExcel } = proxyActivities<MicrosoftExcelActivities>({
+  startToCloseTimeout: '4m',
+  // scheduleToCloseTimeout: '10y',
 });
 
 const { getSyncDataExcel } = proxyActivities<MicrosoftExcelActivities>({
   startToCloseTimeout: '5 second',
-  scheduleToCloseTimeout: '10y',
 });
 
 const { emitEvent } = proxyActivities<BrokerActivities>({
   startToCloseTimeout: '5 second',
-  scheduleToCloseTimeout: '10y',
 });
 
 export async function excelFullSync(data: SyncflowScheduledPayload) {
@@ -46,40 +50,60 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
 
       const syncData = await getSyncDataExcel(data.syncflow);
 
+      const syncVersion = data.version;
+      const prevSyncVersion = data.syncflow.state.prevVersion;
+
       await downloadExcel({
         dataSourceId: syncData.dataSourceId,
-        syncVersion: data.version,
+        syncVersion,
         workbookId: syncData.workbookId,
         worksheetId: syncData.worksheetId,
         timezone: syncData.timezone,
-        accessToken: syncData.accessToken,
+        refreshToken: syncData.refreshToken,
       });
       await compareExcel({
         dataSourceId: syncData.dataSourceId,
-        syncVersion: data.version,
-        prevVersion: data.syncflow.state.prevVersion,
+        syncVersion,
+        prevVersion: prevSyncVersion,
       });
       const loadedDataStatistics = await loadExcel({
         dataSourceId: syncData.dataSourceId,
-        syncVersion: data.version,
-        prevVersion: data.syncflow.state.prevVersion,
+        syncVersion,
+        prevVersion: prevSyncVersion,
+        tableName: syncData.destTableName,
       });
 
       await emitEvent(EventNames.SYNCFLOW_SUCCEED, {
         payload: {
           dataSourceId: syncData.dataSourceId,
           syncflowId: data.syncflow.id,
-          loadedDataStatistics,
+          syncVersion,
+          prevSyncVersion,
+          statistics: loadedDataStatistics,
         } as SyncflowSucceedPayload,
       });
 
       await updateSyncflowState(data.syncflow.id, {
+        version: data.version + 1,
         prevVersion: data.version,
         status: WorkflowStatus.IDLING,
       });
     } catch (error) {
-      await updateSyncflowStatus(data.syncflow.id, WorkflowStatus.IDLING);
-      throw error;
+      const errorDetail = getActivityErrorDetail(error);
+      // detect processor external error
+      if (errorDetail.errorData?.type === ErrorType.EXTERNAL) {
+        await updateSyncflowStatus(data.syncflow.id, WorkflowStatus.IDLING);
+        await emitEvent(EventNames.DATA_SOURCE_ERROR, {
+          payload: {
+            dataSourceId: data.syncflow.sourceId,
+            code: errorDetail.errorData.code,
+            message: errorDetail.errorData.message,
+          } as DataSourceErrorPayload,
+        });
+        throw error;
+      } else {
+        throw error;
+      }
     }
   });
 }

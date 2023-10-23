@@ -5,7 +5,13 @@ import {
   TriggerConfig,
   TriggerType,
 } from '@lib/core/entities/trigger';
-import { WorkflowId, WorkflowName, WorkflowType } from '@lib/core';
+import {
+  DataSourceId,
+  WorkflowId,
+  WorkflowName,
+  WorkflowType,
+} from '@lib/core';
+import mongoose from 'mongoose';
 
 export type TriggerDocument = TriggerModel & Document;
 
@@ -34,6 +40,11 @@ export class TriggerModel extends Trigger {
     type: WorkflowType;
   };
 
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+  })
+  sourceId: DataSourceId;
+
   @Prop()
   type: TriggerType;
 
@@ -50,6 +61,8 @@ export class TriggerModel extends Trigger {
 }
 
 export const TriggerSchema = SchemaFactory.createForClass(TriggerModel);
+
+TriggerSchema.index({ sourceId: 1 }, { background: true });
 
 TriggerSchema.virtual('id').get(function () {
     return this._id.toHexString(); // eslint-disable-line

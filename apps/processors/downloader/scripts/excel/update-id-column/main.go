@@ -14,6 +14,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
+const MAX_BATCH_SIZE = 20000
+
 // UTILS
 func convertToA1Notation(row, column int) string {
 	columnStr := ""
@@ -80,7 +82,7 @@ func generateUpdateIdData(idsFile string, includeHeader bool) map[int][]string {
 		rowNumber := record[1]
 
 		rowNumberInt, _ := strconv.Atoi(rowNumber)
-		if prevRowNumber+1 == rowNumberInt {
+		if prevRowNumber+1 == rowNumberInt && len(batchData) < MAX_BATCH_SIZE {
 			// continue batch
 			batchData = append(batchData, id)
 		} else {
@@ -132,9 +134,9 @@ func (s *MicrosoftExcelService) UpdateIdColumn(rangeAddress string, data []byte,
 	log.Println("Updating range: ", rangeAddress)
 	var url string
 	if s.DriveId == "" {
-		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/me/drive/items/%s/workbook/worksheets/%s/range(address='%s')", s.WorkbookId, s.WorksheetId, rangeAddress)
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/me/drive/items/%s/workbook/worksheets/%s/range(address='%s')?$select=address", s.WorkbookId, s.WorksheetId, rangeAddress)
 	} else {
-		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/drives/%s/items/%s/workbook/worksheets/%s/range(address='%s')", s.DriveId, s.WorkbookId, s.WorksheetId, rangeAddress)
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/drives/%s/items/%s/workbook/worksheets/%s/range(address='%s')?$select=address", s.DriveId, s.WorkbookId, s.WorksheetId, rangeAddress)
 	}
 	defer wg.Done()
 	req, err := http.NewRequest("PATCH", url, bytes.NewReader(data))

@@ -2,16 +2,11 @@ import { InjectQueue } from '@nestjs/bull';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { QUEUES } from '../../common/queues';
 import { Queue } from 'bull';
-import { SyncConnection } from '@lib/core';
+import { EventNames, SyncConnection } from '@lib/core';
 import { ITriggerRepository, InjectTokens } from '@lib/modules';
-import {
-  CronTriggerConfig,
-  TriggerId,
-  TriggerType,
-} from '@lib/core/entities/trigger';
-import { ApiError } from '../../common/exception/api.exception';
-import { ErrorCode } from '../../common/constants';
+import { CronTriggerConfig, TriggerId, Trigger, TriggerType } from '@lib/core';
 import { DeleteTriggerDto } from './dto/deleteTrigger.dto';
+import { BrokerService } from '../broker/broker.service';
 
 @Injectable()
 export class TriggerService {
@@ -21,6 +16,7 @@ export class TriggerService {
     @InjectQueue(QUEUES.CRON_TRIGGER) private readonly cronTriggerQueue: Queue,
     @Inject(InjectTokens.TRIGGER_REPOSITORY)
     private readonly triggerRepository: ITriggerRepository,
+    private readonly brokerService: BrokerService,
   ) {}
 
   async createTriggerFromSyncConnection(syncConnection: SyncConnection) {
@@ -37,7 +33,10 @@ export class TriggerService {
               cron: (trigger.config as CronTriggerConfig).cron,
             },
           });
-          this.logger.debug('added trigger to queue', trigger.id);
+          this.logger.log('added trigger to queue', trigger.id);
+          await this.processTrigger(trigger);
+        } else {
+          this.logger.debug('trigger not found', syncflow.id);
         }
       }
     }
@@ -71,6 +70,16 @@ export class TriggerService {
       cron,
     });
     this.logger.debug('deleted trigger', { jobId });
+  }
+
+  async processTrigger(trigger: Trigger) {
+    this.logger.debug(`trigger workflow ${trigger.workflow.id}`);
+    await this.brokerService.emitEvent(EventNames.WORKFLOW_TRIGGERED, {
+      payload: trigger,
+    });
+    this.logger.log(
+      `triggered, trigger = ${trigger.id}, workflow = ${trigger.workflow.id}`,
+    );
   }
 
   async testCreateJob() {

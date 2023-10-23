@@ -2,17 +2,16 @@ version: "3.9"
 services:
   configurator:
     depends_on:
-      - mongodb
-      - kafka-0
-      - kafka-1
-      - kafka-2
-      - temporal
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_started
+      temporal:
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
         delay: 3s
-        max_attempts: 5
-        window: 60s
     build:
       context: .
       dockerfile: ./apps/configurator/Dockerfile
@@ -20,35 +19,44 @@ services:
       - 8080
     ports:
       - 9000:8080
+    volumes:
+      - configurator-log:/logs
     environment:
-      - NODE_ENV=prod
+      - NODE_ENV=production
       - PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL}
+      - API_KEYS=${API_KEYS}
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
+      - DEST_DB_URI=${DEST_DB_URI}
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka-0:9092,kafka-1:9092,kafka-2:9092
+      - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=configurator
       - KAFKA_CONSUMER_GROUP_ID=configurator-consumer
-      - KAFKA_SSL_ENABLED=false
-      - ORCHESTRATOR_ADDRESS=temporal:7233
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
+      - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=configurator
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=configurator
-      - MICROSOFT_CLIENT_ID=cf0e88e2-566f-4c81-abb5-2ae0111251fe
-      - MICROSOFT_CLIENT_SECRET=PTw8Q~A3IFhv~FuckTAfR.nYtoMMxVMoS_Oi3bxd
-      - MICROSOFT_PERMISSION_SCOPES=offline_access,openid,User.Read.All,https://graph.microsoft.com/Files.ReadWrite.All
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
   controller:
     depends_on:
-      - mongodb
-      - kafka-0
-      - kafka-1
-      - kafka-2
-      - temporal
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_started
+      temporal:
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
         delay: 3s
-        max_attempts: 5
-        window: 60s
     build:
       context: .
       dockerfile: ./apps/controller/Dockerfile
@@ -56,35 +64,42 @@ services:
       - 8080
     ports:
       - 9001:8080
+    volumes:
+      - controller-log:/logs
     environment:
-      - NODE_ENV=prod
+      - NODE_ENV=production
       - PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL}
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka-0:9092,kafka-1:9092,kafka-2:9092
+      - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=controller
       - KAFKA_CONSUMER_GROUP_ID=controller-consumer
-      - KAFKA_SSL_ENABLED=false
-      - ORCHESTRATOR_ADDRESS=temporal:7233
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
+      - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=controller
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=controller
-      - MICROSOFT_CLIENT_ID=cf0e88e2-566f-4c81-abb5-2ae0111251fe
-      - MICROSOFT_CLIENT_SECRET=PTw8Q~A3IFhv~FuckTAfR.nYtoMMxVMoS_Oi3bxd
-      - MICROSOFT_PERMISSION_SCOPES=offline_access,openid,User.Read.All,https://graph.microsoft.com/Files.ReadWrite.All
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
   worker:
     depends_on:
-      - mongodb
-      - kafka-0
-      - kafka-1
-      - kafka-2
-      - temporal
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_started
+      temporal:
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
         delay: 3s
-        max_attempts: 5
-        window: 60s
     build:
       context: .
       dockerfile: ./apps/worker/Dockerfile
@@ -92,37 +107,46 @@ services:
       - 8080
     ports:
       - 9003:8080
+    volumes:
+      - worker-log:/logs
     environment:
-      - NODE_ENV=prod
+      - NODE_ENV=production
       - PORT=9000
+      - LOG_LEVEL=${LOG_LEVEL}
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka-0:9092,kafka-1:9092,kafka-2:9092
+      - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=worker
       - KAFKA_CONSUMER_GROUP_ID=worker-consumer
-      - KAFKA_SSL_ENABLED=false
-      - ORCHESTRATOR_ADDRESS=temporal:7233
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
+      - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=worker
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=worker
-      - DOWNLOADER_URL=http://downloader:8080
-      - COMPARER_URL=http://comparer:8080
-      - LOADER_URL=http://loader:8080
-      - MICROSOFT_CLIENT_ID=cf0e88e2-566f-4c81-abb5-2ae0111251fe
-      - MICROSOFT_CLIENT_SECRET=PTw8Q~A3IFhv~FuckTAfR.nYtoMMxVMoS_Oi3bxd
+      - DOWNLOADER_URL=${DOWNLOADER_URL}
+      - COMPARER_URL=${COMPARER_URL}
+      - LOADER_URL=${LOADER_URL}
+      - PROCESSOR_API_KEY=${WORKER_PROCESSOR_API_KEY}
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
   post-processor:
     depends_on:
-      - mongodb
-      - kafka-0
-      - kafka-1
-      - kafka-2
-      - temporal
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_started
+      temporal:
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
         delay: 3s
-        max_attempts: 5
-        window: 60s
     build:
       context: .
       dockerfile: ./apps/post-processor/Dockerfile
@@ -130,19 +154,72 @@ services:
       - 8080
     ports:
       - 9004:8080
+    volumes:
+      - post-processor-log:/logs
     environment:
-      - NODE_ENV=prod
+      - NODE_ENV=production
       - PORT=9000
+      - LOG_LEVEL=${LOG_LEVEL}
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka-0:9092,kafka-1:9092,kafka-2:9092
+      - BROKER_URIS=${BROKER_URIS}
       - KAFKA_CLIENT_ID=post-processor
       - KAFKA_CONSUMER_GROUP_ID=post-processor-consumer
-      - KAFKA_SSL_ENABLED=false
-      - ORCHESTRATOR_ADDRESS=temporal:7233
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
+      - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
       - ORCHESTRATOR_WORKER_TASKQUEUE=post-processor
       - ORCHESTRATOR_DEFAULT_TASKQUEUE=post-processor
+      - S3_URL=${S3_URL}
+      - S3_REGION=${S3_REGION}
+      - S3_DIFF_DATA_BUCKET=${S3_DIFF_DATA_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+  webhook:
+    depends_on:
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_started
+      redis:
+        condition: service_started
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+    build:
+      context: .
+      dockerfile: ./apps/webhook/Dockerfile
+    expose:
+      - 8080
+    ports:
+      - 9005:8080
+    volumes:
+      - webhook-log:/logs
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL}
+      - DB_TYPE=mongodb
+      - DB_URI=${DB_URI}
+      - BROKER_TYPE=kafka
+      - BROKER_URIS=${BROKER_URIS}
+      - KAFKA_CLIENT_ID=webhook
+      - KAFKA_CONSUMER_GROUP_ID=wehook-consumer
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS_ENABLED=${REDIS_TLS_ENABLED}
+      - WEBHOOK_PRIVATE_KEY=${WEBHOOK_PRIVATE_KEY}
   #--------------------------------- PROCESSORS --------------------------------------#
   downloader:
     depends_on:
@@ -151,8 +228,6 @@ services:
       restart_policy:
         condition: on-failure
         delay: 3s
-        max_attempts: 5
-        window: 60s
     build:
       context: ./apps/processors/downloader
       dockerfile: Dockerfile
@@ -162,11 +237,15 @@ services:
       - 8000:8080
     environment:
       - PORT=8080
-      - S3_URL=http://minio:9000
-      - S3_REGION=us-east-1
-      - S3_DIFF_DATA_BUCKET=diff-data
-      - S3_ACCESS_KEY=admin
-      - S3_SECRET_KEY=abc123456
+      - PRODUCTION=true
+      - API_KEYS=${PROCESSOR_API_KEYS}
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_URL=${S3_URL}
+      - S3_REGION=${S3_REGION}
+      - S3_DIFF_DATA_BUCKET=${S3_DIFF_DATA_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_SSL=${S3_SSL}
   comparer:
     depends_on:
       - minio
@@ -174,8 +253,6 @@ services:
       restart_policy:
         condition: on-failure
         delay: 3s
-        max_attempts: 5
-        window: 60s
     build:
       context: ./apps/processors/comparer
       dockerfile: Dockerfile
@@ -185,11 +262,13 @@ services:
       - 8001:8080
     environment:
       - PORT=8080
-      - S3_URL=http://minio:9000
-      - S3_REGION=us-east-1
-      - S3_DIFF_DATA_BUCKET=diff-data
-      - S3_ACCESS_KEY=admin
-      - S3_SECRET_KEY=abc123456
+      - PRODUCTION=true
+      - API_KEYS=${PROCESSOR_API_KEYS}
+      - S3_URL=${S3_URL}
+      - S3_REGION=${S3_REGION}
+      - S3_DIFF_DATA_BUCKET=${S3_DIFF_DATA_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
   loader:
     depends_on:
       - minio
@@ -198,8 +277,6 @@ services:
       restart_policy:
         condition: on-failure
         delay: 3s
-        max_attempts: 5
-        window: 60s
     build:
       context: ./apps/processors/loader
       dockerfile: Dockerfile
@@ -209,26 +286,73 @@ services:
       - 8002:8080
     environment:
       - PORT=8080
-      - S3_URL=http://minio:9000
-      - S3_REGION=us-east-1
-      - S3_DIFF_DATA_BUCKET=diff-data
-      - S3_ACCESS_KEY=admin
-      - S3_SECRET_KEY=abc123456
+      - PRODUCTION=true
+      - API_KEYS=${PROCESSOR_API_KEYS}
+      - S3_URL=${S3_URL}
+      - S3_REGION=${S3_REGION}
+      - S3_DIFF_DATA_BUCKET=${S3_DIFF_DATA_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
       - DB_TYPE=postgres
-      - DB_HOST=postgresql
-      - DB_PORT=5432
-      - DB_USER=admin
-      - DB_PASSWORD=abc123456
-      - DB_NAME=starion-sync
-      - DB_SSL_MODE=disable
+      # - DB_HOST=postgresql
+      # - DB_PORT=5432
+      # - DB_USER=admin
+      # - DB_PASSWORD=abc123456
+      # - DB_NAME=starion-sync
+      # - DB_SSL_MODE=disable
+      - DB_URI=${DEST_DB_URI}
   #--------------------------------- TRIGGERS --------------------------------------#
   cron-trigger:
     depends_on:
-      - mongodb
-      - kafka-0
-      - kafka-1
-      - kafka-2
-      - temporal
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_started
+      temporal:
+        condition: service_started
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+    build:
+      context: .
+      dockerfile: ./apps/triggers/cron/Dockerfile
+    expose:
+      - 8080
+    ports:
+      - 8003:8080
+    volumes:
+      - cron-trigger-log:/logs
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL}
+      - DB_TYPE=mongodb
+      - DB_URI=${DB_URI}
+      - BROKER_TYPE=kafka
+      - BROKER_URIS=${BROKER_URIS}
+      - KAFKA_CLIENT_ID=cron-trigger
+      - KAFKA_CONSUMER_GROUP_ID=cron-trigger
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
+      - ORCHESTRATOR_ADDRESS=${ORCHESTRATOR_ADDRESS}
+      - ORCHESTRATOR_WORKER_TASKQUEUE=cron-trigger
+      - ORCHESTRATOR_DEFAULT_TASKQUEUE=cron-trigger
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS_ENABLED=${REDIS_TLS_ENABLED}
+  webhook-trigger:
+    depends_on:
+      mongodb:
+        condition: service_started
+      kafka-0:
+        condition: service_started
+      redis: 
+        condition: service_started
     deploy:
       restart_policy:
         condition: on-failure
@@ -237,59 +361,49 @@ services:
         window: 60s
     build:
       context: .
-      dockerfile: ./apps/triggers/cron/Dockerfile
+      dockerfile: ./apps/triggers/webhook/Dockerfile
     expose:
       - 8080
     ports:
-      - 8003:8080
+      - 8004:8080
     environment:
-      - NODE_ENV=dev
+      - NODE_ENV=production
       - PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL}
       - DB_TYPE=mongodb
-      - DB_URI=mongodb://admin:abc123456@mongodb:27017/starion-sync?directConnection=true&authSource=admin
+      - DB_URI=${DB_URI}
       - BROKER_TYPE=kafka
-      - BROKER_URIS=kafka-0:9092,kafka-1:9092,kafka-2:9092
-      - KAFKA_CLIENT_ID=cron-trigger
-      - KAFKA_CONSUMER_GROUP_ID=cron-trigger
-      - KAFKA_SSL_ENABLED=false
-      - ORCHESTRATOR_ADDRESS=temporal:7233
-      - ORCHESTRATOR_WORKER_TASKQUEUE=cron-trigger
-      - ORCHESTRATOR_DEFAULT_TASKQUEUE=cron-trigger
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=abc123456
+      - BROKER_URIS=${BROKER_URIS}
+      - KAFKA_CLIENT_ID=webhook-trigger
+      - KAFKA_CONSUMER_GROUP_ID=webhook-trigger
+      - KAFKA_SSL_ENABLED=${KAFKA_SSL_ENABLED}
+      - KAFKA_SASL_ENABLED=${KAFKA_SASL_ENABLED}
+      - KAFKA_SASL_USERNAME=${KAFKA_SASL_USERNAME}
+      - KAFKA_SASL_PASSWORD=${KAFKA_SASL_PASSWORD}
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS_ENABLED=${REDIS_TLS_ENABLED}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - WEBHOOK_TRIGGER_BASE_URL=${WEBHOOK_TRIGGER_BASE_URL}
   #--------------------------------- DATABASE ---------------------------------------#
   mongodb:
     restart: on-failure
-    build:
-      context: .
-      dockerfile: ./init/mongodb.Dockerfile
-    expose:
-      - 27017
+    image: bitnami/mongodb:5.0
+    platform: linux/amd64
     ports:
       - 27017:27017
-    volumes:
-      - mongodb:/data/db
-    healthcheck:
-      test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongo -u admin -p abc123456 --quiet) -eq 1
-      interval: 10s
-      start_period: 30s
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=abc123456
-      - MONGO_INITDB_DATABASE=starion-sync
-  # mongodb:
-    # restart: on-failure
-    # image: bitnami/mongodb:5.0
-    # platform: linux/amd64
-    # environment:
-      # - MONGODB_ADVERTISED_HOSTNAME=mongodb
-      # - MONGODB_REPLICA_SET_MODE=primary
-      # - MONGO_DB_ROOT_USER=admin
-      # - MONGODB_ROOT_PASSWORD=abc123456
-      # - MONGODB_REPLICA_SET_KEY=replicasetkey
-    # volumes:
-      # - mongodb:/bitnami/mongodb
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb
+      - MONGODB_ROOT_USER=${MONGODB_ROOT_USERNAME}
+      - MONGODB_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
+      - MONGODB_DATABASE=${MONGODB_DATABASE_NAME}
+      - MONGODB_REPLICA_SET_MODE=primary
+      - MONGODB_REPLICA_SET_KEY=${MONGODB_REPLICASET_NAME}
+    volumes:
+      - mongodb:/bitnami/mongodb
   postgresql:
     restart: on-failure
     image: bitnami/postgresql:15-debian-11
@@ -298,93 +412,114 @@ services:
     volumes:
       - postgresql:/bitnami/postgresql
     environment:
-      - POSTGRESQL_USERNAME=admin
-      - POSTGRESQL_PASSWORD=abc123456
-      - POSTGRESQL_DATABASE=starion-sync
-  #--------------------------------- KAFKA ---------------------------------------#
-  kafka-0:
-    image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
-    ports:
-      - 9094:9094
-    environment:
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      - KAFKA_CFG_NODE_ID=0
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
-      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092,EXTERNAL://localhost:9094
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=2
-      - KAFKA_CFG_OFFETS_TOPIC_REPLICATION_FACTOR=2
-      - KAFKA_CFG_NUM_PARTITIONS=3
-      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
-    volumes:
-      - kafka_0:/bitnami/kafka
-  kafka-1:
-    image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
-    ports:
-      - 9092
-    environment:
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      - KAFKA_CFG_NODE_ID=1
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
-      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092,EXTERNAL://localhost:9094
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=2
-      - KAFKA_CFG_OFFETS_TOPIC_REPLICATION_FACTOR=2
-      - KAFKA_CFG_NUM_PARTITIONS=3
-      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
-    volumes:
-      - kafka_1:/bitnami/kafka
-  kafka-2:
-    image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
-    ports:
-      - 9092
-    environment:
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      - KAFKA_CFG_NODE_ID=2
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
-      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092,EXTERNAL://localhost:9094
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=2
-      - KAFKA_CFG_OFFETS_TOPIC_REPLICATION_FACTOR=2
-      - KAFKA_CFG_NUM_PARTITIONS=3
-      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
-    volumes:
-      - kafka_2:/bitnami/kafka
-  kafka-ui:
-    depends_on:
-      - kafka-0
-      - kafka-1
-      - kafka-2
-    container_name: kafka-ui
-    image: provectuslabs/kafka-ui:latest
-    ports:
-      - 3000:8080
-    volumes:
-      - ./init/kui-config.prod.yml:/etc/kafkaui/dynamic_config.yaml
-    environment:
-      DYNAMIC_CONFIG_ENABLED: true
+      - POSTGRESQL_USERNAME=${POSTGRESQL_USERNAME}
+      - POSTGRESQL_PASSWORD=${POSTGRESQL_PASSWORD}
+      - POSTGRESQL_DATABASE=${POSTGRESQL_DATABASE_NAME}
   #----------------------------------- REDIS ----------------------------------------#
   redis:
     restart: on-failure
     image: bitnami/redis:6.2.13-debian-11-r13
     ports:
-      - 6379:6379
+      - 6379:${REDIS_PORT}
     volumes:
       - redis:/bitnami/redis/data
     environment:
-      - REDIS_PASSWORD=abc123456
+      - REDIS_PORT_NUMBER=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+  #--------------------------------- KAFKA ---------------------------------------#
+  kafka-0:
+    restart: on-failure
+    image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
+    # healthcheck:
+      # test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --describe"]
+      # interval: 10s
+      # timeout: 10s
+      # retries: 5
+      # start_period: 20s
+    ports:
+      - 9094:9094
+    environment:
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - KAFKA_KRAFT_CLUSTER_ID=${KAFKA_KRAFT_CLUSTER_ID}
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=${KAFKA_DEFAULT_REPLICATION_FACTOR}
+      - KAFKA_CFG_OFFETS_TOPIC_REPLICATION_FACTOR=${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
+      - KAFKA_CFG_NUM_PARTITIONS=${KAFKA_NUM_PARTITIONS}
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    volumes:
+      - kafka_0:/bitnami/kafka
+  kafka-1:
+    restart: on-failure
+    image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
+    # healthcheck:
+      # test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --describe"]
+      # interval: 10s
+      # timeout: 10s
+      # retries: 5
+      # start_period: 20s
+    environment:
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - KAFKA_KRAFT_CLUSTER_ID=${KAFKA_KRAFT_CLUSTER_ID}
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=${KAFKA_DEFAULT_REPLICATION_FACTOR}
+      - KAFKA_CFG_OFFETS_TOPIC_REPLICATION_FACTOR=${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
+      - KAFKA_CFG_NUM_PARTITIONS=${KAFKA_NUM_PARTITIONS}
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    volumes:
+      - kafka_1:/bitnami/kafka
+  kafka-2:
+    restart: on-failure
+    image: docker.io/bitnami/kafka:3.5.1-debian-11-r1
+    # healthcheck:
+      # test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server localhost:9092 --topic hc --describe"]
+      # interval: 10s
+      # timeout: 10s
+      # retries: 5
+      # start_period: 20s
+    environment:
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=2
+      - KAFKA_CFG_PROCESS_ROLES=broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - KAFKA_KRAFT_CLUSTER_ID=${KAFKA_KRAFT_CLUSTER_ID}
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_DEFAULT_REPLICATION_FACTOR=${KAFKA_DEFAULT_REPLICATION_FACTOR}
+      - KAFKA_CFG_OFFETS_TOPIC_REPLICATION_FACTOR=${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
+      - KAFKA_CFG_NUM_PARTITIONS=${KAFKA_NUM_PARTITIONS}
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    volumes:
+      - kafka_2:/bitnami/kafka
+  # kafka-ui:
+    # depends_on:
+      # - kafka-0
+      # - kafka-1
+      # - kafka-2
+    # image: provectuslabs/kafka-ui:latest
+    # ports:
+      # - 3001:8080
+    # volumes:
+      # - ./init/kui-config.yml:/etc/kafkaui/dynamic_config.yaml
+    # environment:
+      # DYNAMIC_CONFIG_ENABLED: false
   #--------------------------------- ORCHESTRATOR (TEMPORAL) ---------------------------------------#
   temporal:
     restart: on-failure
     depends_on:
       - postgresql
-    image: temporalio/auto-setup:1.20.3.2
+    image: temporalio/auto-setup:1.22.0
     expose:
       - 7233
     ports:
@@ -394,12 +529,26 @@ services:
     volumes:
       - ./init/temporal-config.prod.yml:/etc/temporal/config/dynamicconfig/development-sql.yaml
     environment:
-      - DB=postgresql
-      - DB_PORT=5432
-      - POSTGRES_USER=admin
-      - POSTGRES_PWD=abc123456
-      - POSTGRES_SEEDS=postgresql
+      - DB=${TEMPORAL_DB}
+      - DB_PORT=${TEMPORAL_DB_PORT}
+      - POSTGRES_USER=${TEMPORAL_POSTGRES_USER}
+      - POSTGRES_PWD=${TEMPORAL_POSTGRES_PWD}
+      - POSTGRES_SEEDS=${TEMPORAL_POSTGRES_SEEDS}
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+  temporal-admin-tools:
+    restart: 'no'
+    depends_on:
+      - temporal
+    image: temporalio/admin-tools:1.22.0
+    stdin_open: true
+    tty: true
+    entrypoint: bash
+    command: "/etc/temporal/init.sh"
+    volumes:
+      - ./init/temporal-init.sh:/etc/temporal/init.sh
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
   #--------------------------------- MINIO ---------------------------------------#
   minio:
     restart: on-failure
@@ -409,9 +558,105 @@ services:
     volumes:
       - minio:/data
     environment:
-      - MINIO_ROOT_USER=admin
-      - MINIO_ROOT_PASSWORD=abc123456
-      - MINIO_DEFAULT_BUCKETS=diff-data
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
+  #--------------------------------- MONITORING ---------------------------------------#
+  loki:
+    image: grafana/loki:2.8.3
+    expose:
+      - 3100
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki:/loki
+  promtail:
+    depends_on:
+      - loki
+    image: grafana/promtail:2.8.3
+    volumes:
+      - ./init/promtail-config.yaml:/etc/promtail/config.yaml
+      - configurator-log:/logs/configurator:ro
+      - controller-log:/logs/controller:ro
+      - worker-log:/logs/worker:ro
+      - post-processor-log:/logs/post-processor:ro
+      - webhook-log:/logs/webhook:ro
+      - cron-trigger-log:/logs/cron-trigger:ro
+    command: -config.file=/etc/promtail/config.yaml
+  prometheus:
+    depends_on:
+      - node-exporter
+      - cadvisor
+    image: prom/prometheus:v2.46.0
+    expose:
+      - 9090
+    volumes:
+      - ./init/prometheus.yml:/etc/prometheus/prometheus.yml
+  node-exporter:
+    restart: always
+    image: prom/node-exporter:v1.6.1
+    command: 
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc' 
+      - '--path.sysfs=/host/sys'
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    expose:
+      - 9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /:/host:ro,rslave
+  cadvisor:
+    restart: always
+    image: gcr.io/cadvisor/cadvisor:v0.36.0
+    expose:
+      - 8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+  grafana:
+    depends_on:
+      - loki
+      - prometheus
+    image: grafana/grafana:latest
+    ports:
+      - 3004:3000
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /etc/grafana/provisioning/datasources
+        cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml
+        apiVersion: 1
+        datasources:
+        - name: Loki
+          type: loki
+          access: proxy 
+          orgId: 1
+          url: http://loki:3100
+          basicAuth: false
+          isDefault: true
+          version: 1
+          editable: false
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://prometheus:9090
+        EOF
+        /run.sh
+    volumes:
+      - grafana:/var/lib/grafana
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_SERVER_DOMAIN=${GF_DOMAIN}
+      - GF_SERVER_ROOT_URL=https://${GF_DOMAIN}/monitor
 volumes:
   mongodb:
     driver: local
@@ -427,5 +672,19 @@ volumes:
     driver: local
   minio:
     driver: local
-  pgadmin:
+  grafana:
+    driver: local
+  loki:
+    driver: local
+  configurator-log:
+    driver: local
+  controller-log:
+    driver: local
+  worker-log:
+    driver: local
+  post-processor-log:
+    driver: local
+  webhook-log:
+    driver: local
+  cron-trigger-log:
     driver: local

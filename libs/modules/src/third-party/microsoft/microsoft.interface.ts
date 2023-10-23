@@ -14,3 +14,23 @@ export type GetFileInfoResponse = {
   file: object;
   fileSystemInfo: object;
 };
+
+export type GetRangeResponse = {
+  address: string;
+  addressLocal: string;
+  columnCount: number;
+  cellCount: number;
+  columnHidden: boolean;
+  rowHidden: boolean;
+  numberFormat: any[][];
+  columnIndex: number;
+  text: any[][];
+  formulas: any[][];
+  furmulasLocal: any[][];
+  formulasR1C1: any[][];
+  hidden: boolean;
+  rowCount: number;
+  rowIndex: number;
+  valueTypes: any[][];
+  values: any[][];
+};

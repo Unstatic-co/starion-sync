@@ -1,0 +1,119 @@
+version: "3.9"
+services:
+  main:
+    depends_on:
+      - postgresql
+      - mongodb
+      - redis
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
+    build:
+      context: ./main
+      dockerfile: Dockerfile
+    expose:
+      - 8080
+    ports:
+      - 9000:8080
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=8080
+      - API_KEYS=${API_KEYS}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS_ENABLED=${REDIS_TLS_ENABLED}
+      - METADATA_DB_URI=${METADATA_DB_URI}
+      - METADATA_HOST_URL=${METADATA_HOST_URL}
+      - WEBHOOK_PUBLIC_KEY=${WEBHOOK_PUBLIC_KEY}
+      - STARION_SYNC_BASE_URL=${STARION_SYNC_BASE_URL}
+      - STARION_SYNC_API_KEY=${STARION_SYNC_API_KEY}
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+  metadata:
+    depends_on:
+      - mongodb
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
+    build:
+      context: ./module/metadata
+      dockerfile: Dockerfile
+    expose:
+      - 8080
+    ports:
+      - 8000:8080
+    environment:
+      - PORT=8080
+      - DB_URI=${METADATA_DB_URI}
+  # --------------------------------- POSTGRESQL ---------------------------------------#
+  postgresql:
+    restart: always
+    image: postgres:15.3-alpine3.18
+    expose:
+      - 5432
+    ports:
+      - 5432:5432
+    volumes:
+      - postgresql:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRESQL_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRESQL_PASSWORD}
+      - POSTGRES_DB=${POSTGRESQL_DATABASE_NAME}
+  pgadmin:
+    depends_on:
+      - postgresql
+    restart: unless-stopped
+    image: dpage/pgadmin4:7.4
+    ports:
+      - 3003:80
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+      - ./init/pgadmin-servers.json:/pgadmin4/servers.json # preconfigured servers/connections
+      - ./init/pgpass:/pgpass # passwords for the connections in this file
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@starion.io
+      - PGADMIN_DEFAULT_PASSWORD=${POSTGRESQL_PASSWORD}
+      - PGADMIN_CONFIG_SERVER_MODE=False
+  # --------------------------------- REDIS ---------------------------------------#
+  redis:
+    image: redis:6.2-alpine
+    expose:
+      - 6379
+    ports:
+      - 6379:6379
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis:/data
+  # --------------------------------- MONGODB ---------------------------------------#
+  mongodb:
+    restart: on-failure
+    image: mongo:5.0
+    expose:
+      - 27017
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGODB_DATABASE_NAME}
+volumes:
+  postgresql:
+  pgadmin:
+  redis:
+  mongo:

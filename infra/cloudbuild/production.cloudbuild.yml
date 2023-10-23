@@ -1,0 +1,119 @@
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_FLY_API_TOKEN/versions/latest
+      env: 'FLY_API_TOKEN'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_CF_API_TOKEN/versions/latest
+      env: 'CF_API_TOKEN'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_UPSTASH_API_KEY/versions/latest
+      env: 'UPSTASH_API_KEY'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_DO_TOKEN/versions/latest
+      env: 'DO_TOKEN'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_S3_ACCESS_KEY/versions/latest
+      env: 'S3_ACCESS_KEY'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_S3_SECRET_KEY/versions/latest
+      env: 'S3_SECRET_KEY'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_API_KEYS/versions/latest
+      env: 'API_KEYS'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_PROCESSOR_API_KEYS/versions/latest
+      env: 'PROCESSOR_API_KEYS'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_WEBHOOK_PRIVATE_KEY/versions/latest
+      env: 'WEBHOOK_PRIVATE_KEY'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_GOOGLE_CLIENT_SECRET/versions/latest
+      env: 'GOOGLE_CLIENT_SECRET'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_MICROSOFT_CLIENT_SECRET/versions/latest
+      env: 'MICROSOFT_CLIENT_SECRET'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_ORCHESTRATOR_ADDRESS/versions/latest
+      env: 'ORCHESTRATOR_ADDRESS'
+
+steps:
+  - id: 'TF INIT'
+    name: 'hashicorp/terraform:1.6.1'
+    dir: infra
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        terraform fmt -check
+        terraform init -backend-config=production.gcs.tfbackend
+
+  - id: 'TF PLAN'
+    name: 'hashicorp/terraform:1.6.1'
+    dir: infra
+    entrypoint: 'sh'
+    secretEnv:
+      [
+        'FLY_API_TOKEN',
+        'CF_API_TOKEN',
+        'UPSTASH_API_KEY',
+        'DO_TOKEN',
+        'S3_ACCESS_KEY',
+        'S3_SECRET_KEY',
+        'API_KEYS',
+        'PROCESSOR_API_KEYS',
+        'WEBHOOK_PRIVATE_KEY',
+        'GOOGLE_CLIENT_SECRET',
+        'MICROSOFT_CLIENT_SECRET',
+        'ORCHESTRATOR_ADDRESS',
+      ]
+    args:
+      - '-c'
+      - |
+        export TF_VAR_fly_api_token=$$FLY_API_TOKEN
+        export TF_VAR_cf_api_token=$$CF_API_TOKEN
+        export TF_VAR_upstash_api_key=$$UPSTASH_API_KEY
+        export TF_VAR_do_token=$$DO_TOKEN
+        export TF_VAR_s3_access_key=$$S3_ACCESS_KEY
+        export TF_VAR_s3_secret_key=$$S3_SECRET_KEY
+        export TF_VAR_api_keys=$$API_KEYS
+        export TF_VAR_processor_api_keys=$$PROCESSOR_API_KEYS
+        export TF_VAR_webhook_private_key=$$WEBHOOK_PRIVATE_KEY
+        export TF_VAR_google_client_secret=$$GOOGLE_CLIENT_SECRET
+        export TF_VAR_microsoft_client_secret=$$MICROSOFT_CLIENT_SECRET
+        export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
+
+        terraform plan -var-file="environments/production.tfvars" -out=tfplan
+
+  - id: 'DEPLOY'
+    name: ${_DEPLOY_IMAGE_URL}
+    dir: infra
+    entrypoint: 'bash'
+    secretEnv:
+      [
+        'FLY_API_TOKEN',
+        'CF_API_TOKEN',
+        'UPSTASH_API_KEY',
+        'DO_TOKEN',
+        'S3_ACCESS_KEY',
+        'S3_SECRET_KEY',
+        'API_KEYS',
+        'PROCESSOR_API_KEYS',
+        'WEBHOOK_PRIVATE_KEY',
+        'GOOGLE_CLIENT_SECRET',
+        'MICROSOFT_CLIENT_SECRET',
+        'ORCHESTRATOR_ADDRESS',
+      ]
+    args:
+      - '-c'
+      - |-
+        export TF_VAR_fly_api_token=$$FLY_API_TOKEN
+        export TF_VAR_cf_api_token=$$CF_API_TOKEN
+        export TF_VAR_upstash_api_key=$$UPSTASH_API_KEY
+        export TF_VAR_do_token=$$DO_TOKEN
+        export TF_VAR_s3_access_key=$$S3_ACCESS_KEY
+        export TF_VAR_s3_secret_key=$$S3_SECRET_KEY
+        export TF_VAR_api_keys=$$API_KEYS
+        export TF_VAR_processor_api_keys=$$PROCESSOR_API_KEYS
+        export TF_VAR_webhook_private_key=$$WEBHOOK_PRIVATE_KEY
+        export TF_VAR_google_client_secret=$$GOOGLE_CLIENT_SECRET
+        export TF_VAR_microsoft_client_secret=$$MICROSOFT_CLIENT_SECRET
+        export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
+
+        terraform apply -no-color -auto-approve tfplan
+
+substitutions:
+timeout: 3600s
+options:
+  machine_type: UNSPECIFIED
+  dynamic_substitutions: true
+  substitution_option: ALLOW_LOOSE
+  logging: CLOUD_LOGGING_ONLY

@@ -10,7 +10,7 @@ import {
   orchestratorConfigRegister,
   redisConfigRegister,
 } from '@lib/core/config';
-import { DatabaseModule } from '@lib/modules';
+import { DatabaseModule, LoggerModule } from '@lib/modules';
 import { brokerConfigRegister } from '@lib/core/config/broker.config';
 import { BrokerModule } from './modules/broker/broker.module';
 import { BullModule, BullRootModuleOptions } from '@nestjs/bull';
@@ -38,16 +38,18 @@ import { TriggerModule } from './modules/trigger/trigger.module';
         const redisConfig = configService.get<RedisConfig>(
           `${ConfigName.REDIS}`,
         );
-        const { host, port, password } = redisConfig;
+        const { host, port, password, tls } = redisConfig;
         return {
           redis: {
             host,
             port,
             password,
+            tls: tls ? {} : undefined,
           },
         } as BullRootModuleOptions;
       },
     }),
+    LoggerModule,
     BrokerModule,
     CommonModule,
     // ActivityModule,

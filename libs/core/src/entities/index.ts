@@ -4,3 +4,4 @@ export * from './workflow';
 export * from './syncflow';
 export * from './sync-connection';
 export * from './trigger';
+export * from './webhook';

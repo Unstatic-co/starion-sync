@@ -15,7 +15,7 @@ export class DataProviderController {
 
   @Get(':providerId/discover')
   discover(@Param('providerId') providerId: string) {
-    return this.dataDiscovererService.discover(providerId);
+    return this.dataDiscovererService.discoverProvider(providerId);
   }
 
   @Get(':provider_id')

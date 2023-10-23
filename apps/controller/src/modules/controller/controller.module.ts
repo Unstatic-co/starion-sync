@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { MicrosoftModule } from '@lib/modules/third-party';
+import { GoogleModule, MicrosoftModule } from '@lib/modules/third-party';
 import { RepositoryModule } from '@lib/modules';
 import { SyncflowControllerProviders } from './controller.provider';
 import { SyncflowControllerFactory } from './controller.factory';
 
 @Module({
-  imports: [MicrosoftModule, RepositoryModule.registerAsync()],
+  imports: [RepositoryModule.registerAsync(), MicrosoftModule, GoogleModule],
   controllers: [],
   providers: [...SyncflowControllerProviders, SyncflowControllerFactory],
   exports: [SyncflowControllerFactory],

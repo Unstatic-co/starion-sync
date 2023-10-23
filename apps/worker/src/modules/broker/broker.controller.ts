@@ -15,17 +15,22 @@ export class BrokerController {
 
   @EventPattern(EventNames.SYNCFLOW_SCHEDULED)
   async handleSyncflowScheduledEvent(payload: SyncflowScheduledPayload) {
-    this.logger.debug('handleSyncflowScheduledEvent', payload);
+    this.logger.log(
+      `handleSyncflowScheduledEvent: syncflowId = ${payload.syncflow.id}`,
+    );
     return this.orchestratorService.executeWorkflow(payload.syncflow.name, {
       workflowId: `${payload.syncflow.id}-${payload.version}`,
       args: [payload],
-      workflowExecutionTimeout: 60000,
+      // workflowExecutionTimeout: 60000,
       workflowIdReusePolicy:
         WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
+      searchAttributes: {
+        DataSourceId: [payload.syncflow.sourceId],
+      },
     });
   }
 
-  @EventPattern('test-event-to-worker')
+  // @EventPattern('test-event-to-worker')
   async testEvent(message: any) {
     this.logger.debug('test-event-to-worker', message);
   }

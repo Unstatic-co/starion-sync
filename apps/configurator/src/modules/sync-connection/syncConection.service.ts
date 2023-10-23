@@ -23,7 +23,11 @@ import {
   CreateSyncConnectionTriggerConfigDto,
 } from './dto/createSyncConnection.dto';
 import { DataSourceService } from '../data-source/data-source.service';
-import { TriggerRegistry, TriggerType } from '@lib/core/entities/trigger';
+import {
+  DEFAULT_CRON_TRIGGER_FREQUENCY,
+  TriggerRegistry,
+  TriggerType,
+} from '@lib/core/entities/trigger';
 import { TriggerService } from '../trigger/trigger.service';
 import { DeleteResult } from '../../common/type/deleteResult';
 import { v4 as uuidv4 } from 'uuid';
@@ -160,7 +164,7 @@ export class SyncConnectionService {
     const { name, type, config } = data;
     const _config = {};
     if (type === TriggerType.CRON) {
-      const frequency = config?.frequency || 5;
+      const frequency = config?.frequency || DEFAULT_CRON_TRIGGER_FREQUENCY;
       Object.assign(_config, {
         cron: TriggerService.createCronExpressionFromFrequency(frequency),
         frequency,

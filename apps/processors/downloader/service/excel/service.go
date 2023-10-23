@@ -4,15 +4,23 @@ import (
 	"bytes"
 	"context"
 	"downloader/pkg/config"
+	"downloader/pkg/e"
+	"downloader/util"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 )
+
+type DownloadExternalError struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+}
 
 type MicrosoftExcelServiceInitParams struct {
 	// info
@@ -63,8 +71,9 @@ func New(params MicrosoftExcelServiceInitParams) *MicrosoftExcelService {
 	logger.SetFormatter(&log.JSONFormatter{})
 	logger.SetLevel(log.DebugLevel)
 	loggerEntry := logger.WithFields(log.Fields{
-		"workbookId":  params.WorkbookId,
-		"worksheetId": params.WorksheetId,
+		"workbookId":   params.WorkbookId,
+		"worksheetId":  params.WorksheetId,
+		"dataSourceId": params.DataSourceId,
 	})
 
 	// client
@@ -104,15 +113,23 @@ func (s *MicrosoftExcelService) CreateSessionId(persistChanges bool) error {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.accessToken))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(bodyJSON)))
-	req.Header.Set("workbook-session-id", s.sessionId)
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error sending request to create excel session id: %w", err)
 	}
 	defer resp.Body.Close()
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error reading response body from create excel session id: %w", err)
+	}
+
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		var errRes ErrorResponse
+		err := jsoniter.Unmarshal(responseBody, &errRes)
+		if err != nil {
+			return fmt.Errorf("Error unmarshalling: %w", err)
+		}
+		return WrapWorkbookApiError(resp.StatusCode, errRes.Error.Msg)
 	}
 
 	var response CreateSessionResponse
@@ -123,6 +140,45 @@ func (s *MicrosoftExcelService) CreateSessionId(persistChanges bool) error {
 	log.Debug("Session id: ", response.Id)
 
 	s.sessionId = response.Id
+	return nil
+}
+
+func (s *MicrosoftExcelService) CloseSession() error {
+	s.logger.Debug("Closing session")
+	var url string
+	if s.driveId == "" {
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/me/drive/items/%s/workbook/closeSession", s.workbookId)
+	} else {
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/drives/%s/items/%s/workbook/closeSession", s.driveId, s.workbookId)
+	}
+	body := CloseSessionRequest{}
+	bodyJSON, err := jsoniter.Marshal(body)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyJSON))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.accessToken))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("workbook-session-id", s.sessionId)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("Error sending request to close excel session: %w", err)
+	}
+	defer resp.Body.Close()
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("Error reading response body when close session: %w", err)
+	}
+
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		var errRes ErrorResponse
+		err := jsoniter.Unmarshal(responseBody, &errRes)
+		if err != nil {
+			return fmt.Errorf("Error unmarshalling: %w", err)
+		}
+		return WrapWorkbookApiError(resp.StatusCode, errRes.Error.Msg)
+	}
+
 	return nil
 }
 
@@ -150,6 +206,15 @@ func (s *MicrosoftExcelService) GetWorksheetInfo() error {
 		return err
 	}
 
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		var errRes ErrorResponse
+		err := jsoniter.Unmarshal(responseBody, &errRes)
+		if err != nil {
+			return fmt.Errorf("Error unmarshalling: %w", err)
+		}
+		return WrapWorksheetApiError(resp.StatusCode, errRes.Error.Msg)
+	}
+
 	var response GetWorksheetInfoResponse
 	err = jsoniter.Unmarshal(responseBody, &response)
 	if err != nil {
@@ -158,6 +223,10 @@ func (s *MicrosoftExcelService) GetWorksheetInfo() error {
 	log.Debug("Worksheet name: ", response.Name)
 
 	s.worksheetName = response.Name
+	return nil
+}
+
+func (source *MicrosoftExcelService) Setup(ctx context.Context) error {
 	return nil
 }
 
@@ -177,11 +246,18 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 	} else {
 		debugParam = "on"
 	}
-	// timeoutCtx, _ := context.WithTimeout(ctx, 15*time.Minute)
+
+	externalErrorFile, err := util.GenerateTempFileName("ext", "json")
+	if err != nil {
+		return fmt.Errorf("Cannot generate temp file: %w", err)
+	}
+	s3Host, _ := util.ConvertS3URLToHost(config.AppConfig.S3Endpoint)
+
 	cmd := exec.CommandContext(
 		ctx,
 		"bash",
 		"./download-excel.sh",
+		"--externalErrorFile", externalErrorFile,
 		"--driveId", source.driveId,
 		"--workbookId", source.workbookId,
 		"--worksheetId", source.worksheetId,
@@ -191,11 +267,13 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 		"--dataSourceId", source.dataSourceId,
 		"--syncVersion", fmt.Sprintf("%d", source.syncVersion),
 		"--timezone", source.timezone,
-		"--s3Url", config.AppConfig.S3Url,
+		"--s3Endpoint", config.AppConfig.S3Endpoint,
+		"--s3Host", s3Host,
 		"--s3Region", config.AppConfig.S3Region,
 		"--s3Bucket", config.AppConfig.S3DiffDataBucket,
 		"--s3AccessKey", config.AppConfig.S3AccessKey,
 		"--s3SecretKey", config.AppConfig.S3SecretKey,
+		"--s3Ssl", strconv.FormatBool(config.AppConfig.S3Ssl),
 		"--debug", debugParam,
 	)
 
@@ -210,5 +288,26 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 		return err
 	}
 
+	// check external error
+	var externalError DownloadExternalError
+	err = util.MarshalJsonFile(externalErrorFile, &externalError)
+	if err != nil {
+		fmt.Errorf("Cannot read external error file: %w", err)
+	}
+	if externalError.Code != 0 {
+		return e.NewExternalErrorWithDescription(externalError.Code, externalError.Msg, "External error when running download script")
+	}
+
+	go util.DeleteFile(externalErrorFile)
+
+	return nil
+}
+
+func (source *MicrosoftExcelService) Close(ctx context.Context) error {
+	go func() {
+		if err := source.CloseSession(); err != nil {
+			source.logger.Warn("Error close session", err)
+		}
+	}()
 	return nil
 }

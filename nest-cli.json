@@ -40,15 +40,6 @@
         "tsConfigPath": "libs/microservice/tsconfig.lib.json"
       }
     },
-    "@app/starion-sync": {
-      "type": "application",
-      "root": "apps/starion-sync",
-      "entryFile": "main",
-      "sourceRoot": "apps/starion-sync/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/starion-sync/tsconfig.app.json"
-      }
-    },
     "@app/configurator": {
       "type": "application",
       "root": "apps/configurator",
@@ -65,15 +56,6 @@
       "sourceRoot": "apps/controller/src",
       "compilerOptions": {
         "tsConfigPath": "apps/controller/tsconfig.app.json"
-      }
-    },
-    "@app/executor": {
-      "type": "application",
-      "root": "apps/executor",
-      "entryFile": "main",
-      "sourceRoot": "apps/executor/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/executor/tsconfig.app.json"
       }
     },
     "@app/worker": {
@@ -94,6 +76,15 @@
         "tsConfigPath": "apps/post-processor/tsconfig.app.json"
       }
     },
+    "@app/webhook": {
+      "type": "application",
+      "root": "apps/webhook",
+      "entryFile": "main",
+      "sourceRoot": "apps/webhook/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/webhook/tsconfig.app.json"
+      }
+    },
     "@app/trigger/cron": {
       "type": "application",
       "root": "apps/triggers/cron",
@@ -101,6 +92,15 @@
       "sourceRoot": "apps/triggers/cron/src",
       "compilerOptions": {
         "tsConfigPath": "apps/triggers/cron/tsconfig.app.json"
+      }
+    },
+    "@app/trigger/webhook": {
+      "type": "application",
+      "root": "apps/triggers/webhook",
+      "entryFile": "main",
+      "sourceRoot": "apps/triggers/webhook/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/triggers/webhook/tsconfig.app.json"
       }
     }
   }

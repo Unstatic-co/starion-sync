@@ -65,6 +65,8 @@ export class SyncflowModel extends Syncflow {
 
 export const SyncflowSchema = SchemaFactory.createForClass(SyncflowModel);
 
+SyncflowSchema.index({ sourceId: 1 }, { background: true });
+
 SyncflowSchema.virtual('id').get(function () {
     return this._id.toHexString(); // eslint-disable-line
 });

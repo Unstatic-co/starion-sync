@@ -41,6 +41,10 @@ function parse-arguments() {
     while [[ $# > 0 ]]
     do
         case "$1" in
+            --externalErrorFile)
+                external_error_file="$2"
+                shift
+                ;;
             --driveId)
                 drive_id="$2"
                 shift
@@ -77,8 +81,12 @@ function parse-arguments() {
                 time_zone="$2"
                 shift
                 ;;
-            --s3Url)
-                s3_url="$2"
+            --s3Endpoint)
+                s3_endpoint="$2"
+                shift
+                ;;
+            --s3Host)
+                s3_host="$2"
                 shift
                 ;;
             --s3Region)
@@ -95,6 +103,10 @@ function parse-arguments() {
                 ;;
             --s3SecretKey)
                 s3_secret_key="$2"
+                shift
+                ;;
+            --s3Ssl)
+                s3_ssl="$2"
                 shift
                 ;;
             --debug)
@@ -118,15 +130,34 @@ parse-arguments "$@"
 ###### CONSTANTS #######
 
 EMPTY_HEADER_TOKEN="oYWhr9mRCYjP1ss0suIMbzRJBLH_Uv9UVg61"
-readonly EMPTY_HEADER_TOKEN
 EMPTY_VALUE_TOKEN="__StarionSyncNull"
-readonly EMPTY_VALUE_TOKEN
+ERROR_VALUE_TOKEN="__Error"
+ERROR_VALUE_REGEX="^(#NULL!|#DIV/0!|#VALUE!|#REF!|#NAME\?|#NUM!|#N/A|#ERROR!|#SPILL!|#CALC!)$"
 ID_COL_NAME="__StarionId"
-readonly ID_COL_NAME
 ROW_NUMBER_COL_NAME="__StarionRowNum"
-readonly ROW_NUMBER_COL_NAME
+WORKSHEET_EMPTY_ERROR="1106"
+WORKBOOK_NOT_FOUND_ERROR="1102"
+WORKBOOK_FORBIDDEN_ERROR="1101"
 
 ###### FUNCTIONS #######
+
+function write-external-error() {
+    local error_code=$1
+    local error_message=$2
+    info-log "External error: $error_code - $error_message"
+    jq -n \
+        --arg "code" "$error_code" \
+        --arg "msg" "$error_message" \
+        '{"code":$code|tonumber,"msg":$msg}' > "$external_error_file"
+    exit 0
+}
+
+function check-csv-empty() {
+    local file=$1
+    if [[ -z $(head -n 1 "$file" | awk -F, '{for(i=1;i<=NF;i++) if($i != "") {print $i; exit 0;} exit 0; }') ]]; then
+        write-external-error "$WORKSHEET_EMPTY_ERROR" "Worksheet is empty or missing header row"
+    fi
+}
 
 function get-excel-session() {
     info-log "Creating excel session..."
@@ -170,10 +201,16 @@ function download-excel-file() {
             -H "workbook-session-id: $session_id" \
             -o "$outfile" \
             --write-out "%{http_code}" \
+            --retry 2 \
             "$download_url"
     )
     if test "$status_code" -ne 200; then
         error-log "Failed to download file. Status code: $status_code"
+        if test "$status_code" -eq 404; then
+            write-external-error "$WORKBOOK_NOT_FOUND_ERROR" "Workbook not found"
+        elif test "$status_code" -eq 403; then
+            write-external-error "$WORKBOOK_FORBIDDEN_ERROR" "Missing permission to access workbook"
+        fi
         exit 1
     fi
 }
@@ -228,6 +265,8 @@ else
     QSV="qsv"
 fi
 readonly QSV
+export QSV_PREFER_DMY=1
+export QSV_LOG_LEVEL=error
 
 # check missing commands
 missing_command=0
@@ -258,22 +297,31 @@ fi
 original_file=$TEMP_DIR/original.xlsx
 download-excel-file "$original_file"
 
+xlsx_header=$(./get-xlsx-header --file "$original_file" --sheetName "$worksheet_name" --showHeaders)
+debug-log "Xlsx header: $xlsx_header"
+if [[ -z "$xlsx_header" ]]; then
+    write-external-error "$WORKSHEET_EMPTY_ERROR" "Worksheet is empty or missing header row"
+fi
+
 ### Convert
 info-log "Converting file to csv..."
 original_csv_file=$TEMP_DIR/original.csv
-"$QSV" excel \
-    --quiet \
-    --flexible \
-    --trim \
-    --sheet "$worksheet_name" \
-    --output "$original_csv_file" \
-    "$original_file"
+converted_csv_file=$TEMP_DIR/converted_csv.csv
+OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=AUTO duckdb :memory: \
+    "install spatial; load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$worksheet_name')) TO '$converted_csv_file' (HEADER FALSE, DELIMITER ',');"
+
+trimmed_ghost_cells="$TEMP_DIR/ghost-cells.csv"
+maxColIndex=$(./get-xlsx-header --file "$original_file" --sheetName "$worksheet_name" --showMaxIndex)
+"$QSV" select "1-$((maxColIndex+1))" <(tac "$converted_csv_file" | awk '/[^,]/ {found=1} found' | tac) -o "$trimmed_ghost_cells"
+"$QSV" cat rows -n <(echo "$xlsx_header") "$trimmed_ghost_cells" -o "$original_csv_file"
+
+# check-csv-empty "$original_csv_file"``
 
 ### Preprocess
 info-log "Preprocessing csv file..."
 preprocess_file=$TEMP_DIR/preprocess.csv
 
-"$QSV" input "$original_csv_file" -o "$preprocess_file"
+"$QSV" input --trim-headers --trim-fields "$original_csv_file" -o "$preprocess_file"
 input_file="$preprocess_file"
 
 rows_number="$("$QSV" count "$original_csv_file")"
@@ -331,16 +379,19 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
             --sessionId "$session_id" \
             --colIndexes "$date_col_idxs" \
             --rowNumber "$rows_number" \
-            --replaceEmpty "$EMPTY_VALUE_TOKEN" \
+            --replaceEmpty "$ERROR_VALUE_TOKEN" \
             --timezone "$time_zone"
     ) >"$temp_updated_dates_file"
 
     "$QSV" cat columns -p <("$QSV" select "!${date_col_idxs}" "$dedup_header_file") "$temp_updated_dates_file" |
         "$QSV" select "$placeholder_headers" -o "$normalized_date_file"
     
-    "$SED" -i "s/$EMPTY_VALUE_TOKEN//g" $normalized_date_file # remove empty value token
+    # "$SED" -i "s/$EMPTY_VALUE_TOKEN//g" $normalized_date_file # remove empty value token
 
-    "$QSV" cat rows -n <(echo "$original_headers") <("$QSV" behead "$normalized_date_file") -o "$normalized_date_file"
+    behead_file="$TEMP_DIR/behead.csv"
+    "$QSV" behead -o "$behead_file" "$normalized_date_file"
+
+    "$QSV" cat rows -n <(echo "$original_headers") "$behead_file" -o "$normalized_date_file"
     input_file="$normalized_date_file"
 fi
 ## End ##
@@ -418,24 +469,26 @@ debug-log "Creating table with row number..."
     echo "$ROW_NUMBER_COL_NAME"
     seq 2 $((record_counts + 1))
 ) --output "$table_with_row_number"
+id_with_row_number="$TEMP_DIR/id_with_row_number.csv"
+debug-log "Creating id with row number..."
+"$QSV" select "${ID_COL_NAME},${ROW_NUMBER_COL_NAME}" "$table_with_row_number" -o "$id_with_row_number"
 
-# Search missing id rows
-table_missing_id_rows="$TEMP_DIR/with_missing_id_rows.csv"
-"$QSV" search -s "$ID_COL_NAME" '^$' "$table_with_row_number" -o "$table_missing_id_rows" || true # Suppress exit code 1 when no match found
-missing_counts="$("$QSV" count "$table_missing_id_rows")"
-info-log "Number of rows missing primary keys: $missing_counts"
+# Find and fix id column
+table_fixed_id_rows="$TEMP_DIR/fixed_id_rows.csv"
+table_new_id_rows="$TEMP_DIR/new_id_rows.csv"
+./find-and-fix-id-col \
+    --inFile "$id_with_row_number" \
+    --outFile "$table_fixed_id_rows" \
+    --fullOutFile "$table_new_id_rows" \
+    --idColName "$ID_COL_NAME" \
+    --rowNumColName "$ROW_NUMBER_COL_NAME"
+fixed_id_count="$("$QSV" count "$table_fixed_id_rows")"
+info-log "Number of rows have invalid id: $fixed_id_count"
 
-if ((missing_counts == 0)); then
+if ((fixed_id_count == 0)); then
     appended_id_file="$input_file"
 else
-    # Add missing ids
-    table_id_for_missing_rows="$TEMP_DIR/id_for_missing_rows.csv"
-    "$QSV" cat columns \
-        <("$QSV" select "!${ID_COL_NAME}" "$table_missing_id_rows") \
-        <(./generate-id --columnName "$ID_COL_NAME" --n "$missing_counts") |
-        "$QSV" select "${ID_COL_NAME},${ROW_NUMBER_COL_NAME}" --output "$table_id_for_missing_rows"
-    
-    info-log "Adding missing primary keys..."
+    info-log "Fixing primary keys..."
     ./excel/update-id-column \
         --driveId "$drive_id" \
         --workbookId "$workbook_id" \
@@ -443,36 +496,46 @@ else
         --accessToken "$access_token" \
         --sessionId "$session_id" \
         --idColIndex "$id_col_colnum" \
-        --idsFile "$table_id_for_missing_rows" \
+        --idsFile "$table_fixed_id_rows" \
         --includeHeader "$missing_id_col"
+    info-log "Fixed primary keys"
 
     appended_id_file="$TEMP_DIR/appended_id.csv"
-
-    "$QSV" cat rows \
-        <("$QSV" search -s "$ID_COL_NAME" -v "^$" "$table_with_row_number" | "$QSV" select "!${ROW_NUMBER_COL_NAME}") \
-        <("$QSV" join "$ROW_NUMBER_COL_NAME" "$table_with_row_number" $ROW_NUMBER_COL_NAME "$table_id_for_missing_rows" |
-            "$QSV" select "!${ID_COL_NAME}[0],${ROW_NUMBER_COL_NAME},${ROW_NUMBER_COL_NAME}[1]") --output "$appended_id_file"
+    "$QSV" cat columns -p \
+        <("$QSV" select "!${ID_COL_NAME}" "$input_file") \
+        <("$QSV" select "${ID_COL_NAME}" "$table_new_id_rows") \
+        -o "$appended_id_file"
+    # "$QSV" \
+        # select "!${ID_COL_NAME}[0],${ROW_NUMBER_COL_NAME},${ROW_NUMBER_COL_NAME}[1]" \
+        # <("$QSV" join "$ROW_NUMBER_COL_NAME" "$table_with_row_number" $ROW_NUMBER_COL_NAME "$table_new_id_rows") \
+        # --output "$appended_id_file"
 fi
 ## End ##
 
-## Preprocess: Encode header
+## Preprocess: Replace error values & Encode header
 # encode header to `_${hex}` (underscore + hexadecimal encoding of col name) format to easily querying in DB
-info-log "Encoding header..."
+info-log "Replacing error values & Encoding header..."
+input_file=$appended_id_file
+
+replaced_error_file="$TEMP_DIR/replaced_error.csv"
+echo "$(./get-csv-header -file "$input_file" -sep ,)" >"$replaced_error_file"
+"$QSV" behead <("$QSV" replace -s "!$ID_COL_NAME" "$ERROR_VALUE_REGEX" "$ERROR_VALUE_TOKEN" "$input_file") >>"$replaced_error_file"
+
 header_encoded_file="$TEMP_DIR/header-endcoded.csv"
-new_headers="$("./get-csv-header" -file "$appended_id_file" -encode -sep ,)"
+new_headers="$("./get-csv-header" -file "$input_file" -encode -sep ,)"
 echo "$new_headers" >"$header_encoded_file"
-"$QSV" behead "$appended_id_file" >>"$header_encoded_file"
+"$QSV" behead "$replaced_error_file" >>"$header_encoded_file"
 ## End ##
 
 ### Schema
 info-log "Inferring schema..."
 detected_schema_file="$TEMP_DIR/schema.json"
-"$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$appended_id_file" >"$detected_schema_file"
+"$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$replaced_error_file" >"$detected_schema_file"
 # upload
 info-log "Uploading schema..."
-./excel/get-and-upload-schema \
+./get-and-upload-schema \
     --schemaFile "$detected_schema_file" \
-    --s3Url "$s3_url" \
+    --s3Endpoint "$s3_endpoint" \
     --s3Region "$s3_region" \
     --s3Bucket "$s3_bucket" \
     --s3AccessKey "$s3_access_key" \
@@ -480,42 +543,22 @@ info-log "Uploading schema..."
     --dataSourceId "$data_source_id" \
     --syncVersion "$sync_version"
 
-### Convert JSON
-info-log "Converting json..."
-json_file="$TEMP_DIR/data.json"
-"$QSV" tojsonl "$header_encoded_file" --output "$json_file"
-
-### Convert parquet
-info-log "Converting parquet..."
-s3_location="$s3_url/$s3_bucket/data/$data_source_id-$sync_version.parquet"
-debug-log "S3 location: $s3_location"
-clickhouse local -q "
-    SET s3_truncate_on_insert = 1;
-    INSERT INTO FUNCTION
-        s3(
-            '$s3_location',
-            '$s3_access_key',
-            '$s3_secret_key',
-            'Parquet'
-        )
-    SELECT * FROM file('$json_file', 'JSONEachRow')
+# ### Convert data
+info-log "Converting parquet and uploading data..."
+s3_file_path="data/$data_source_id-$sync_version.parquet"
+s3_json_file_path="data/$data_source_id-$sync_version.json"
+duckdb_convert_data_query="
+    INSTALL httpfs; LOAD httpfs;
+    SET s3_region='$s3_region';
+    SET s3_access_key_id='$s3_access_key';
+    SET s3_secret_access_key='$s3_secret_key';
+    SET s3_url_style='path';
+    SET s3_use_ssl='$s3_ssl';
+    SET s3_endpoint='$s3_host';
+    COPY (SELECT * FROM read_csv('$header_encoded_file', all_varchar=TRUE, auto_detect=TRUE, header=TRUE, quote='\"', escape='\"')) TO 's3://$s3_bucket/$s3_file_path' (FORMAT 'parquet');
 "
-
-### Upload JSON
-if [ "$DEBUG" == "on" ]; then
-    info-log "Uploading json..."
-    s3_location="$s3_url/$s3_bucket/data/$data_source_id-$sync_version.json"
-    clickhouse local -q "
-        SET s3_truncate_on_insert = 1;
-        INSERT INTO FUNCTION
-            s3(
-                '$s3_location',
-                '$s3_access_key',
-                '$s3_secret_key',
-                'JSONEachRow'
-            )
-        SELECT * FROM file('$json_file', 'JSONEachRow')
-    "
+if [[ "$debug" == "on" ]]; then
+    duckdb_convert_data_query += "COPY t TO 's3://$s3_bucket/$s3_json_file_path' (FORMAT 'JSON');"
 fi
-
-close-excel-session || true
+duckdb :memory: "$duckdb_convert_data_query"
+info-log "Uploaded data to s3"

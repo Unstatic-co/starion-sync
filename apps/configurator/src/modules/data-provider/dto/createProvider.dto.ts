@@ -17,11 +17,7 @@ export class ProviderAuthConfigDto {
 export class ProviderConfigDto {
   @IsOptional()
   @IsString()
-  sheetId?: string;
-
-  @IsOptional()
-  @IsString()
-  sheetName?: string;
+  spreadsheetId?: string;
 
   @IsOptional()
   @IsString()

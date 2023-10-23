@@ -13,13 +13,13 @@ export interface DestinationDatabaseConfig {
 }
 
 export const destinationDatabaseConfig: DatabaseConfig = {
-  type: (process.env.DB_TYPE as DatabaseType) || DatabaseType.MONGODB,
-  uri: process.env.DB_URI,
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT),
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  type: (process.env.DEST_DB_TYPE as DatabaseType) || DatabaseType.POSTGRES,
+  uri: process.env.DEST_DB_URI,
+  host: process.env.DEST_DB_HOST || 'postgresql',
+  port: parseInt(process.env.DEST_DB_PORT) || 5432,
+  user: process.env.DEST_DB_USER || 'admin',
+  password: process.env.DEST_DB_PASSWORD || 'abc123456',
+  database: process.env.DEST_DB_NAME || 'starion-sync',
 };
 
 export const destinationDatabaseConfigRegister = registerAs(

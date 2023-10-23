@@ -1,12 +1,16 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Delete } from '@nestjs/common';
 import { DataProviderService } from '../data-provider/data-provider.service';
 import {
   DataSource,
   DataSourceId,
+  ERROR_CODE,
   ExcelDataSourceConfig,
+  ExternalError,
+  GoogleSheetsDataSourceConfig,
   ProviderConfig,
   ProviderId,
   ProviderType,
+  SyncConnection,
 } from '@lib/core';
 import {
   CreateDataSourceDto,
@@ -15,6 +19,7 @@ import {
 import {
   IDataProviderRepository,
   IDataSourceRepository,
+  IDestinationDatabaseService,
   InjectTokens,
   UpdateDataSourceData,
 } from '@lib/modules';
@@ -22,6 +27,14 @@ import { ApiError } from '../../common/exception/api.exception';
 import { ErrorCode } from '../../common/constants';
 import { ProviderConfigDto } from '../data-provider/dto/createProvider.dto';
 import { CreationResult } from '../../common/type';
+import { DeleteResult } from '../../common/type/deleteResult';
+import { DataDiscovererService } from '../discoverer/discoverer.service';
+import { WorkflowService } from '../workflow/workflow.service';
+
+export type DeleteDataSourceResult = {
+  dataSource: DataSource;
+  syncConnection?: SyncConnection;
+};
 
 @Injectable()
 /**
@@ -36,6 +49,10 @@ export class DataSourceService {
     private readonly dataProviderRepository: IDataProviderRepository,
     @Inject(InjectTokens.DATA_SOURCE_REPOSITORY)
     private readonly dataSourceRepository: IDataSourceRepository,
+    @Inject(InjectTokens.DESTINATION_DATABASE_SERVICE)
+    private readonly destinationDatabaseService: IDestinationDatabaseService,
+    private readonly discovererService: DataDiscovererService,
+    private readonly workflowService: WorkflowService,
   ) {}
   /**
    * Hello world
@@ -45,12 +62,10 @@ export class DataSourceService {
     return 'Hello World !';
   }
 
-  async test() {
-    throw new Error('demo loi');
-  }
+  async test() {}
 
   public async getById(id: DataSourceId) {
-    this.logger.debug(`Get data source by id: ${id}`);
+    this.logger.log(`Get data source by id: ${id}`);
     const dataSource = await this.dataSourceRepository.getById(id);
     if (!dataSource) {
       throw new ApiError(
@@ -61,58 +76,64 @@ export class DataSourceService {
     return dataSource;
   }
 
+  public async getSchema(id: DataSourceId) {
+    const schema = await this.destinationDatabaseService.getSchema(id);
+    return schema;
+  }
+
+  public async getData(id: DataSourceId) {
+    const dataSource = await this.getById(id);
+    const dataTableName =
+      dataSource.config.dest?.tableName || `_${dataSource.id}`;
+    const res = await this.destinationDatabaseService.getData(dataTableName);
+    return res;
+  }
+
   async create(dto: CreateDataSourceDto): Promise<CreationResult<DataSource>> {
-    let isAlreadyCreated = false;
-    const { type, config, metadata } = dto;
-    const { externalId, externalLocalId } =
-      this.getOrGenerateDataSourceExternalId(type, config);
-    const existingDataSource = await this.dataSourceRepository.getByExternalId(
-      externalId,
-    );
-    if (existingDataSource) {
-      isAlreadyCreated = true;
+    try {
+      const isAlreadyCreated = false;
+      const { type, config, metadata } = dto;
+      const { externalId, externalLocalId } =
+        this.getOrGenerateDataSourceExternalId(type, config);
+      const dataProviderExternalId =
+        this.dataProviderService.getOrGenerateProviderExternalId(
+          type,
+          config as ProviderConfigDto,
+        );
+      let dataProvider = await this.dataProviderRepository.getByExternalId(
+        dataProviderExternalId,
+      );
+      if (!dataProvider) {
+        dataProvider = (
+          await this.dataProviderService.create({
+            type,
+            config,
+            metadata,
+          })
+        ).data;
+      }
+
+      await this.discovererService.checkDataSource(dataProvider.type, config);
+
+      const dataSource = await this.dataSourceRepository.create({
+        externalId,
+        externalLocalId,
+        config,
+        providerId: dataProvider.id,
+        providerType: type,
+        metadata,
+      });
       return {
-        data: existingDataSource,
+        data: dataSource,
         isAlreadyCreated,
       };
+    } catch (error) {
+      throw error;
     }
-    const dataProviderExternalId =
-      this.dataProviderService.getOrGenerateProviderExternalId(
-        type,
-        config as ProviderConfigDto,
-      );
-    let dataProvider = await this.dataProviderRepository.getByExternalId(
-      dataProviderExternalId,
-    );
-    if (!dataProvider) {
-      dataProvider = (
-        await this.dataProviderService.create({
-          type,
-          config,
-          metadata,
-        })
-      ).data;
-    }
-    await this.checkDataSourceInProvider(
-      dataProvider.type,
-      dataProvider.config,
-      externalLocalId,
-    );
-    const dataSource = await this.dataSourceRepository.create({
-      externalId,
-      externalLocalId,
-      config: { ...dataProvider.config, ...config },
-      providerId: dataProvider.id,
-      providerType: type,
-      metadata,
-    });
-    return {
-      data: dataSource,
-      isAlreadyCreated,
-    };
   }
 
   public async update(id: ProviderId, data: UpdateDataSourceData) {
+    this.logger.log(`Update data source: ${id}`);
     const { metadata } = data;
     let result;
     try {
@@ -133,6 +154,36 @@ export class DataSourceService {
     return result;
   }
 
+  async delete(
+    id: DataSourceId,
+  ): Promise<DeleteResult<DeleteDataSourceResult>> {
+    this.logger.debug(`Delete ds with id: ${id}`);
+    let isAlreadyDeleted = false;
+    const existingDs = await this.dataSourceRepository.getById(id);
+    if (!existingDs) {
+      isAlreadyDeleted = true;
+      return {
+        isAlreadyDeleted,
+      };
+    }
+    const data = (await this.dataSourceRepository.delete(id, {
+      old: true,
+    })) as DeleteDataSourceResult;
+
+    return {
+      isAlreadyDeleted,
+      data,
+    };
+  }
+
+  async terminateDataSourceWorkflows(id: DataSourceId) {
+    const query = `DataSourceId = '${id}' AND (ExecutionStatus = 'Running' OR ExecutionStatus = 'TimedOut' OR ExecutionStatus = 'ContinuedAsNew')`;
+    return this.workflowService.terminateWorkflowsByQuery(
+      query,
+      'Data source deleted',
+    );
+  }
+
   public getOrGenerateDataSourceExternalId(
     type: ProviderType,
     config: DataSourceConfigDto,
@@ -150,6 +201,12 @@ export class DataSourceService {
           externalId = `${driveId}-${workbookId}`;
           externalLocalId = `${worksheetId}`;
         }
+        break;
+      case ProviderType.GOOGLE_SHEETS:
+        const { spreadsheetId, sheetId } =
+          config as unknown as GoogleSheetsDataSourceConfig;
+        externalId = `${spreadsheetId}`;
+        externalLocalId = `${sheetId}`;
         break;
       default:
         throw new Error(`Unknown provider type ${type}`);
@@ -175,9 +232,9 @@ export class DataSourceService {
     );
 
     if (!dataSourceInProvider) {
-      throw new ApiError(
-        ErrorCode.INVALID_DATA,
-        `Data source with id ${externalLocalId} not found in provider`,
+      throw new ExternalError(
+        ERROR_CODE.DATA_SOURCE_NOT_FOUND,
+        "Data source doesn't exist in provider",
       );
     }
 

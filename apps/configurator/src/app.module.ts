@@ -7,11 +7,17 @@ import { CommonModule } from './modules/common/common.module';
 import {
   appConfigRegister,
   databaseConfigRegister,
+  destinationDatabaseConfigRegister,
   microsoftConfigRegister,
   orchestratorConfigRegister,
+  brokerConfigRegister,
+  googleConfigRegister,
 } from '@lib/core/config';
-import { DatabaseModule } from '@lib/modules';
-import { brokerConfigRegister } from '@lib/core/config/broker.config';
+import {
+  DatabaseModule,
+  DestinationDatabaseModule,
+  LoggerModule,
+} from '@lib/modules';
 import { BrokerModule } from './modules/broker/broker.module';
 import { DataProviderModule } from './modules/data-provider/data-provider.module';
 import { DataSourceModule } from './modules/data-source/data-source.module';
@@ -19,6 +25,7 @@ import { SyncConnectionModule } from './modules/sync-connection/syncConnection.m
 import { OrchestratorWorkerModule } from './modules/orchestrator-worker/orchestratorWorker.module';
 import { ActivityModule } from './modules/activities/activity.module';
 import { WorkflowModule } from './modules/workflow/worflow.module';
+import { WebhookModule } from './modules/webhook/webhook.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -26,18 +33,23 @@ import { WorkflowModule } from './modules/workflow/worflow.module';
       load: [
         appConfigRegister,
         databaseConfigRegister,
+        destinationDatabaseConfigRegister,
         brokerConfigRegister,
         orchestratorConfigRegister,
         microsoftConfigRegister,
+        googleConfigRegister,
       ],
     }),
+    LoggerModule,
     DatabaseModule.forRootAsync(),
+    DestinationDatabaseModule.forRoot(),
     BrokerModule,
     ScheduleModule.forRoot(),
     CommonModule,
     DataProviderModule,
     DataSourceModule,
     SyncConnectionModule,
+    WebhookModule,
     ActivityModule,
     WorkflowModule,
     OrchestratorWorkerModule,

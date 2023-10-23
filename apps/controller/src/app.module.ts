@@ -6,10 +6,11 @@ import { CommonModule } from './modules/common/common.module';
 import {
   appConfigRegister,
   databaseConfigRegister,
+  googleConfigRegister,
   microsoftConfigRegister,
   orchestratorConfigRegister,
 } from '@lib/core/config';
-import { DatabaseModule } from '@lib/modules';
+import { DatabaseModule, LoggerModule } from '@lib/modules';
 import { brokerConfigRegister } from '@lib/core/config/broker.config';
 import { BrokerModule } from './modules/broker/broker.module';
 import { WorkflowModule } from './modules/workflow/workflow.module';
@@ -25,8 +26,10 @@ import { OrchestratorWorkerModule } from './modules/orchestrator-worker/orchestr
         brokerConfigRegister,
         orchestratorConfigRegister,
         microsoftConfigRegister,
+        googleConfigRegister,
       ],
     }),
+    LoggerModule,
     DatabaseModule.forRootAsync(),
     BrokerModule,
     CommonModule,

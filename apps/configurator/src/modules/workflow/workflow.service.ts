@@ -6,6 +6,7 @@ import {
   Client,
   Workflow,
   WorkflowExecutionAlreadyStartedError,
+  WorkflowExecutionInfo,
   WorkflowStartOptions,
 } from '@temporalio/client';
 
@@ -50,5 +51,85 @@ export class WorkflowService {
     }
 
     return result;
+  }
+
+  async terminateWorkflowsByAttributes(
+    data: { [attr: string]: any },
+    reason?: string,
+  ) {
+    try {
+      const query = this.convertToQuery(data);
+      this.logger.debug(`Terminate workflows: ${query}`);
+      const listResult =
+        await this.orchestratorClient.workflowService.listWorkflowExecutions({
+          namespace: 'default',
+          query,
+        });
+      this.logger.debug(`Found workflows: ${listResult.executions.length}`);
+      await Promise.all(
+        listResult.executions.map(async (execution) => {
+          this.logger.debug(
+            `Terminate workflow execution: ${execution.execution.workflowId} - ${execution.execution.runId}`,
+          );
+          await this.orchestratorClient.workflowService.terminateWorkflowExecution(
+            {
+              namespace: 'default',
+              reason: reason || 'Terminated by system',
+              workflowExecution: {
+                workflowId: execution.execution.workflowId,
+                runId: execution.execution.runId,
+              },
+            },
+          );
+        }),
+      );
+    } catch (error) {
+      this.logger.debug(`Error terminate workflows: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async terminateWorkflowsByQuery(query: string, reason?: string) {
+    try {
+      this.logger.debug(`Terminate workflows with query: ${query}`);
+      const listResult =
+        await this.orchestratorClient.workflowService.listWorkflowExecutions({
+          namespace: 'default',
+          query,
+        });
+      this.logger.debug(`Found workflows: ${listResult.executions.length}`);
+      await Promise.all(
+        listResult.executions.map(async (execution) => {
+          this.logger.debug(
+            `Terminate workflow: ${execution.execution.workflowId} - ${execution.execution.runId}`,
+          );
+          await this.orchestratorClient.workflowService.terminateWorkflowExecution(
+            {
+              namespace: 'default',
+              reason: reason || 'Terminated by system',
+              workflowExecution: {
+                workflowId: execution.execution.workflowId,
+                runId: execution.execution.runId,
+              },
+            },
+          );
+        }),
+      );
+    } catch (error) {
+      this.logger.debug(`Error terminate workflows: ${error.message}`);
+      throw error;
+    }
+  }
+
+  private convertToQuery(data: { [attr: string]: any }) {
+    return Object.keys(data)
+      .map((key) => {
+        const value = data[key];
+        if (typeof value === 'string') {
+          return `${key} = '${value}'`;
+        }
+        return `${key} = ${value}`;
+      })
+      .join(' and ');
   }
 }

@@ -8,6 +8,7 @@ import { SyncConnectionActivities } from '../activities/syncConnection.activitie
 import { ConfigService } from '@nestjs/config';
 import { ConfigName } from '@lib/core/config';
 import { TriggerActivities } from '../activities/trigger.activities';
+import { DataSourceActivities } from '../activities/dataSource.activities';
 
 export const OrchestratorWorkerProvider = {
   provide: AppInjectTokens.ORCHESTRATOR_WORKER,
@@ -17,6 +18,7 @@ export const OrchestratorWorkerProvider = {
     BrokerActivities,
     SyncConnectionActivities,
     TriggerActivities,
+    DataSourceActivities,
   ],
   useFactory: async (
     configService: ConfigService,
@@ -24,9 +26,16 @@ export const OrchestratorWorkerProvider = {
     brokerActivities: BrokerActivities,
     syncConnectionActivities: SyncConnectionActivities,
     triggerActivities: TriggerActivities,
+    dataSourceActivities: DataSourceActivities,
   ) => {
     const activities = {
       emitEvent: brokerActivities.emitEvent.bind(brokerActivities),
+      deleteDataSource:
+        dataSourceActivities.deleteDataSource.bind(dataSourceActivities),
+      terminateDataSourceWorkflows:
+        dataSourceActivities.terminateDataSourceWorkflows.bind(
+          dataSourceActivities,
+        ),
       createSyncConnection: syncConnectionActivities.createSyncConnection.bind(
         syncConnectionActivities,
       ),

@@ -44,6 +44,6 @@ export class Syncflow extends Workflow {
 
 export const defaultSyncflowState: SyncflowState = {
   status: WorkflowStatus.IDLING,
-  version: 0,
+  version: 1,
   prevVersion: 0,
 };

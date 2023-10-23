@@ -8,6 +8,7 @@ import { AppConfig, ConfigName } from '@lib/core/config';
 import { BrokerConfig, TRANSPORT_MAP } from '@lib/core/config/broker.config';
 import { Logger } from '@nestjs/common';
 import { AggregateByDataProvidertTypeContextIdStrategy } from '@lib/microservice';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -19,6 +20,7 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionFilter(httpAdapter));
   app.useGlobalPipes(new ValidationPipe());
   app.useGlobalInterceptors(new LoggingInterceptor());
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   // Microservice Transports
   const brokerConfig = configService.get(ConfigName.BROKER) as BrokerConfig;
@@ -27,7 +29,11 @@ async function bootstrap() {
     options: brokerConfig.options,
   });
 
-  app.startAllMicroservices();
+  if (environment === 'production' || environment === 'stagging') {
+    await app.startAllMicroservices();
+  } else {
+    app.startAllMicroservices();
+  }
   await app.listen(port, () => {
     Logger.log(`Server is listening at http://localhost:${port}`);
     Logger.log(`Evironment: ${environment}`);

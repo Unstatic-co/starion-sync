@@ -72,7 +72,7 @@ func convertSerialNumberToDate(serialNumber float64, timezone string, replaceEmp
 		AddDate(0, 0, int(serialNumber)).
 		Add(time.Duration(offsetFractionsNs)).
 		UTC().
-		Format("2006-01-02 15:04:05")
+		Format("2006-01-02T15:04:05.999Z")
 }
 
 // END UTILS

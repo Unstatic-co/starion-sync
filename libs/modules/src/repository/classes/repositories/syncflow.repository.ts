@@ -35,12 +35,7 @@ export interface ISyncflowRepository extends IRepository {
   ): Promise<Syncflow | void>;
   updateState(
     id: SyncflowId,
-    state: {
-      status?: WorkflowStatus;
-      increaseVersion?: boolean;
-      prevVersion?: number;
-      cursor?: SyncflowCursor;
-    },
+    state: UpdateSyncflowStateData,
     options?: QueryOptions,
   ): Promise<Syncflow | void>;
 }
@@ -48,3 +43,10 @@ export interface ISyncflowRepository extends IRepository {
 export type CreateSyncflowData = any;
 
 export type UpdateSyncflowData = any;
+
+export type UpdateSyncflowStateData = {
+  status?: WorkflowStatus;
+  version?: number;
+  prevVersion?: number;
+  cursor?: SyncflowCursor;
+};
