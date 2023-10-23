@@ -1,10 +1,10 @@
 
 locals {
-  postgres_stagging_uri = "postgres://${var.postgres_user}:${var.postgres_password}@starion-sync-stagging-postgres.fly.dev:5432/starion-sync?sslmode=disable"                          # stagging
-  mongodb_stagging_uri  = "mongodb://${var.mongodb_user}:${var.mongodb_password}@starion-sync-stagging-mongodb.fly.dev:27017/starion-sync?directConnection=true&authSource=admin"      # stagging
-  metadata_db_uri       = "mongodb://${var.mongodb_user}:${var.mongodb_password}@starion-sync-stagging-mongodb.fly.dev:27017/starion-form-sync?directConnection=true&authSource=admin" # stagging
-  broker_uri            = "${module.upstash.kafka_uri}:9092"
-  is_production         = var.environment == "production" ? true : false
+  postgres_stagging_uri    = local.is_production ? null : "postgres://${var.postgres_user}:${var.postgres_password}@starion-sync-stagging-postgres.fly.dev:5432/starion-sync?sslmode=disable"                          # stagging
+  mongodb_stagging_uri     = local.is_production ? null : "mongodb://${var.mongodb_user}:${var.mongodb_password}@starion-sync-stagging-mongodb.fly.dev:27017/starion-sync?directConnection=true&authSource=admin"      # stagging
+  metadata_db_stagging_uri = local.is_production ? null : "mongodb://${var.mongodb_user}:${var.mongodb_password}@starion-sync-stagging-mongodb.fly.dev:27017/starion-form-sync?directConnection=true&authSource=admin" # stagging
+  broker_uri               = "${module.upstash.kafka_uri}:9092"
+  is_production            = var.environment == "production" ? true : false
 }
 
 module "digitalocean" {
@@ -91,7 +91,7 @@ module "googlecloud" {
   gcp_deploy_service_account_id = var.gcp_deploy_service_account_id
   gcp_docker_repository_name    = var.gcp_docker_repository_name
 
-  metadata_db_uri    = local.is_production ? module.digitalocean.mongodb_uri : local.metadata_db_uri
+  metadata_db_uri    = local.is_production ? module.digitalocean.mongodb_uri : local.metadata_db_stagging_uri
   dest_db_uri        = var.dest_db_uri
   s3_endpoint        = module.cloudflare.s3_endpoint
   s3_region          = var.s3_region
