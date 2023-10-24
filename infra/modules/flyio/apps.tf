@@ -250,13 +250,15 @@ resource "fly_machine" "webhook_trigger" {
 
   env = {
     NODE_ENV                 = var.environment
-    LOG_LEVEL                = "info"
+    LOG_LEVEL                = "debug"
     PORT                     = "8080"
     DB_TYPE                  = "mongodb"
     DB_URI                   = local.db_uri
     DEST_DB_URI              = local.dest_db_uri
     BROKER_TYPE              = "kafka"
     BROKER_URIS              = var.broker_uris
+    KAFKA_CLIENT_ID          = "webhook-trigger"
+    KAFKA_CONSUMER_GROUP_ID  = "webhook-trigger-consumer"
     KAFKA_SSL_ENABLED        = "true"
     KAFKA_SASL_ENABLED       = "true"
     KAFKA_SASL_USERNAME      = var.kafka_sasl_username
@@ -268,6 +270,7 @@ resource "fly_machine" "webhook_trigger" {
     GOOGLE_CLIENT_ID         = var.google_client_id
     GOOGLE_CLIENT_SECRET     = var.google_client_secret
     WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url
+    TRIGGER_RESTART          = "true"
   }
 
   depends_on = [
@@ -469,21 +472,23 @@ resource "fly_machine" "cron_trigger" {
   ]
 
   env = {
-    NODE_ENV            = var.environment
-    LOG_LEVEL           = "info"
-    DB_TYPE             = "mongodb"
-    DB_URI              = local.db_uri
-    DEST_DB_URI         = local.dest_db_uri
-    BROKER_TYPE         = "kafka"
-    BROKER_URIS         = var.broker_uris
-    KAFKA_SSL_ENABLED   = "true"
-    KAFKA_SASL_ENABLED  = "true"
-    KAFKA_SASL_USERNAME = var.kafka_sasl_username
-    KAFKA_SASL_PASSWORD = var.kafka_sasl_password
-    REDIS_HOST          = local.redis_host
-    REDIS_PORT          = local.redis_port
-    REDIS_PASSWORD      = local.redis_password
-    REDIS_TLS_ENABLED   = local.redis_tls_enabled
+    NODE_ENV                = var.environment
+    LOG_LEVEL               = "debug"
+    DB_TYPE                 = "mongodb"
+    DB_URI                  = local.db_uri
+    DEST_DB_URI             = local.dest_db_uri
+    BROKER_TYPE             = "kafka"
+    BROKER_URIS             = var.broker_uris
+    KAFKA_CLIENT_ID         = "cron-trigger"
+    KAFKA_CONSUMER_GROUP_ID = "cron-trigger-consumer"
+    KAFKA_SSL_ENABLED       = "true"
+    KAFKA_SASL_ENABLED      = "true"
+    KAFKA_SASL_USERNAME     = var.kafka_sasl_username
+    KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
+    REDIS_HOST              = local.redis_host
+    REDIS_PORT              = local.redis_port
+    REDIS_PASSWORD          = local.redis_password
+    REDIS_TLS_ENABLED       = local.redis_tls_enabled
   }
 
   depends_on = [
@@ -586,7 +591,8 @@ resource "fly_machine" "configurator" {
 
   env = {
     NODE_ENV                       = var.environment
-    LOG_LEVEL                      = "info"
+    PORT                           = "8080"
+    LOG_LEVEL                      = "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
     DB_URI                         = local.db_uri
@@ -610,6 +616,7 @@ resource "fly_machine" "configurator" {
     MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
     GOOGLE_CLIENT_ID               = var.google_client_id
     GOOGLE_CLIENT_SECRET           = var.google_client_secret
+    TRIGGER_RESTART                = "true"
   }
 
   depends_on = [
@@ -697,7 +704,7 @@ resource "fly_machine" "controller" {
 
   env = {
     NODE_ENV                       = var.environment
-    LOG_LEVEL                      = "info"
+    LOG_LEVEL                      = "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
     DB_URI                         = local.db_uri
@@ -715,6 +722,7 @@ resource "fly_machine" "controller" {
     MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
     GOOGLE_CLIENT_ID               = var.google_client_id
     GOOGLE_CLIENT_SECRET           = var.google_client_secret
+    TRIGGER_RESTART                = "true"
   }
 
   depends_on = [
@@ -802,7 +810,7 @@ resource "fly_machine" "worker" {
 
   env = {
     NODE_ENV                       = var.environment
-    LOG_LEVEL                      = "info"
+    LOG_LEVEL                      = "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
     DB_URI                         = local.db_uri
@@ -824,6 +832,7 @@ resource "fly_machine" "worker" {
     MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
     GOOGLE_CLIENT_ID               = var.google_client_id
     GOOGLE_CLIENT_SECRET           = var.google_client_secret
+    TRIGGER_RESTART                = "true"
   }
 
   depends_on = [
@@ -911,7 +920,7 @@ resource "fly_machine" "post-processor" {
 
   env = {
     NODE_ENV                              = var.environment
-    LOG_LEVEL                             = "info"
+    LOG_LEVEL                             = "debug"
     BROKER_URIS                           = var.broker_uris
     DB_TYPE                               = "mongodb"
     DB_URI                                = local.db_uri
@@ -930,6 +939,7 @@ resource "fly_machine" "post-processor" {
     S3_DIFF_DATA_BUCKET                   = var.s3_bucket
     S3_ACCESS_KEY                         = var.s3_access_key
     S3_SECRET_KEY                         = var.s3_secret_key
+    TRIGGER_RESTART                       = "true"
   }
 
   depends_on = [
@@ -1017,7 +1027,7 @@ resource "fly_machine" "webhook" {
 
   env = {
     NODE_ENV                = var.environment
-    LOG_LEVEL               = "info"
+    LOG_LEVEL               = "debug"
     BROKER_URIS             = var.broker_uris
     DB_TYPE                 = "mongodb"
     DB_URI                  = local.db_uri
