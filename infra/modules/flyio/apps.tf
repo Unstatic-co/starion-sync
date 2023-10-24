@@ -257,6 +257,8 @@ resource "fly_machine" "webhook_trigger" {
     DEST_DB_URI              = local.dest_db_uri
     BROKER_TYPE              = "kafka"
     BROKER_URIS              = var.broker_uris
+    KAFKA_CLIENT_ID          = "webhook-trigger"
+    KAFKA_CONSUMER_GROUP_ID  = "webhook-trigger-consumer"
     KAFKA_SSL_ENABLED        = "true"
     KAFKA_SASL_ENABLED       = "true"
     KAFKA_SASL_USERNAME      = var.kafka_sasl_username
@@ -470,21 +472,23 @@ resource "fly_machine" "cron_trigger" {
   ]
 
   env = {
-    NODE_ENV            = var.environment
-    LOG_LEVEL           = "debug"
-    DB_TYPE             = "mongodb"
-    DB_URI              = local.db_uri
-    DEST_DB_URI         = local.dest_db_uri
-    BROKER_TYPE         = "kafka"
-    BROKER_URIS         = var.broker_uris
-    KAFKA_SSL_ENABLED   = "true"
-    KAFKA_SASL_ENABLED  = "true"
-    KAFKA_SASL_USERNAME = var.kafka_sasl_username
-    KAFKA_SASL_PASSWORD = var.kafka_sasl_password
-    REDIS_HOST          = local.redis_host
-    REDIS_PORT          = local.redis_port
-    REDIS_PASSWORD      = local.redis_password
-    REDIS_TLS_ENABLED   = local.redis_tls_enabled
+    NODE_ENV                = var.environment
+    LOG_LEVEL               = "debug"
+    DB_TYPE                 = "mongodb"
+    DB_URI                  = local.db_uri
+    DEST_DB_URI             = local.dest_db_uri
+    BROKER_TYPE             = "kafka"
+    BROKER_URIS             = var.broker_uris
+    KAFKA_CLIENT_ID         = "cron-trigger"
+    KAFKA_CONSUMER_GROUP_ID = "cron-trigger-consumer"
+    KAFKA_SSL_ENABLED       = "true"
+    KAFKA_SASL_ENABLED      = "true"
+    KAFKA_SASL_USERNAME     = var.kafka_sasl_username
+    KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
+    REDIS_HOST              = local.redis_host
+    REDIS_PORT              = local.redis_port
+    REDIS_PASSWORD          = local.redis_password
+    REDIS_TLS_ENABLED       = local.redis_tls_enabled
   }
 
   depends_on = [
