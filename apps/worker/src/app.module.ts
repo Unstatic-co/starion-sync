@@ -8,13 +8,17 @@ import {
   appConfigRegister,
   brokerConfigRegister,
   databaseConfigRegister,
-  destinationDatabaseConfigRegister,
+  // destinationDatabaseConfigRegister,
   googleConfigRegister,
   microsoftConfigRegister,
   orchestratorConfigRegister,
   processorConfigRegister,
 } from '@lib/core/config';
-import { DatabaseModule, LoggerModule } from '@lib/modules';
+import {
+  DatabaseModule,
+  //  DestinationDatabaseModule,
+  LoggerModule
+} from '@lib/modules';
 import { BrokerModule } from './modules/broker/broker.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { WorkflowModule } from './modules/workflow/worflow.module';
@@ -27,7 +31,7 @@ import { WorkerModule } from './modules/worker/worker.module';
       load: [
         appConfigRegister,
         databaseConfigRegister,
-        destinationDatabaseConfigRegister,
+        // destinationDatabaseConfigRegister,
         brokerConfigRegister,
         orchestratorConfigRegister,
         processorConfigRegister,
@@ -37,6 +41,7 @@ import { WorkerModule } from './modules/worker/worker.module';
     }),
     LoggerModule,
     DatabaseModule.forRootAsync(),
+    // DestinationDatabaseModule.forRoot(),
     BrokerModule,
     ScheduleModule.forRoot(),
     CommonModule,
@@ -49,4 +54,4 @@ import { WorkerModule } from './modules/worker/worker.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
