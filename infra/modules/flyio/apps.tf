@@ -250,7 +250,7 @@ resource "fly_machine" "webhook_trigger" {
 
   env = {
     NODE_ENV                 = var.environment
-    LOG_LEVEL                = "info"
+    LOG_LEVEL                = "debug"
     PORT                     = "8080"
     DB_TYPE                  = "mongodb"
     DB_URI                   = local.db_uri
@@ -470,7 +470,7 @@ resource "fly_machine" "cron_trigger" {
 
   env = {
     NODE_ENV            = var.environment
-    LOG_LEVEL           = "info"
+    LOG_LEVEL           = "debug"
     DB_TYPE             = "mongodb"
     DB_URI              = local.db_uri
     DEST_DB_URI         = local.dest_db_uri
@@ -587,7 +587,7 @@ resource "fly_machine" "configurator" {
   env = {
     NODE_ENV                       = var.environment
     PORT                           = "8080"
-    LOG_LEVEL                      = "info"
+    LOG_LEVEL                      = "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
     DB_URI                         = local.db_uri
@@ -698,7 +698,7 @@ resource "fly_machine" "controller" {
 
   env = {
     NODE_ENV                       = var.environment
-    LOG_LEVEL                      = "info"
+    LOG_LEVEL                      = "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
     DB_URI                         = local.db_uri
@@ -803,7 +803,7 @@ resource "fly_machine" "worker" {
 
   env = {
     NODE_ENV                       = var.environment
-    LOG_LEVEL                      = "info"
+    LOG_LEVEL                      = "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
     DB_URI                         = local.db_uri
@@ -912,7 +912,7 @@ resource "fly_machine" "post-processor" {
 
   env = {
     NODE_ENV                              = var.environment
-    LOG_LEVEL                             = "info"
+    LOG_LEVEL                             = "debug"
     BROKER_URIS                           = var.broker_uris
     DB_TYPE                               = "mongodb"
     DB_URI                                = local.db_uri
@@ -1018,7 +1018,7 @@ resource "fly_machine" "webhook" {
 
   env = {
     NODE_ENV                = var.environment
-    LOG_LEVEL               = "info"
+    LOG_LEVEL               = "debug"
     BROKER_URIS             = var.broker_uris
     DB_TYPE                 = "mongodb"
     DB_URI                  = local.db_uri
