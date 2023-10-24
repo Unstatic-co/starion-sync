@@ -611,6 +611,7 @@ resource "fly_machine" "configurator" {
     MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
     GOOGLE_CLIENT_ID               = var.google_client_id
     GOOGLE_CLIENT_SECRET           = var.google_client_secret
+    TRIGGER_RESTART                = "true"
   }
 
   depends_on = [
@@ -716,6 +717,7 @@ resource "fly_machine" "controller" {
     MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
     GOOGLE_CLIENT_ID               = var.google_client_id
     GOOGLE_CLIENT_SECRET           = var.google_client_secret
+    TRIGGER_RESTART                = "true"
   }
 
   depends_on = [
@@ -825,6 +827,7 @@ resource "fly_machine" "worker" {
     MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
     GOOGLE_CLIENT_ID               = var.google_client_id
     GOOGLE_CLIENT_SECRET           = var.google_client_secret
+    TRIGGER_RESTART                = "true"
   }
 
   depends_on = [
@@ -931,6 +934,7 @@ resource "fly_machine" "post-processor" {
     S3_DIFF_DATA_BUCKET                   = var.s3_bucket
     S3_ACCESS_KEY                         = var.s3_access_key
     S3_SECRET_KEY                         = var.s3_secret_key
+    TRIGGER_RESTART                       = "true"
   }
 
   depends_on = [
