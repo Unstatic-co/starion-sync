@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"crypto/rand"
@@ -16,7 +17,9 @@ import (
 
 func GetMD5Hash(text string) string {
 	hash := md5.Sum([]byte(text))
-	return hex.EncodeToString(hash[:])
+	md5 := hex.EncodeToString(hash[:])
+	replacer := strings.NewReplacer("1", "a", "2", "b", "3", "c", "4", "d", "5", "e", "6", "f", "7", "g", "8", "h", "9", "i", "0", "j")
+	return replacer.Replace(md5)
 }
 
 func GenerateTempFileName(prefix string) string {

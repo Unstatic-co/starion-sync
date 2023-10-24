@@ -41,6 +41,9 @@ export class DestinationDatabaseModule {
         return TypeOrmModule.forRoot({
           type: 'postgres',
           url: uri,
+          ssl: {
+            rejectUnauthorized: false,
+          },
           host,
           port,
           username: user,

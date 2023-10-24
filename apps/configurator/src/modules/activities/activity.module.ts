@@ -16,9 +16,7 @@ import { DataSourceActivities } from './dataSource.activities';
 
 @Module({
   imports: [
-    DatabaseModule.forRootAsync(),
     RepositoryModule.registerAsync(),
-    DestinationDatabaseModule.forRoot(),
     DestinationDatabaseModule.forFeature(),
     BrokerModule,
     DataProviderModule,
@@ -42,4 +40,4 @@ import { DataSourceActivities } from './dataSource.activities';
     DataSourceActivities,
   ],
 })
-export class ActivityModule {}
+export class ActivityModule { }
