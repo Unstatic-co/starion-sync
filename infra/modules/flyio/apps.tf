@@ -268,6 +268,7 @@ resource "fly_machine" "webhook_trigger" {
     GOOGLE_CLIENT_ID         = var.google_client_id
     GOOGLE_CLIENT_SECRET     = var.google_client_secret
     WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url
+    TRIGGER_RESTART          = "true"
   }
 
   depends_on = [
