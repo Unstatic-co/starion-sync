@@ -16,8 +16,6 @@ import { GoogleSheetsActivities } from './google-sheets';
   imports: [
     DatabaseModule.forRootAsync(),
     RepositoryModule.registerAsync(),
-    DestinationDatabaseModule.forRoot(),
-    DestinationDatabaseModule.forFeature(),
     BrokerModule,
     WorkflowModule,
     MicrosoftModule,
@@ -40,4 +38,4 @@ import { GoogleSheetsActivities } from './google-sheets';
     MicrosoftExcelActivities,
   ],
 })
-export class ActivitiesModule {}
+export class ActivitiesModule { }
