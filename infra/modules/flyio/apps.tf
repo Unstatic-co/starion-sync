@@ -535,6 +535,20 @@ resource "null_resource" "configurator_builder" {
   }
 }
 
+resource "fly_ip" "configurator_ip_v4" {
+  count = local.configurator_count
+
+  app  = fly_app.configurator[0].name
+  type = "v4"
+}
+
+resource "fly_ip" "configurator_ip_v6" {
+  count = local.configurator_count
+
+  app  = fly_app.configurator[0].name
+  type = "v6"
+}
+
 resource "fly_machine" "configurator" {
   count = local.configurator_count
 
