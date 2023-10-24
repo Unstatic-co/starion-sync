@@ -586,6 +586,7 @@ resource "fly_machine" "configurator" {
 
   env = {
     NODE_ENV                       = var.environment
+    PORT                           = "8080"
     LOG_LEVEL                      = "info"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
