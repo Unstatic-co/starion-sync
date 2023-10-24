@@ -42,7 +42,7 @@ resource "digitalocean_database_cluster" "postgres" {
   name       = "postgres"
   engine     = "pg"
   version    = "15"
-  size       = "db-s-1vcpu-1gb"
+  size       = "db-s-1vcpu-2gb"
   node_count = 1
 
   depends_on = [

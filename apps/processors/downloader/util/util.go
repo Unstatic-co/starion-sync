@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"crypto/rand"
@@ -17,7 +18,8 @@ import (
 )
 
 func HashFieldName(fieldName string) string {
-	return "f_" + GetMD5Hash(fieldName)
+	replacer := strings.NewReplacer("1", "a", "2", "b", "3", "c", "4", "d", "5", "e", "6", "f", "7", "g", "8", "h", "9", "i", "0", "j")
+	return "f_" + replacer.Replace(GetMD5Hash(fieldName))
 }
 
 func GetMD5Hash(text string) string {
