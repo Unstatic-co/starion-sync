@@ -3,7 +3,22 @@ import * as moment from 'moment-timezone';
 
 export class Utils {
   static hashFieldName(fieldName: string): string {
-    return `f_${md5(fieldName)}`;
+    const numberReplacer = {
+      '1': 'a',
+      '2': 'b',
+      '3': 'c',
+      '4': 'd',
+      '5': 'e',
+      '6': 'f',
+      '7': 'g',
+      '8': 'h',
+      '9': 'i',
+      '0': 'j',
+    };
+    return `f_${md5(fieldName)}`.replace(
+      /[1234567890]/g,
+      (m) => numberReplacer[m],
+    );
   }
 
   static md5(str: string): string {

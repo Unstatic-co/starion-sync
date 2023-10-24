@@ -1,8 +1,8 @@
 export const EXCEL_PRIMARY_ID_NAME = '__StarionId';
-export const EXCEL_HASHED_PRIMARY_ID = 'f_762bfab577e097f72f8d3d2ec9fc08d4';
+export const EXCEL_HASHED_PRIMARY_ID = 'f_gfbbfabeggejigfgbfhdcdbecifcjhdd';
 export const GOOGLE_SHEETS_PRIMARY_ID_NAME = '__StarionId';
 export const GOOGLE_SHEETS_HASHED_PRIMARY_ID =
-  'f_762bfab577e097f72f8d3d2ec9fc08d4';
+  'f_gfbbfabeggejigfgbfhdcdbecifcjhdd';
 
 export type RecordId = string;
 export type FieldId = string;
