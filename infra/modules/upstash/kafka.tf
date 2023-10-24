@@ -37,7 +37,7 @@ resource "upstash_kafka_topic" "datasource_deleted" {
 
 resource "upstash_kafka_topic" "connection_created" {
   topic_name       = "connection.created"
-  partitions       = 1
+  partitions       = 5
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
