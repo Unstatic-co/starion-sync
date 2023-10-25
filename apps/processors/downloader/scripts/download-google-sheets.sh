@@ -314,7 +314,8 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
             --accessToken "$access_token" \
             --colIndexes "$date_col_idxs" \
             --rowNumber "$rows_number" \
-            --replaceEmpty "$ERROR_VALUE_TOKEN"
+            --replaceEmpty "$EMPTY_VALUE_TOKEN" \
+            --replaceError "$ERROR_VALUE_TOKEN"
     ) >"$temp_updated_dates_file"
 
     "$QSV" cat columns -p <("$QSV" select "!${date_col_idxs}" "$dedup_header_file") "$temp_updated_dates_file" |
