@@ -15,7 +15,7 @@ resource "upstash_kafka_credential" "starion-sync" {
 
 resource "upstash_kafka_topic" "datasource_error" {
   topic_name       = "dataSource.error"
-  partitions       = 1
+  partitions       = var.is_production ? 5 : 2
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
@@ -26,7 +26,7 @@ resource "upstash_kafka_topic" "datasource_error" {
 
 resource "upstash_kafka_topic" "datasource_deleted" {
   topic_name       = "dataSource.deleted"
-  partitions       = 2
+  partitions       = var.is_production ? 5 : 2
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
@@ -37,7 +37,7 @@ resource "upstash_kafka_topic" "datasource_deleted" {
 
 resource "upstash_kafka_topic" "connection_created" {
   topic_name       = "connection.created"
-  partitions       = 1
+  partitions       = var.is_production ? 5 : 2
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
@@ -48,7 +48,7 @@ resource "upstash_kafka_topic" "connection_created" {
 
 resource "upstash_kafka_topic" "connection_deleted" {
   topic_name       = "connection.deleted"
-  partitions       = 2
+  partitions       = var.is_production ? 5 : 2
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
@@ -59,7 +59,7 @@ resource "upstash_kafka_topic" "connection_deleted" {
 
 resource "upstash_kafka_topic" "workflow_triggered" {
   topic_name       = "workflow.triggered"
-  partitions       = 1
+  partitions       = var.is_production ? 10 : 5
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
@@ -70,7 +70,7 @@ resource "upstash_kafka_topic" "workflow_triggered" {
 
 resource "upstash_kafka_topic" "syncflow_scheduled" {
   topic_name       = "syncflow.scheduled"
-  partitions       = 1
+  partitions       = var.is_production ? 10 : 5
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
@@ -81,7 +81,7 @@ resource "upstash_kafka_topic" "syncflow_scheduled" {
 
 resource "upstash_kafka_topic" "syncflow_succeed" {
   topic_name       = "syncflow.succeed"
-  partitions       = 1
+  partitions       = var.is_production ? 10 : 5
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
@@ -92,7 +92,7 @@ resource "upstash_kafka_topic" "syncflow_succeed" {
 
 resource "upstash_kafka_topic" "syncflow_completed" {
   topic_name       = "syncflow.completed"
-  partitions       = 1
+  partitions       = var.is_production ? 10 : 5
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
@@ -103,7 +103,7 @@ resource "upstash_kafka_topic" "syncflow_completed" {
 
 resource "upstash_kafka_topic" "notify_table" {
   topic_name       = "notifyTable"
-  partitions       = 5
+  partitions       = var.is_production ? 10 : 5
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
