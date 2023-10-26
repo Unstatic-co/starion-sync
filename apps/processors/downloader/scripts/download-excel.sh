@@ -133,7 +133,9 @@ EMPTY_HEADER_TOKEN="oYWhr9mRCYjP1ss0suIMbzRJBLH_Uv9UVg61"
 EMPTY_VALUE_TOKEN="__StarionSyncNull"
 ERROR_VALUE_TOKEN="__Error"
 ERROR_VALUE_REGEX="^(#NULL!|#DIV/0!|#VALUE!|#REF!|#NAME\?|#NUM!|#N/A|#ERROR!|#SPILL!|#CALC!)$"
+DEFAULT_DATE_ERROR_VALUE="2001-01-12T18:13:13.000Z"
 ID_COL_NAME="__StarionId"
+HASHED_ID_COL_NAME="f_gfbbfabeggejigfgbfhdcdbecifcjhdd"
 ROW_NUMBER_COL_NAME="__StarionRowNum"
 WORKSHEET_EMPTY_ERROR="1106"
 WORKBOOK_NOT_FOUND_ERROR="1102"
@@ -379,12 +381,14 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
             --sessionId "$session_id" \
             --colIndexes "$date_col_idxs" \
             --rowNumber "$rows_number" \
-            --replaceEmpty "$ERROR_VALUE_TOKEN" \
+            --replaceError "$DEFAULT_DATE_ERROR_VALUE" \
+            --replaceEmpty "$EMPTY_VALUE_TOKEN" \
             --timezone "$time_zone"
     ) >"$temp_updated_dates_file"
 
     "$QSV" cat columns -p <("$QSV" select "!${date_col_idxs}" "$dedup_header_file") "$temp_updated_dates_file" |
-        "$QSV" select "$placeholder_headers" -o "$normalized_date_file"
+        "$QSV" select "$placeholder_headers" |
+        "$QSV" replace -o "$normalized_date_file" -s "$joined_date_header_strs" "^$EMPTY_VALUE_TOKEN$" "<NULL>" || true
     
     # "$SED" -i "s/$EMPTY_VALUE_TOKEN//g" $normalized_date_file # remove empty value token
 
@@ -530,7 +534,7 @@ echo "$new_headers" >"$header_encoded_file"
 ### Schema
 info-log "Inferring schema..."
 detected_schema_file="$TEMP_DIR/schema.json"
-"$QSV" schema --dates-whitelist all --enum-threshold 5 --strict-dates --stdout "$replaced_error_file" >"$detected_schema_file"
+"$QSV" schema --dates-whitelist all --enum-threshold 7 --strict-dates --stdout "$replaced_error_file" >"$detected_schema_file"
 # upload
 info-log "Uploading schema..."
 ./get-and-upload-schema \
@@ -542,6 +546,9 @@ info-log "Uploading schema..."
     --s3SecretKey "$s3_secret_key" \
     --dataSourceId "$data_source_id" \
     --syncVersion "$sync_version"
+
+replaced_error_file_2="$TEMP_DIR/replaced_error_2.csv"
+"$QSV" replace -o "$replaced_error_file_2" -s "!$HASHED_ID_COL_NAME" "^$DEFAULT_DATE_ERROR_VALUE$" "$ERROR_VALUE_TOKEN" "$header_encoded_file" || true
 
 # ### Convert data
 info-log "Converting parquet and uploading data..."
@@ -555,7 +562,7 @@ duckdb_convert_data_query="
     SET s3_url_style='path';
     SET s3_use_ssl='$s3_ssl';
     SET s3_endpoint='$s3_host';
-    COPY (SELECT * FROM read_csv('$header_encoded_file', all_varchar=TRUE, auto_detect=TRUE, header=TRUE, quote='\"', escape='\"')) TO 's3://$s3_bucket/$s3_file_path' (FORMAT 'parquet');
+    COPY (SELECT * FROM read_csv('$replaced_error_file_2', all_varchar=TRUE, auto_detect=TRUE, header=TRUE, quote='\"', escape='\"')) TO 's3://$s3_bucket/$s3_file_path' (FORMAT 'parquet');
 "
 if [[ "$debug" == "on" ]]; then
     duckdb_convert_data_query += "COPY t TO 's3://$s3_bucket/$s3_json_file_path' (FORMAT 'JSON');"

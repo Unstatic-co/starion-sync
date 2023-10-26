@@ -9,12 +9,16 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
+	"sync"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/samber/lo"
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v5"
 )
+
+const defaultDateErrorValue = "2001-01-12T18:13:13.000Z"
+const defaultErrorValue = "__Error"
+const enumThreshold = 5
 
 var duckDbTypeMap = map[schema.DataType]string{
 	schema.String:  "VARCHAR",
@@ -44,7 +48,7 @@ func inferBooleanType(enum []interface{}) bool {
 	return false
 }
 
-func getSchemaFromJsonSchemaFile(filePath string) (schema.TableSchema, []string) {
+func getSchemaFromJsonSchemaFile(filePath string, dateErrorValue string) schema.TableSchema {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatalf("Cannot open schema file %s\n", filePath)
@@ -62,104 +66,131 @@ func getSchemaFromJsonSchemaFile(filePath string) (schema.TableSchema, []string)
 	}
 
 	tableSchema := make(schema.TableSchema)
-	duckdbSchemaFields := make([]string, 0)
+
+	wg := sync.WaitGroup{}
 
 	for fieldName, property := range _baseSchema.Properties {
-		var fieldSchema schema.FieldSchema
-		hashedFieldName := util.HashFieldName(fieldName)
+		wg.Add(1)
+		go func(fieldName string, property *jsonschema.Schema) {
+			defer wg.Done()
 
-		// If field is primary key
-		if hashedFieldName == schema.HashedPrimaryField {
-			fieldSchema = schema.FieldSchema{
-				Name:         schema.PrimaryFieldName,
-				Type:         schema.String,
-				OriginalType: string(exceltype.String),
-				Nullable:     false,
-				Primary:      true,
-			}
-		} else {
-			fieldTypeList := property.Types
-			format := property.Format
-			if len(fieldTypeList) == 0 {
-				continue
-			}
-			fieldType := fieldTypeList[0]
+			var fieldSchema schema.FieldSchema
+			hashedFieldName := util.HashFieldName(fieldName)
 
-			// qsv does not comply with `--enum-threshold`, so we must filter enum length in client
-			enum := lo.Filter(property.Enum, func(item any, _ int) bool { return item != "" && item != nil })
+			// If field is primary key
+			if hashedFieldName == schema.HashedPrimaryField {
+				fieldSchema = schema.FieldSchema{
+					Name:         schema.PrimaryFieldName,
+					Type:         schema.String,
+					OriginalType: string(exceltype.String),
+					Nullable:     false,
+					Primary:      true,
+				}
+			} else {
+				fieldTypeList := property.Types
+				format := property.Format
+				if len(fieldTypeList) == 0 {
+					return
+				}
+				fieldType := fieldTypeList[0]
 
-			var detectedType schema.DataType
-			var originalType exceltype.ExcelDataType
-
-			switch fieldType {
-			case "string":
-				switch format {
-				case "date-time":
-					detectedType = schema.Date
-					originalType = exceltype.Number
-				case "date":
-					detectedType = schema.Date
-					originalType = exceltype.Number
-				default:
-					// detect enum
-					if inferBooleanType(enum) {
-						detectedType = schema.Boolean
-						originalType = exceltype.Logical
-						enum = []interface{}{true, false}
-					} else {
-						detectedType = schema.String
-						originalType = exceltype.String
+				// qsv does not comply with `--enum-threshold`, so we must filter enum length in client
+				enum := make([]interface{}, 0)
+				isErrorValueContained := false
+				for _, item := range property.Enum {
+					if item != "" && item != nil {
+						if str, ok := item.(string); ok {
+							if str == dateErrorValue {
+								if !isErrorValueContained {
+									enum = append(enum, item)
+									isErrorValueContained = true
+								}
+							} else if str == dateErrorValue {
+								enum = append(enum, defaultErrorValue)
+								if !isErrorValueContained {
+									isErrorValueContained = true
+								}
+							} else {
+								enum = append(enum, item)
+							}
+						} else {
+							enum = append(enum, item)
+						}
+					}
+					if len(enum) >= enumThreshold {
+						break
 					}
 				}
-			case "null":
-				// If column does not have data
-				log.Printf("Field %s has unprocessable data type `null`, using string datatype to sync...\n", fieldName)
-				detectedType = schema.String
-				originalType = exceltype.String
-			case "integer":
-				detectedType = schema.Number
-				originalType = exceltype.Number
-			case "number":
-				detectedType = schema.Number
-				originalType = exceltype.Number
-			case "array":
-				log.Fatalf(
-					"Encountered unsupported type: %s (with detected subtype %+v)\n",
-					fieldType,
-					property.Items,
-				)
-			case "object":
-				log.Fatalf(
-					"Encountered unsupported type: %s (with detected subtype %+v)\n",
-					fieldType,
-					property.Properties,
-				)
-			default:
-				log.Fatalf("Unknown data type: %s", fieldType)
+				if len(enum) == 0 {
+					enum = nil
+				}
+
+				var detectedType schema.DataType
+				var originalType exceltype.ExcelDataType
+
+				switch fieldType {
+				case "string":
+					switch format {
+					case "date-time":
+						detectedType = schema.Date
+						originalType = exceltype.Number
+					case "date":
+						detectedType = schema.Date
+						originalType = exceltype.Number
+					default:
+						// detect enum
+						if inferBooleanType(enum) {
+							detectedType = schema.Boolean
+							originalType = exceltype.Logical
+							enum = nil
+						} else {
+							detectedType = schema.String
+							originalType = exceltype.String
+						}
+					}
+				case "null":
+					// If column does not have data
+					log.Printf("Field %s has unprocessable data type `null`, using string datatype to sync...\n", fieldName)
+					detectedType = schema.String
+					originalType = exceltype.String
+				case "integer":
+					detectedType = schema.Number
+					originalType = exceltype.Number
+				case "number":
+					detectedType = schema.Number
+					originalType = exceltype.Number
+				case "array":
+					log.Fatalf(
+						"Encountered unsupported type: %s (with detected subtype %+v)\n",
+						fieldType,
+						property.Items,
+					)
+				case "object":
+					log.Fatalf(
+						"Encountered unsupported type: %s (with detected subtype %+v)\n",
+						fieldType,
+						property.Properties,
+					)
+				default:
+					log.Fatalf("Unknown data type: %s", fieldType)
+				}
+
+				fieldSchema = schema.FieldSchema{
+					Name:         fieldName,
+					Type:         detectedType,
+					OriginalType: string(originalType),
+					Nullable:     true,
+					Enum:         enum,
+				}
+
 			}
 
-			var fieldEnum []any
-			if len(enum) <= 5 && len(enum) > 0 {
-				fieldEnum = enum
-			} else {
-				fieldEnum = nil
-			}
-
-			fieldSchema = schema.FieldSchema{
-				Name:         fieldName,
-				Type:         detectedType,
-				OriginalType: string(originalType),
-				Nullable:     true,
-				Enum:         fieldEnum,
-			}
-
-		}
-
-		duckdbSchemaFields = append(duckdbSchemaFields, fmt.Sprintf("'%s': '%s'", hashedFieldName, duckDbTypeMap[fieldSchema.Type]))
-		tableSchema[hashedFieldName] = fieldSchema
+			tableSchema[hashedFieldName] = fieldSchema
+		}(fieldName, property)
 	}
+	wg.Wait()
 
-	return tableSchema, duckdbSchemaFields
+	return tableSchema
 }
 
 func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string) error {
@@ -190,11 +221,11 @@ func main() {
 	s3SecretKey := flag.String("s3SecretKey", "", "s3 secret key")
 	dataSourceId := flag.String("dataSourceId", "", "data source id")
 	syncVersion := flag.String("syncVersion", "", "sync version")
-	saveDuckdbTableSchema := flag.String("saveDuckdbTableSchema", "", "save null become string (empty columns) fields to path")
+	dateErrorValue := flag.String("dateErrorValue", defaultDateErrorValue, "date error value")
 
 	flag.Parse()
 
-	schema, duckdbTableSchema := getSchemaFromJsonSchemaFile(*schemaFile)
+	schema := getSchemaFromJsonSchemaFile(*schemaFile, *dateErrorValue)
 	err := uploadSchema(
 		schema,
 		s3.S3HandlerConfig{
@@ -211,12 +242,4 @@ func main() {
 		log.Fatalf("Error when uploading schema: %+v\n", err)
 	}
 	log.Println("Schema uploaded successfully")
-
-	if *saveDuckdbTableSchema != "" && len(duckdbTableSchema) > 0 {
-		err := os.WriteFile(*saveDuckdbTableSchema, []byte(strings.Join(duckdbTableSchema, ",")), 0644)
-		if err != nil {
-			fmt.Printf("Error writing null fields to file: %v\n", err)
-			return
-		}
-	}
 }
