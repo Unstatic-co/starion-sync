@@ -17,11 +17,14 @@ import (
 const (
 	nanosInADay         = float64((24 * time.Hour) / time.Nanosecond)
 	defaultReplaceEmpty = "__StarionSyncNull"
+	defaultReplaceError = "__Error"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // UTILS
+
+// return 0 for empty, -1 for error
 func toFloat(unk any) (float64, error) {
 	switch v := unk.(type) {
 	case int:
@@ -158,6 +161,7 @@ func main() {
 	numberOfRows := flag.Int("rowNumber", 0, "Number of row")
 	timezone := flag.String("timezone", "UTC", "Timezone of worksheet")
 	replaceEmpty := flag.String("replaceEmpty", defaultReplaceEmpty, "Number of row")
+	// replaceError := flag.String("replaceError", defaultReplaceError, "value replaced for date error cell")
 	out := flag.String("out", "-", "Output path, - to output to stdin")
 
 	flag.Parse()
