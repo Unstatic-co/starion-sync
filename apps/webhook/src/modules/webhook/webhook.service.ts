@@ -16,6 +16,7 @@ import {
   EventNames,
   EventPayload,
   SyncflowCompletedPayload,
+  SyncflowFailedPayload,
   SyncflowScheduledPayload,
   SyncflowSucceedPayload,
   WebhookPayload,
@@ -35,6 +36,7 @@ import {
   DataSourceErrorWebhookPayload,
   SyncConnectionCreatedWebhookPayload,
   SyncflowCompletedWebhookPayload,
+  SyncflowFailedWebhookPayload,
   SyncflowScheduledWebhookPayload,
   SyncflowSucceedWebhookPayload,
 } from './webhook.payload';
@@ -122,6 +124,22 @@ export class WebhookService {
           dataSourceId,
           rowsNumber: syncflowCompletedPayload.rowsNumber,
         } as SyncflowCompletedWebhookPayload;
+        break;
+
+      case EventNames.SYNCFLOW_FAILED:
+        const syncflowFailedPayload = eventPayload as SyncflowFailedPayload;
+        webhookType = WebhookType.SYNCFLOW_FAILED;
+        dataSourceId = syncflowFailedPayload.dataSourceId;
+        webhookPayload = {
+          syncflowId,
+          dataSourceId,
+          syncVersion: syncflowFailedPayload.syncVersion,
+          error: {
+            type: syncflowFailedPayload.error.type,
+            code: syncflowFailedPayload.error.code,
+            message: syncflowFailedPayload.error.message,
+          },
+        } as SyncflowFailedWebhookPayload;
         break;
 
       case EventNames.DATA_SOURCE_DELETED:

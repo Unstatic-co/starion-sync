@@ -6,6 +6,7 @@ import {
   DataSourceDeletedPayload,
   DataSourceErrorPayload,
   EventNames,
+  SyncflowFailedPayload,
   SyncflowScheduledPayload,
 } from '@lib/core';
 import { WebhookService } from '../webhook/webhook.service';
@@ -68,6 +69,15 @@ export class BrokerController {
     this.logger.log(`syncflow ${data.syncflowId} completed`);
     return this.webhookService.addWebhookExecution(
       EventNames.SYNCFLOW_COMPLETED,
+      data,
+    );
+  }
+
+  @EventPattern(EventNames.SYNCFLOW_FAILED)
+  async syncflowFailed(data: SyncflowFailedPayload) {
+    this.logger.log(`syncflow ${data.syncflowId} failed`);
+    return this.webhookService.addWebhookExecution(
+      EventNames.SYNCFLOW_FAILED,
       data,
     );
   }

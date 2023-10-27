@@ -14,6 +14,7 @@ export enum WebhookType {
   SYNCFLOW_SCHEDULED = 'syncflow-scheduled',
   SYNCFLOW_SUCCEED = 'syncflow-succeed',
   SYNCFLOW_COMPLETED = 'syncflow-completed',
+  SYNCFLOW_FAILED = 'syncflow-failed',
 }
 
 export enum WebhookScope {
