@@ -1,6 +1,7 @@
 import {
   DataSourceConfig,
   DataSourceId,
+  ErrorType,
   ProviderType,
   SyncflowId,
   WebhookPayload,
@@ -34,6 +35,17 @@ export interface SyncflowCompletedWebhookPayload extends WebhookPayload {
   dataSourceId: DataSourceId;
   rowsNumber: number;
   syncVersion: number;
+}
+
+export interface SyncflowFailedWebhookPayload extends WebhookPayload {
+  syncflowId: SyncflowId;
+  dataSourceId: DataSourceId;
+  syncVersion: number;
+  error: {
+    type: ErrorType;
+    code: number;
+    message: string;
+  };
 }
 
 export interface DataSourceDeletedWebhookPayload extends WebhookPayload {

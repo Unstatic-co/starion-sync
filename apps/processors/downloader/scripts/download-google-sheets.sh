@@ -503,3 +503,5 @@ if [[ "$debug" == "on" ]]; then
 fi
 duckdb :memory: "$duckdb_convert_data_query"
 info-log "Uploaded data to s3"
+
+exit 1
