@@ -19,8 +19,10 @@ import (
 )
 
 const (
-	nanosInADay         = float64((24 * time.Hour) / time.Nanosecond)
-	defaultReplaceEmpty = "__StarionSyncNull"
+	nanosInADay = float64((24 * time.Hour) / time.Nanosecond)
+	// defaultReplaceEmpty = "__StarionSyncNull"
+	defaultReplaceEmpty = ""
+	defaultReplaceError = "2001-01-12T18:13:13.000Z"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -54,9 +56,12 @@ func toFloat(unk any) (float64, error) {
 		return float64(v), nil
 	case string:
 		// return strconv.ParseFloat(v, 64)
-		return 0, fmt.Errorf("%+v is not convertible to float", unk)
+		if v == "" {
+			return 0, nil
+		}
+		return -1, fmt.Errorf("%+v is not convertible to float", unk)
 	default:
-		return 0, fmt.Errorf("%+v is not convertible to float", unk)
+		return -1, fmt.Errorf("%+v is not convertible to float", unk)
 	}
 }
 func convertSerialNumberToDate(serialNumber float64, timezone string, replaceEmpty string) string {
@@ -131,7 +136,8 @@ func main() {
 	columnIndexs := flag.String("colIndexes", "", "Number index of datetime columns, start at 1")
 	numberOfRows := flag.Int("rowNumber", 0, "Number of row (include header))")
 	timezone := flag.String("timezone", "UTC", "Timezone of worksheet")
-	replaceEmpty := flag.String("replaceEmpty", defaultReplaceEmpty, "Number of row")
+	replaceEmpty := flag.String("replaceEmpty", defaultReplaceEmpty, "Value to replace empty cell")
+	replaceError := flag.String("replaceError", defaultReplaceError, "Value to replace date error cell (should be an ISO date to correctly infer schema)")
 	out := flag.String("out", "-", "Output path, - to output to stdin")
 
 	flag.Parse()
@@ -179,6 +185,8 @@ func main() {
 				rowStrings[idx] = *replaceEmpty
 				continue
 			} else if val, err := toFloat(col.Values[0][row]); err != nil {
+				rowStrings[idx] = *replaceError
+			} else if val == 0 {
 				rowStrings[idx] = *replaceEmpty
 			} else {
 				rowStrings[idx] = convertSerialNumberToDate(val, *timezone, *replaceEmpty)
