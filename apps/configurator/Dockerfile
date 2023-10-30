@@ -1,4 +1,5 @@
 FROM node:18.16.0-bullseye-slim AS builder
+# FROM node:lts-bookworm AS builder
 RUN npm install -g pnpm
 WORKDIR /workdir
 COPY package.json pnpm-lock.yaml ./

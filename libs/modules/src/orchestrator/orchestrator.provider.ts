@@ -3,12 +3,24 @@ import { ConfigService } from '@nestjs/config';
 import { Client, Connection, ConnectionOptions } from '@temporalio/client';
 import { NativeConnection, NativeConnectionOptions } from '@temporalio/worker';
 import { InjectTokens } from '../inject-tokens';
+import * as fs from 'fs';
 
 export const OrchestratorConnectionConfigProvider = {
   provide: InjectTokens.ORCHESTRATOR_CONNECTION_CONFIG,
   useFactory: (config: ConfigService) => {
     return {
       address: config.get(`${ConfigName.ORCHESTRATOR}.address`),
+      tls: {
+        serverNameOverride: "Unstatic",
+        clientCertPair: {
+          crt: fs.readFileSync("/certs/client.crt"),
+          key: fs.readFileSync("/certs/client.key"),
+          // crt: fs.readFileSync("./client.pem"),
+          // key: fs.readFileSync("./client.key"),
+        },
+        serverRootCACertificate: fs.readFileSync("/certs/server-ca.crt")
+        // serverRootCACertificate: fs.readFileSync("./ca.pem")
+      }
     } as ConnectionOptions;
   },
   inject: [ConfigService],
@@ -19,6 +31,17 @@ export const OrchestratorNativeConnectionConfigProvider = {
   useFactory: (config: ConfigService) => {
     return {
       address: config.get(`${ConfigName.ORCHESTRATOR}.address`),
+      tls: {
+        serverNameOverride: "Unstatic",
+        clientCertPair: {
+          crt: fs.readFileSync("/certs/client.crt"),
+          key: fs.readFileSync("/certs/client.key"),
+          // crt: fs.readFileSync("./client.pem"),
+          // key: fs.readFileSync("./client.key"),
+        },
+        serverRootCACertificate: fs.readFileSync("/certs/server-ca.crt"),
+        // serverRootCACertificate: fs.readFileSync("./ca.pem")
+      }
     } as ConnectionOptions;
   },
   inject: [ConfigService],

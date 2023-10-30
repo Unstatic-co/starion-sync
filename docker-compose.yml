@@ -1,11 +1,11 @@
 version: "3.9"
 services:
   configurator:
-    depends_on:
-      - mongodb
-      - zookeeper
-      - kafka
-      - temporal
+    # depends_on:
+      # - mongodb
+      # - zookeeper
+      # - kafka
+      # - temporal
     deploy:
       restart_policy:
         condition: on-failure
@@ -41,6 +41,13 @@ services:
       - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - NODE_DEBUG=tls
+      - GRPC_TRACE=all
+      - GRPC_VERBOSITY=DEBUG
+    volumes:
+      - ./client.pem:/certs/client.crt
+      - ./client.key:/certs/client.key
+      - ./ca.pem:/certs/server-ca.crt
   controller:
     depends_on:
       - mongodb
@@ -534,3 +541,7 @@ volumes:
   postgresql:
   pgadmin:
   minio:
+networks:
+  default:
+    external: true
+    name: temporal-network
