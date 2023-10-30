@@ -5,7 +5,7 @@ import {
   Syncflow,
 } from '../entities';
 import { Trigger } from '../entities/trigger';
-import { ErrorCode } from '../error';
+import { ErrorCode, ErrorType } from '../error';
 import { EventPayload } from './baseEvent';
 
 export type DataSourceDeletedPayload = EventPayload & {
@@ -39,7 +39,18 @@ export type SyncflowSucceedPayload = EventPayload & {
 };
 export type SyncflowCompletedPayload = EventPayload & {
   dataSourceId: string;
-  syncVersion: number;
   syncflowId: string;
+  syncVersion: number;
   rowsNumber: number;
+};
+
+export type SyncflowFailedPayload = EventPayload & {
+  dataSourceId: string;
+  syncflowId: string;
+  syncVersion: number;
+  error: {
+    type: ErrorType;
+    code: number;
+    message: string;
+  };
 };

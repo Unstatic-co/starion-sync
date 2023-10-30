@@ -54,8 +54,8 @@ export class GoogleSheetsWebhookService implements WebhookService {
     this.logger.debug(`add refreshment job, triggerId = ${trigger.id}`);
     let refreshInterval = (GOOGLE_SHEETS_WEBHOOK_EXPIRATION - 1800) * 1000;
     if (
-      this.configService.get<string>(`${ConfigName.APP}.environment`) ==
-      'development'
+      this.configService.get<string>(`${ConfigName.APP}.environment`) !==
+      'production'
     ) {
       refreshInterval = 1600 * 1000;
     }

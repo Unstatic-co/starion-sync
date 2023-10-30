@@ -11,6 +11,7 @@ import { proxyActivities } from '@temporalio/workflow';
 import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import { MicrosoftExcelActivities } from '../../activities';
 import { getActivityErrorDetail, workflowWrapper } from '../wrapper';
+import { ProcessorRetryPolicy } from '../retryPolicy';
 
 const {
   checkAndUpdateStatusBeforeStartSyncflow,
@@ -22,16 +23,19 @@ const {
 
 const { downloadExcel } = proxyActivities<MicrosoftExcelActivities>({
   startToCloseTimeout: '4m',
+  retry: ProcessorRetryPolicy,
   // scheduleToCloseTimeout: '10y',
 });
 
 const { compareExcel } = proxyActivities<MicrosoftExcelActivities>({
   startToCloseTimeout: '1m',
+  retry: ProcessorRetryPolicy,
   // scheduleToCloseTimeout: '10y',
 });
 
 const { loadExcel } = proxyActivities<MicrosoftExcelActivities>({
   startToCloseTimeout: '4m',
+  retry: ProcessorRetryPolicy,
   // scheduleToCloseTimeout: '10y',
 });
 
@@ -93,14 +97,42 @@ export async function excelFullSync(data: SyncflowScheduledPayload) {
       // detect processor external error
       if (errorDetail.errorData?.type === ErrorType.EXTERNAL) {
         await updateSyncflowStatus(data.syncflow.id, WorkflowStatus.IDLING);
-        await emitEvent(EventNames.DATA_SOURCE_ERROR, {
+        await Promise.all([
+          emitEvent(EventNames.DATA_SOURCE_ERROR, {
+            payload: {
+              dataSourceId: data.syncflow.sourceId,
+              code: errorDetail.errorData.code,
+              message: errorDetail.errorData.message,
+            } as DataSourceErrorPayload,
+          }),
+          emitEvent(EventNames.SYNCFLOW_FAILED, {
+            payload: {
+              dataSourceId: data.syncflow.sourceId,
+              syncflowId: data.syncflow.id,
+              syncVersion: data.version,
+              error: {
+                type: ErrorType.EXTERNAL,
+                code: errorDetail.errorData.code,
+                message: errorDetail.errorData.message,
+              },
+            },
+          }),
+        ]);
+        throw error;
+      } else if (errorDetail.errorData?.type === ErrorType.INTERNAL) {
+        await updateSyncflowStatus(data.syncflow.id, WorkflowStatus.IDLING);
+        await emitEvent(EventNames.SYNCFLOW_FAILED, {
           payload: {
             dataSourceId: data.syncflow.sourceId,
-            code: errorDetail.errorData.code,
-            message: errorDetail.errorData.message,
-          } as DataSourceErrorPayload,
+            syncflowId: data.syncflow.id,
+            syncVersion: data.version,
+            error: {
+              type: ErrorType.INTERNAL,
+              code: errorDetail.errorData.code,
+              message: errorDetail.errorData.message,
+            },
+          },
         });
-        throw error;
       } else {
         throw error;
       }
