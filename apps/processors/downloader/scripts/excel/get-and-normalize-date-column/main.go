@@ -24,6 +24,8 @@ const (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // UTILS
+
+// return 0 for empty, -1 for error
 func toFloat(unk any) (float64, error) {
 	switch v := unk.(type) {
 	case int:

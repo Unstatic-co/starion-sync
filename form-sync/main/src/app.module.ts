@@ -68,6 +68,7 @@ import { redisStore } from 'cache-manager-redis-yet';
         const dbConfig = configService.get<DatabaseConfig>(ConfigName.DATABASE);
         return {
           uri: dbConfig.metadataDbUri,
+          dbName: dbConfig.database,
           sslValidate: false,
           tlsInsecure: true,
         };
@@ -124,4 +125,4 @@ import { redisStore } from 'cache-manager-redis-yet';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

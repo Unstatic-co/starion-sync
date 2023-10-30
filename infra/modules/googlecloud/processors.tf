@@ -92,7 +92,7 @@ resource "google_cloud_run_service" "downloader" {
         }
       }
       timeout_seconds       = 310
-      container_concurrency = 20
+      container_concurrency = 3
     }
     metadata {
       annotations = {
@@ -167,7 +167,7 @@ resource "google_cloud_run_service" "comparer" {
         resources {
           limits = {
             cpu    = 1
-            memory = "256Mi"
+            memory = var.is_production ? "512Mi" : "256Mi"
           }
         }
         env {
@@ -208,12 +208,12 @@ resource "google_cloud_run_service" "comparer" {
         }
       }
       timeout_seconds       = 130
-      container_concurrency = 10
+      container_concurrency = 5
     }
     metadata {
       annotations = {
-        # "run.googleapis.com/execution-environment" = "gen2"
-        "autoscaling.knative.dev/maxScale" = "10"
+        "run.googleapis.com/execution-environment" = var.is_production ? "gen2" : "gen1"
+        "autoscaling.knative.dev/maxScale"         = "5"
       }
     }
   }
@@ -283,7 +283,7 @@ resource "google_cloud_run_service" "loader" {
         resources {
           limits = {
             cpu    = 1
-            memory = "256Mi"
+            memory = var.is_production ? "512Mi" : "256Mi"
           }
         }
         env {
@@ -336,8 +336,8 @@ resource "google_cloud_run_service" "loader" {
     }
     metadata {
       annotations = {
-        # "run.googleapis.com/execution-environment" = "gen2"
-        "autoscaling.knative.dev/maxScale" = "10"
+        "run.googleapis.com/execution-environment" = var.is_production ? "gen2" : "gen1"
+        "autoscaling.knative.dev/maxScale"         = "5"
       }
     }
   }
@@ -407,7 +407,7 @@ resource "google_cloud_run_service" "metadata" {
         resources {
           limits = {
             cpu    = 1
-            memory = "128Mi"
+            memory = var.is_production ? "512Mi" : "256Mi"
           }
         }
         env {
@@ -432,8 +432,8 @@ resource "google_cloud_run_service" "metadata" {
     }
     metadata {
       annotations = {
-        # "run.googleapis.com/execution-environment" = "gen2"
-        "autoscaling.knative.dev/maxScale" = "10"
+        "run.googleapis.com/execution-environment" = var.is_production ? "gen2" : "gen1"
+        "autoscaling.knative.dev/maxScale"         = "5"
       }
     }
   }
