@@ -66,6 +66,7 @@ func getSchemaFromJsonSchemaFile(filePath string, dateErrorValue string) schema.
 	}
 
 	tableSchema := make(schema.TableSchema)
+	var tableSchemaLock sync.Mutex
 
 	wg := sync.WaitGroup{}
 
@@ -185,7 +186,9 @@ func getSchemaFromJsonSchemaFile(filePath string, dateErrorValue string) schema.
 
 			}
 
+			tableSchemaLock.Lock()
 			tableSchema[hashedFieldName] = fieldSchema
+			tableSchemaLock.Unlock()
 		}(fieldName, property)
 	}
 	wg.Wait()
