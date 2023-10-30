@@ -250,7 +250,7 @@ resource "fly_machine" "webhook_trigger" {
 
   env = {
     NODE_ENV                 = var.environment
-    LOG_LEVEL                = "debug"
+    LOG_LEVEL                = var.is_production ? "info" : "debug"
     PORT                     = "8080"
     DB_TYPE                  = "mongodb"
     DB_URI                   = local.db_uri
@@ -369,6 +369,7 @@ resource "fly_machine" "formsync" {
   env = {
     NODE_ENV                = var.environment
     PORT                    = "8080"
+    LOG_LEVEL               = var.is_production ? "info" : "debug"
     API_KEYS                = join(",", var.api_keys)
     DB_URI                  = local.dest_db_uri
     DB_NAME                 = "starion-form-sync"
@@ -473,7 +474,7 @@ resource "fly_machine" "cron_trigger" {
 
   env = {
     NODE_ENV                = var.environment
-    LOG_LEVEL               = "debug"
+    LOG_LEVEL               = var.is_production ? "info" : "debug"
     DB_TYPE                 = "mongodb"
     DB_URI                  = local.db_uri
     DEST_DB_URI             = local.dest_db_uri
@@ -592,7 +593,7 @@ resource "fly_machine" "configurator" {
   env = {
     NODE_ENV                       = var.environment
     PORT                           = "8080"
-    LOG_LEVEL                      = "debug"
+    LOG_LEVEL                      = var.is_production ? "info" : "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
     DB_URI                         = local.db_uri
@@ -676,7 +677,7 @@ resource "fly_machine" "controller" {
 
   cputype  = "shared"
   cpus     = 1
-  memorymb = 512
+  memorymb = 1024
 
   image = "registry.fly.io/${fly_app.controller[0].name}:${local.controller_hash}"
 
@@ -704,7 +705,7 @@ resource "fly_machine" "controller" {
 
   env = {
     NODE_ENV                       = var.environment
-    LOG_LEVEL                      = "debug"
+    LOG_LEVEL                      = var.is_production ? "info" : "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
     DB_URI                         = local.db_uri
@@ -782,7 +783,7 @@ resource "fly_machine" "worker" {
 
   cputype  = "shared"
   cpus     = 1
-  memorymb = 512
+  memorymb = 1024
 
   image = "registry.fly.io/${fly_app.worker[0].name}:${local.worker_hash}"
 
@@ -810,7 +811,7 @@ resource "fly_machine" "worker" {
 
   env = {
     NODE_ENV                       = var.environment
-    LOG_LEVEL                      = "debug"
+    LOG_LEVEL                      = var.is_production ? "info" : "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
     DB_URI                         = local.db_uri
@@ -920,7 +921,7 @@ resource "fly_machine" "post-processor" {
 
   env = {
     NODE_ENV                              = var.environment
-    LOG_LEVEL                             = "debug"
+    LOG_LEVEL                             = var.is_production ? "info" : "debug"
     BROKER_URIS                           = var.broker_uris
     DB_TYPE                               = "mongodb"
     DB_URI                                = local.db_uri
@@ -1027,7 +1028,7 @@ resource "fly_machine" "webhook" {
 
   env = {
     NODE_ENV                = var.environment
-    LOG_LEVEL               = "debug"
+    LOG_LEVEL               = var.is_production ? "info" : "debug"
     BROKER_URIS             = var.broker_uris
     DB_TYPE                 = "mongodb"
     DB_URI                  = local.db_uri
