@@ -117,11 +117,11 @@ func getSchemaFromJsonSchemaFile(filePath string, dateErrorValue string) schema.
 							enum = append(enum, item)
 						}
 					}
-					if len(enum) >= enumThreshold {
+					if len(enum) > enumThreshold {
 						break
 					}
 				}
-				if len(enum) >= enumThreshold || len(enum) == 0 {
+				if len(enum) > enumThreshold || len(enum) == 0 {
 					enum = nil
 				}
 
