@@ -5,7 +5,12 @@ import {
   UnacceptableActivityError,
   UnacceptableActivityErrorData,
 } from '../common/exception';
-import { ErrorType, ExternalError } from '@lib/core';
+import {
+  ErrorType,
+  ExternalError,
+  InternalError,
+  InternalProcessorError,
+} from '@lib/core';
 import { ProcessorApiErrorResponse, ProcessorErrorData } from '../common/type';
 
 export async function activityWrapper<T>(
@@ -59,7 +64,19 @@ export async function processorWrapper<T>(
         ...err.toJSON(),
       } as ProcessorErrorData;
       throw new UnacceptableActivityError(
-        `Error when executing ${processorName}: ${errorData.message}`,
+        `Error (external) when executing ${processorName}: ${errorData.message}`,
+        {
+          shouldActivityRetry: false,
+          errorData,
+        },
+      );
+    } else if (err instanceof InternalError) {
+      const errorData = {
+        type: ErrorType.INTERNAL,
+        ...err.toJSON(),
+      } as ProcessorErrorData;
+      throw new UnacceptableActivityError(
+        `Error (internal) when executing ${processorName}: ${errorData.message}`,
         {
           shouldActivityRetry: false,
           errorData,
@@ -80,9 +97,16 @@ export async function processorApiWrapper<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    if (err.response?.data?.type === 'external') {
+    if (err.response?.data?.type === ErrorType.EXTERNAL) {
       const errDetail = err.response.data as ProcessorApiErrorResponse;
       throw new ExternalError(errDetail.code, errDetail.msg, errDetail.data);
+    } else if (err.response?.data?.type === ErrorType.INTERNAL) {
+      const errDetail = err.response.data as ProcessorApiErrorResponse;
+      throw new InternalProcessorError(
+        errDetail.code,
+        errDetail.msg,
+        errDetail.data,
+      );
     } else {
       throw err;
     }
