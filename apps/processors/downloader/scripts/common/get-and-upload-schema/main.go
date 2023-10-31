@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	exceltype "downloader/libs/datatype/excel"
 	"downloader/libs/schema"
 	"downloader/util"
@@ -9,6 +10,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 
 	jsoniter "github.com/json-iterator/go"
@@ -25,6 +28,22 @@ var duckDbTypeMap = map[schema.DataType]string{
 	schema.Number:  "DOUBLE",
 	schema.Date:    "VARCHAR",
 	schema.Boolean: "BOOLEAN",
+}
+
+func convertStringNumberToNumberType(stringNumber string) interface{} {
+	if stringNumber == "" {
+		return nil
+	}
+	if intValue, err := strconv.Atoi(stringNumber); err == nil {
+		return intValue
+	} else {
+		// If it's not an integer, attempt to convert it to a float
+		if floatValue, err := strconv.ParseFloat(stringNumber, 64); err == nil {
+			return floatValue
+		} else {
+			return nil
+		}
+	}
 }
 
 func inferBooleanType(enum []interface{}) bool {
@@ -48,7 +67,7 @@ func inferBooleanType(enum []interface{}) bool {
 	return false
 }
 
-func getSchemaFromJsonSchemaFile(filePath string, dateErrorValue string) schema.TableSchema {
+func getSchemaFromJsonSchemaFile(filePath string, dataFilePath string, dateErrorValue string) *schema.TableSchema {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatalf("Cannot open schema file %s\n", filePath)
@@ -66,6 +85,7 @@ func getSchemaFromJsonSchemaFile(filePath string, dateErrorValue string) schema.
 	}
 
 	tableSchema := make(schema.TableSchema)
+	numberColumnNames := make([]string, 0)
 	var tableSchemaLock sync.Mutex
 
 	wg := sync.WaitGroup{}
@@ -188,16 +208,97 @@ func getSchemaFromJsonSchemaFile(filePath string, dateErrorValue string) schema.
 
 			tableSchemaLock.Lock()
 			tableSchema[hashedFieldName] = fieldSchema
+			if fieldSchema.Type == schema.Number {
+				numberColumnNames = append(numberColumnNames, hashedFieldName)
+			}
 			tableSchemaLock.Unlock()
 		}(fieldName, property)
 	}
 	wg.Wait()
 
-	return tableSchema
+	if len(numberColumnNames) > 0 {
+		getEnumForNumberColumns(dataFilePath, &tableSchema, numberColumnNames)
+	}
+
+	return &tableSchema
 }
 
-func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string) error {
-	schemaJson, err := jsoniter.Marshal(schema)
+// qsv don't caculate enum for number columns, so we need to do it manually
+func getEnumForNumberColumns(dataFilePath string, tableSchema *schema.TableSchema, numberColumnNames []string) {
+	log.Println("Getting enum for number columns...")
+	dataFile, err := os.Open(dataFilePath)
+	if err != nil {
+		log.Fatalf("Cannot open data file %s\n", dataFilePath)
+	}
+	defer dataFile.Close()
+
+	scanner := bufio.NewScanner(dataFile)
+	firstLine := true
+
+	numberEnumMaps := make(map[string]map[interface{}]bool) // fieldName - enum map
+	for _, fieldName := range numberColumnNames {
+		numberEnumMaps[fieldName] = make(map[interface{}]bool)
+	}
+	numberEnumCheckDone := make(map[string]bool) // fieldName - bool
+	numberColumnIndexes := make(map[int]string)  // index - fieldName
+
+	for scanner.Scan() {
+		line := strings.Split(scanner.Text(), ",")
+		if firstLine {
+			for index, rawFieldName := range line {
+				fieldName := util.HashFieldName(rawFieldName)
+				if _, ok := numberEnumMaps[fieldName]; ok {
+					numberColumnIndexes[index] = fieldName
+				}
+			}
+			firstLine = false
+			continue // Skip the first line
+		}
+		for index, fieldName := range numberColumnIndexes {
+			stringNumber := line[index]
+			if stringNumber != "" {
+				convertedNumber := convertStringNumberToNumberType(stringNumber)
+				if convertedNumber == nil {
+					continue
+				}
+				if numberEnumMaps[fieldName][convertedNumber] != true {
+					numberEnumMaps[fieldName][convertedNumber] = true
+					if len(numberEnumMaps[fieldName]) > enumThreshold {
+						numberEnumCheckDone[fieldName] = true
+					}
+				}
+			}
+		}
+		isDone := true
+		for _, fieldName := range numberColumnNames {
+			if numberEnumCheckDone[fieldName] != true {
+				isDone = false
+				break
+			}
+		}
+		if isDone {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		log.Fatalf("Error scanning file: %+v", err.Error())
+	}
+	for _, fieldName := range numberColumnNames {
+		enum := make([]interface{}, 0)
+		for key := range numberEnumMaps[fieldName] {
+			enum = append(enum, key)
+		}
+		if len(enum) == 0 || len(enum) > enumThreshold {
+			enum = nil
+		}
+		schemaField := (*tableSchema)[fieldName]
+		schemaField.Enum = enum
+		(*tableSchema)[fieldName] = schemaField
+	}
+}
+
+func uploadSchema(schema *schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string) error {
+	schemaJson, err := jsoniter.Marshal(*schema)
 	if err != nil {
 		log.Fatalf("Error when marshalling schema: %+v\n", err)
 	}
@@ -217,6 +318,7 @@ func uploadSchema(schema schema.TableSchema, s3Config s3.S3HandlerConfig, dataSo
 
 func main() {
 	schemaFile := flag.String("schemaFile", "", "schema")
+	dataFile := flag.String("dataFile", "", "data")
 	s3Endpoint := flag.String("s3Endpoint", "", "s3 url")
 	s3Region := flag.String("s3Region", "", "s3 region")
 	s3Bucket := flag.String("s3Bucket", "", "s3 bucket")
@@ -228,7 +330,8 @@ func main() {
 
 	flag.Parse()
 
-	schema := getSchemaFromJsonSchemaFile(*schemaFile, *dateErrorValue)
+	schema := getSchemaFromJsonSchemaFile(*schemaFile, *dataFile, *dateErrorValue)
+
 	err := uploadSchema(
 		schema,
 		s3.S3HandlerConfig{
