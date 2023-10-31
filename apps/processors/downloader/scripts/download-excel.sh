@@ -539,6 +539,7 @@ detected_schema_file="$TEMP_DIR/schema.json"
 info-log "Uploading schema..."
 ./get-and-upload-schema \
     --schemaFile "$detected_schema_file" \
+    --dataFile "$replaced_error_file" \
     --s3Endpoint "$s3_endpoint" \
     --s3Region "$s3_region" \
     --s3Bucket "$s3_bucket" \
