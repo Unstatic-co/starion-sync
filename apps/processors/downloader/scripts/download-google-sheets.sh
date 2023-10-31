@@ -236,7 +236,7 @@ download-google-sheets-file "$original_file" "$download_url"
 xlsx_header=$(./get-xlsx-header --file "$original_file" --showHeaders)
 debug-log "Xlsx header: $xlsx_header"
 if [[ -z "$xlsx_header" ]]; then
-    write-external-error "$WORKSHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
+    write-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
 fi
 
 ### Convert
