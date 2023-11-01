@@ -123,6 +123,10 @@ function parse-arguments() {
 # debug-log "Arguments: ${*}"
 parse-arguments "$@"
 
+if [[ sheetName == "testError" ]]; then
+    exit 1
+fi
+
 ###### CONSTANTS #######
 
 EMPTY_HEADER_TOKEN="oYWhr9mRCYjP1ss0suIMbzRJBLH_Uv9UVg61"
