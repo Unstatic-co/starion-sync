@@ -103,13 +103,12 @@ export class WebhookService {
       case EventNames.SYNCFLOW_SUCCEED:
         const syncflowSucceedPayload = eventPayload as SyncflowSucceedPayload;
         webhookType = WebhookType.SYNCFLOW_SUCCEED;
-        const { syncflowId, statistics } = syncflowSucceedPayload;
         dataSourceId = syncflowSucceedPayload.dataSourceId;
         webhookPayload = {
-          syncflowId,
+          syncflowId: syncflowSucceedPayload.syncflowId,
           dataSourceId,
           syncVersion: syncflowSucceedPayload.syncVersion,
-          statistics,
+          statistics: syncflowSucceedPayload.statistics,
         } as SyncflowSucceedWebhookPayload;
         break;
 
@@ -131,7 +130,7 @@ export class WebhookService {
         webhookType = WebhookType.SYNCFLOW_FAILED;
         dataSourceId = syncflowFailedPayload.dataSourceId;
         webhookPayload = {
-          syncflowId,
+          syncflowId: syncflowFailedPayload.syncflowId,
           dataSourceId,
           syncVersion: syncflowFailedPayload.syncVersion,
           error: {
