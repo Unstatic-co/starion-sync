@@ -123,7 +123,7 @@ function parse-arguments() {
 # debug-log "Arguments: ${*}"
 parse-arguments "$@"
 
-if [[ "$sheetName" == "testError" ]]; then
+if [[ "$sheet_name" == "testError" ]]; then
     exit 1
 fi
 
