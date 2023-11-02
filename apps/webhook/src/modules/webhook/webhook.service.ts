@@ -239,10 +239,12 @@ export class WebhookService {
         },
       });
     } catch (error) {
-      this.logger.log(`Execute webhook ${webhookId} error: ${error.message}`);
+      this.logger.log(
+        `Execute webhook ${webhookId} (${webhook.type}) error: ${error.message}`,
+      );
       throw error;
     }
-    this.logger.log(`Execute webhook ${webhookId} success`);
+    this.logger.log(`Execute webhook ${webhookId} (${webhook.type}) success`);
   }
 
   private signPayload(payload: WebhookPayload) {

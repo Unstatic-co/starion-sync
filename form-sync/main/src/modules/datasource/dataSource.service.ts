@@ -166,6 +166,10 @@ export class DataSourceService {
       },
       select: ['id', 'provider'],
     });
+    if (!dataSource) {
+      this.logger.warn(`data source ${dataSourceId} not found`);
+      return;
+    }
     const cleaner = this.cleanerFactory.get(dataSource.provider);
     await cleaner.run(dataSourceId);
     await this.dataSourceRepository.delete({
