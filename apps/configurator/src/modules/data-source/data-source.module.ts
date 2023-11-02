@@ -7,6 +7,7 @@ import { SyncConnectionModule } from '../sync-connection/syncConnection.module';
 import { WorkflowModule } from '../workflow/worflow.module';
 import { DestinationDatabaseModule, OrchestratorModule } from '@lib/modules';
 import { DiscovererModule } from '../discoverer';
+import { TriggerModule } from '../trigger/trigger.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { DiscovererModule } from '../discoverer';
     forwardRef(() => SyncConnectionModule),
     OrchestratorModule,
     DiscovererModule,
+    TriggerModule,
   ],
   controllers: [DataSourceController],
   providers: [DataSourceService],

@@ -140,6 +140,7 @@ ROW_NUMBER_COL_NAME="__StarionRowNum"
 SHEET_EMPTY_ERROR="1015"
 SPREADSHEET_NOT_FOUND_ERROR="1006"
 SPREADSHEET_FORBIDDEN_ERROR="1009"
+ID_COL_DUPLICATED_ERROR="1201"
 
 ###### FUNCTIONS #######
 
@@ -241,6 +242,12 @@ xlsx_header=$(./get-xlsx-header --file "$original_file" --showHeaders)
 debug-log "Xlsx header: $xlsx_header"
 if [[ -z "$xlsx_header" ]]; then
     write-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
+else
+    # check id col duplicate
+    id_col_count=$(echo "$xlsx_header" | tr ',' '\n' | grep -c "^$ID_COL_NAME$")
+    if [[ "$id_col_count" -gt 1 ]]; then
+        write-external-error "$ID_COL_DUPLICATED_ERROR" "The id column ($ID_COL_NAME) is duplicated"
+    fi
 fi
 
 ### Convert

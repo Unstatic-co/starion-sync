@@ -132,6 +132,7 @@ export async function googleSheetsFullSync(data: SyncflowScheduledPayload) {
             },
           },
         });
+        throw error;
       } else {
         throw error;
       }

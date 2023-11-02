@@ -127,6 +127,10 @@ function parse-arguments() {
 # debug-log "Arguments: ${*}"
 parse-arguments "$@"
 
+if [[ "$worksheet_name" == "testError" ]]; then
+    exit 1
+fi
+
 ###### CONSTANTS #######
 
 EMPTY_HEADER_TOKEN="oYWhr9mRCYjP1ss0suIMbzRJBLH_Uv9UVg61"
@@ -140,6 +144,7 @@ ROW_NUMBER_COL_NAME="__StarionRowNum"
 WORKSHEET_EMPTY_ERROR="1106"
 WORKBOOK_NOT_FOUND_ERROR="1102"
 WORKBOOK_FORBIDDEN_ERROR="1101"
+ID_COL_DUPLICATED_ERROR="1201"
 
 ###### FUNCTIONS #######
 
@@ -303,6 +308,12 @@ xlsx_header=$(./get-xlsx-header --file "$original_file" --sheetName "$worksheet_
 debug-log "Xlsx header: $xlsx_header"
 if [[ -z "$xlsx_header" ]]; then
     write-external-error "$WORKSHEET_EMPTY_ERROR" "Worksheet is empty or missing header row"
+else
+    # check id col duplicate
+    id_col_count=$(echo "$xlsx_header" | tr ',' '\n' | grep -c "^$ID_COL_NAME$")
+    if [[ "$id_col_count" -gt 1 ]]; then
+        write-external-error "$ID_COL_DUPLICATED_ERROR" "The id column ($ID_COL_NAME) is duplicated"
+    fi
 fi
 
 ### Convert

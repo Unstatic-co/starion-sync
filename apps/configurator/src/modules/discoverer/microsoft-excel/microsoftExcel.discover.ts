@@ -10,6 +10,7 @@ import {
   ExcelDataSourceConfig,
   ExcelProviderConfig,
   ExternalError,
+  IdColumnName,
 } from '@lib/core';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { Utils } from 'apps/configurator/src/common/utils';
@@ -83,6 +84,7 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
   ) {
     const { workbookId, worksheetId } = config;
     let isEmpty = false;
+    let isIdColContained = false;
 
     try {
       const firstRowOfSheet =
@@ -102,11 +104,20 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
       } else {
         const headerValues = firstRowOfSheet.values[0];
         let headerValuesCount = 0;
-        headerValues.forEach((value) => {
+        for (const value of headerValues) {
           if (value !== '') {
             headerValuesCount++;
+            if (value === IdColumnName) {
+              if (isIdColContained) {
+                throw new ExternalError(
+                  ERROR_CODE.ID_COLUMN_DUPLICATED,
+                  `The id column (${IdColumnName}) is duplicated`,
+                );
+              }
+              isIdColContained = true;
+            }
           }
-        });
+        }
         if (!headerValues.length || headerValuesCount === 0) {
           isEmpty = true;
         }

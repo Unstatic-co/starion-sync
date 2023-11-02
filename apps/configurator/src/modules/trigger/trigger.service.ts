@@ -7,7 +7,7 @@ import axios from 'axios';
 import { ApiError } from '../../common/exception';
 import { ErrorCode } from '../../common/constants';
 import { BrokerService } from '../broker/broker.service';
-import { EventNames } from '@lib/core';
+import { DataSource, DataSourceId, EventNames, ProviderType } from '@lib/core';
 
 @Injectable()
 export class TriggerService {
@@ -47,6 +47,22 @@ export class TriggerService {
         throw new Error('Unsupported trigger type');
     }
     this.logger.debug('deleted trigger', { id });
+  }
+
+  async getTriggerOfDataSource(dataSource: DataSource) {
+    let triggerId: TriggerId;
+    switch (dataSource.provider.type) {
+      case ProviderType.GOOGLE_SHEETS:
+      case ProviderType.MICROSOFT_EXCEL:
+        triggerId = (
+          await this.triggerRepository.getByDataSourceId(dataSource.id)
+        )[0].id;
+        break;
+      default:
+        throw new Error('Unsupported provider type');
+    }
+    const trigger = await this.triggerRepository.getById(triggerId);
+    return trigger;
   }
 
   async manualTrigger(id: TriggerId) {
