@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, Delete } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DataProviderService } from '../data-provider/data-provider.service';
 import {
   DataSource,
@@ -11,6 +11,7 @@ import {
   ProviderId,
   ProviderType,
   SyncConnection,
+  TriggerId,
 } from '@lib/core';
 import {
   CreateDataSourceDto,
@@ -32,6 +33,7 @@ import { DataDiscovererService } from '../discoverer/discoverer.service';
 import { WorkflowService } from '../workflow/workflow.service';
 import { UpdateSyncConnectionDto } from './dto/updateSyncConnection.dto';
 import { SyncConnectionService } from '../sync-connection/syncConection.service';
+import { TriggerService } from '../trigger/trigger.service';
 
 export type DeleteDataSourceResult = {
   dataSource: DataSource;
@@ -56,6 +58,7 @@ export class DataSourceService {
     private readonly discovererService: DataDiscovererService,
     private readonly workflowService: WorkflowService,
     private readonly syncConnectionService: SyncConnectionService,
+    private readonly triggerService: TriggerService,
   ) {}
   /**
    * Hello world
@@ -163,6 +166,14 @@ export class DataSourceService {
       dataSource.id,
       data,
     );
+  }
+
+  async triggerSyncConnection(id: DataSourceId) {
+    const dataSource = await this.getById(id);
+    const trigger = await this.triggerService.getTriggerOfDataSource(
+      dataSource,
+    );
+    await this.triggerService.manualTrigger(trigger.id);
   }
 
   async delete(

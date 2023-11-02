@@ -67,6 +67,7 @@ export async function processorWrapper<T>(
         `Error (external) when executing ${processorName}: ${errorData.message}`,
         {
           shouldActivityRetry: false,
+          shouldWorkflowFail: true,
           errorData,
         },
       );
@@ -79,6 +80,7 @@ export async function processorWrapper<T>(
         `Error (internal) when executing ${processorName}: ${errorData.message}`,
         {
           shouldActivityRetry: false,
+          shouldWorkflowFail: true,
           errorData,
         },
       );

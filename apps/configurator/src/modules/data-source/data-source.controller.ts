@@ -88,6 +88,11 @@ export class DataSourceController {
     return result.data;
   }
 
+  @Post(':id/triggers/manual')
+  async triggerManually(@Param('id') id: string) {
+    return this.dataSourceService.triggerSyncConnection(id);
+  }
+
   @Post()
   async create(@Body() dto: CreateDataSourceDto) {
     const result = await this.dataSourceService.create(dto);
