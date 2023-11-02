@@ -244,7 +244,7 @@ if [[ -z "$xlsx_header" ]]; then
     write-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
 else
     # check id col duplicate
-    id_col_count=$(echo "$xlsx_header" | tr ',' '\n' | grep -c "^$ID_COL_NAME$")
+    id_col_count=$(echo "$xlsx_header" | tr ',' '\n' | grep -c "^$ID_COL_NAME$") || true
     if [[ "$id_col_count" -gt 1 ]]; then
         write-external-error "$ID_COL_DUPLICATED_ERROR" "The id column ($ID_COL_NAME) is duplicated"
     fi
