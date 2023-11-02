@@ -111,6 +111,7 @@ export class ExcelFormSyncService implements IFormSyncService {
           await this.handleInsert({
             dataSourceId: dataSource.id,
             config,
+            recordId: payload.recordId,
             data: payload.data,
             sessionId,
             client,
@@ -190,6 +191,7 @@ export class ExcelFormSyncService implements IFormSyncService {
           await this.handleInsert({
             dataSourceId: dataSource.id,
             config,
+            recordId: payload.recordId,
             data: payload.data,
             sessionId,
             client,
@@ -236,11 +238,12 @@ export class ExcelFormSyncService implements IFormSyncService {
   async handleInsert(params: {
     dataSourceId: string;
     config: ExcelFormSyncConfig;
+    recordId?: RecordId;
     data: Record<FieldId, any>;
     sessionId: string;
     client: Client;
   }) {
-    const { config, data, sessionId, client, dataSourceId } = params;
+    const { config, recordId, data, sessionId, client, dataSourceId } = params;
     this.logger.debug(`Insert new record, data: ${JSON.stringify(data)}`);
     const [headers, rowCount, dataSourceSchema, timezone] = await Promise.all([
       this.getWorksheetHashedHeaders({
@@ -248,7 +251,7 @@ export class ExcelFormSyncService implements IFormSyncService {
         workbookId: config.workbookId,
         worksheetId: config.worksheetId,
         workbookSessionId: sessionId,
-        includeHeader: false,
+        includeHeader: recordId ? true : false,
       }),
       this.metadataService.getExcelRowCount(dataSourceId),
       this.formSyncCommonService.getDataSourceSchema(dataSourceId),
@@ -275,6 +278,9 @@ export class ExcelFormSyncService implements IFormSyncService {
     });
 
     const formatedData = this.convertData(data, dataSourceSchema, { timezone });
+    if (recordId) {
+      formatedData[EXCEL_HASHED_PRIMARY_ID] = recordId;
+    }
 
     const valuesInsert = new Array(lastColIndex + 1).fill(null);
     let insertCount = 0;
@@ -563,7 +569,7 @@ export class ExcelFormSyncService implements IFormSyncService {
     config: {
       timezone: string;
     },
-  ) {
+  ): Record<FieldId, any> {
     const timezone = config.timezone || 'UTC';
     const result = {};
     Object.entries(data).forEach(([key, value]) => {

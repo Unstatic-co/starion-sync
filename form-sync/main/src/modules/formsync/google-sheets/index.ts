@@ -104,6 +104,7 @@ export class GoogleSheetsFormSyncService implements IFormSyncService {
           await this.handleInsert({
             dataSourceId: dataSource.id,
             config,
+            recordId: payload.recordId,
             data: payload.data,
             client,
           });
@@ -169,6 +170,7 @@ export class GoogleSheetsFormSyncService implements IFormSyncService {
           await this.handleInsert({
             dataSourceId: dataSource.id,
             config,
+            recordId: payload.recordId,
             data: payload.data,
             client,
           });
@@ -212,10 +214,11 @@ export class GoogleSheetsFormSyncService implements IFormSyncService {
   async handleInsert(params: {
     dataSourceId: string;
     config: GoogleSheetsFormSyncConfig;
+    recordId?: RecordId;
     data: Record<FieldId, any>;
     client: SheetsV4.Sheets;
   }) {
-    const { config, data, client, dataSourceId } = params;
+    const { config, recordId, data, client, dataSourceId } = params;
     const { spreadsheetId, sheetId } = config;
     this.logger.debug(`Insert new record for ds ${dataSourceId}`);
     const sheetName = await this.getSheetName({
@@ -228,7 +231,7 @@ export class GoogleSheetsFormSyncService implements IFormSyncService {
         client,
         spreadsheetId,
         sheetName,
-        includeHeader: false,
+        includeHeader: recordId ? true : false,
       }),
       this.metadataService.getGoogleSheetsRowCount(dataSourceId),
       this.formSyncCommonService.getDataSourceSchema(dataSourceId),
@@ -249,6 +252,9 @@ export class GoogleSheetsFormSyncService implements IFormSyncService {
     }`;
 
     const formatedData = this.convertData(data, dataSourceSchema, { timezone });
+    if (recordId) {
+      formatedData[GOOGLE_SHEETS_HASHED_PRIMARY_ID] = recordId;
+    }
 
     const valuesInsert = new Array(lastColIndex + 1).fill(null);
     let insertCount = 0;
@@ -545,7 +551,7 @@ export class GoogleSheetsFormSyncService implements IFormSyncService {
     config: {
       timezone: string;
     },
-  ) {
+  ): Record<FieldId, any> {
     const timezone = config.timezone || 'UTC';
     const result = {};
     Object.entries(data).forEach(([key, value]) => {
