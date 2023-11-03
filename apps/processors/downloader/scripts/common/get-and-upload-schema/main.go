@@ -1,17 +1,16 @@
 package main
 
 import (
-	"bufio"
 	exceltype "downloader/libs/datatype/excel"
 	"downloader/libs/schema"
 	"downloader/util"
 	"downloader/util/s3"
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 
 	jsoniter "github.com/json-iterator/go"
@@ -30,15 +29,22 @@ var duckDbTypeMap = map[schema.DataType]string{
 	schema.Boolean: "BOOLEAN",
 }
 
+var cacheStringToNumber = make(map[string]interface{})
+
 func convertStringNumberToNumberType(stringNumber string) interface{} {
+	// log.Printf("Converting string number %s to number type...\n", stringNumber)
 	if stringNumber == "" {
 		return nil
-	}
-	if intValue, err := strconv.Atoi(stringNumber); err == nil {
+	} else if _, ok := cacheStringToNumber[stringNumber]; ok {
+		// log.Println("Cache hit")
+		return cacheStringToNumber[stringNumber]
+	} else if intValue, err := strconv.Atoi(stringNumber); err == nil {
+		cacheStringToNumber[stringNumber] = intValue
 		return intValue
 	} else {
 		// If it's not an integer, attempt to convert it to a float
 		if floatValue, err := strconv.ParseFloat(stringNumber, 64); err == nil {
+			cacheStringToNumber[stringNumber] = intValue
 			return floatValue
 		} else {
 			return nil
@@ -225,25 +231,33 @@ func getSchemaFromJsonSchemaFile(filePath string, dataFilePath string, dateError
 
 // qsv don't caculate enum for number columns, so we need to do it manually
 func getEnumForNumberColumns(dataFilePath string, tableSchema *schema.TableSchema, numberColumnNames []string) {
-	log.Println("Getting enum for number columns...")
+	log.Println("Getting enum for number columns...", numberColumnNames)
 	dataFile, err := os.Open(dataFilePath)
 	if err != nil {
 		log.Fatalf("Cannot open data file %s\n", dataFilePath)
 	}
 	defer dataFile.Close()
 
-	scanner := bufio.NewScanner(dataFile)
+	reader := csv.NewReader(dataFile)
 	firstLine := true
 
 	numberEnumMaps := make(map[string]map[interface{}]bool) // fieldName - enum map
+	numberEnumCheckDone := make(map[string]bool)            // fieldName - bool
 	for _, fieldName := range numberColumnNames {
 		numberEnumMaps[fieldName] = make(map[interface{}]bool)
+		numberEnumCheckDone[fieldName] = false
 	}
-	numberEnumCheckDone := make(map[string]bool) // fieldName - bool
-	numberColumnIndexes := make(map[int]string)  // index - fieldName
+	numberColumnIndexes := make(map[int]string) // index - fieldName
 
-	for scanner.Scan() {
-		line := strings.Split(scanner.Text(), ",")
+	for {
+		line, err := reader.Read()
+		if err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			log.Fatalln("Error when reading file: ", err.Error())
+		}
+
 		if firstLine {
 			for index, rawFieldName := range line {
 				fieldName := util.HashFieldName(rawFieldName)
@@ -261,7 +275,7 @@ func getEnumForNumberColumns(dataFilePath string, tableSchema *schema.TableSchem
 				if convertedNumber == nil {
 					continue
 				}
-				if numberEnumMaps[fieldName][convertedNumber] != true {
+				if _, ok := numberEnumMaps[fieldName][convertedNumber]; !ok {
 					numberEnumMaps[fieldName][convertedNumber] = true
 					if len(numberEnumMaps[fieldName]) > enumThreshold {
 						numberEnumCheckDone[fieldName] = true
@@ -279,9 +293,6 @@ func getEnumForNumberColumns(dataFilePath string, tableSchema *schema.TableSchem
 		if isDone {
 			break
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		log.Fatalf("Error scanning file: %+v", err.Error())
 	}
 	for _, fieldName := range numberColumnNames {
 		enum := make([]interface{}, 0)
