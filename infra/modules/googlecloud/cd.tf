@@ -77,7 +77,7 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy" {
     # branch = "${var.environment}|test-build-${var.environment}"
     # }
     push {
-      branch = "${var.environment}|test-build-${var.environment}"
+      branch = "${var.github_branch}|${var.environment}|test-build-${var.environment}"
     }
   }
 
