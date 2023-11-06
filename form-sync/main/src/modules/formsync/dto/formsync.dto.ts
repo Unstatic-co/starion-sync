@@ -36,6 +36,12 @@ export class FormSyncConfigDto {
   sheetId?: string;
 }
 
+export class FormSyncMetadataDto {
+  @IsOptional()
+  @IsString()
+  localId: string;
+}
+
 export class FormSyncPayloadDto {
   @IsOptional()
   @IsString()
@@ -62,4 +68,10 @@ export class FormSyncDto {
   @ValidateNested({ each: true })
   @Type(() => FormSyncPayloadDto)
   payload: FormSyncPayloadDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested({ each: true })
+  @Type(() => FormSyncMetadataDto)
+  metadata?: FormSyncMetadataDto;
 }

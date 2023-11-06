@@ -16,6 +16,7 @@ import {
   EventNames,
   EventPayload,
   SyncflowCompletedPayload,
+  SyncflowFailedPayload,
   SyncflowScheduledPayload,
   SyncflowSucceedPayload,
   WebhookPayload,
@@ -35,6 +36,7 @@ import {
   DataSourceErrorWebhookPayload,
   SyncConnectionCreatedWebhookPayload,
   SyncflowCompletedWebhookPayload,
+  SyncflowFailedWebhookPayload,
   SyncflowScheduledWebhookPayload,
   SyncflowSucceedWebhookPayload,
 } from './webhook.payload';
@@ -101,13 +103,12 @@ export class WebhookService {
       case EventNames.SYNCFLOW_SUCCEED:
         const syncflowSucceedPayload = eventPayload as SyncflowSucceedPayload;
         webhookType = WebhookType.SYNCFLOW_SUCCEED;
-        const { syncflowId, statistics } = syncflowSucceedPayload;
         dataSourceId = syncflowSucceedPayload.dataSourceId;
         webhookPayload = {
-          syncflowId,
+          syncflowId: syncflowSucceedPayload.syncflowId,
           dataSourceId,
           syncVersion: syncflowSucceedPayload.syncVersion,
-          statistics,
+          statistics: syncflowSucceedPayload.statistics,
         } as SyncflowSucceedWebhookPayload;
         break;
 
@@ -122,6 +123,22 @@ export class WebhookService {
           dataSourceId,
           rowsNumber: syncflowCompletedPayload.rowsNumber,
         } as SyncflowCompletedWebhookPayload;
+        break;
+
+      case EventNames.SYNCFLOW_FAILED:
+        const syncflowFailedPayload = eventPayload as SyncflowFailedPayload;
+        webhookType = WebhookType.SYNCFLOW_FAILED;
+        dataSourceId = syncflowFailedPayload.dataSourceId;
+        webhookPayload = {
+          syncflowId: syncflowFailedPayload.syncflowId,
+          dataSourceId,
+          syncVersion: syncflowFailedPayload.syncVersion,
+          error: {
+            type: syncflowFailedPayload.error.type,
+            code: syncflowFailedPayload.error.code,
+            message: syncflowFailedPayload.error.message,
+          },
+        } as SyncflowFailedWebhookPayload;
         break;
 
       case EventNames.DATA_SOURCE_DELETED:
@@ -222,10 +239,12 @@ export class WebhookService {
         },
       });
     } catch (error) {
-      this.logger.log(`Execute webhook ${webhookId} error: ${error.message}`);
+      this.logger.log(
+        `Execute webhook ${webhookId} (${webhook.type}) error: ${error.message}`,
+      );
       throw error;
     }
-    this.logger.log(`Execute webhook ${webhookId} success`);
+    this.logger.log(`Execute webhook ${webhookId} (${webhook.type}) success`);
   }
 
   private signPayload(payload: WebhookPayload) {

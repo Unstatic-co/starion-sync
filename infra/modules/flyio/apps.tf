@@ -150,7 +150,7 @@ resource "fly_machine" "apps" {
     MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
     GOOGLE_CLIENT_ID        = var.google_client_id
     GOOGLE_CLIENT_SECRET    = var.google_client_secret
-    TRIGGER_RESTART         = "true"
+    TRIGGER_RESTART         = "false"
   }
 
   depends_on = [

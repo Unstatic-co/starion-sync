@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, Delete } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DataProviderService } from '../data-provider/data-provider.service';
 import {
   DataSource,
@@ -11,6 +11,7 @@ import {
   ProviderId,
   ProviderType,
   SyncConnection,
+  TriggerId,
 } from '@lib/core';
 import {
   CreateDataSourceDto,
@@ -30,6 +31,9 @@ import { CreationResult } from '../../common/type';
 import { DeleteResult } from '../../common/type/deleteResult';
 import { DataDiscovererService } from '../discoverer/discoverer.service';
 import { WorkflowService } from '../workflow/workflow.service';
+import { UpdateSyncConnectionDto } from './dto/updateSyncConnection.dto';
+import { SyncConnectionService } from '../sync-connection/syncConection.service';
+import { TriggerService } from '../trigger/trigger.service';
 
 export type DeleteDataSourceResult = {
   dataSource: DataSource;
@@ -53,6 +57,8 @@ export class DataSourceService {
     private readonly destinationDatabaseService: IDestinationDatabaseService,
     private readonly discovererService: DataDiscovererService,
     private readonly workflowService: WorkflowService,
+    private readonly syncConnectionService: SyncConnectionService,
+    private readonly triggerService: TriggerService,
   ) {}
   /**
    * Hello world
@@ -68,10 +74,7 @@ export class DataSourceService {
     this.logger.log(`Get data source by id: ${id}`);
     const dataSource = await this.dataSourceRepository.getById(id);
     if (!dataSource) {
-      throw new ApiError(
-        ErrorCode.NO_DATA_EXISTS,
-        `DataSource with id ${id} not found`,
-      );
+      throw new ApiError(ErrorCode.NO_DATA_EXISTS, `Data source not found`);
     }
     return dataSource;
   }
@@ -152,6 +155,25 @@ export class DataSourceService {
     }
 
     return result;
+  }
+
+  public async updateSyncConnection(
+    id: DataSourceId,
+    data: UpdateSyncConnectionDto,
+  ) {
+    const dataSource = await this.getById(id);
+    await this.syncConnectionService.updateStateWithDataSourceId(
+      dataSource.id,
+      data,
+    );
+  }
+
+  async triggerSyncConnection(id: DataSourceId) {
+    const dataSource = await this.getById(id);
+    const trigger = await this.triggerService.getTriggerOfDataSource(
+      dataSource,
+    );
+    await this.triggerService.manualTrigger(trigger.id);
   }
 
   async delete(

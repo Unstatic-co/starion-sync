@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	nanosInADay         = float64((24 * time.Hour) / time.Nanosecond)
-	defaultReplaceEmpty = "__StarionSyncNull"
-	defaultReplaceError = "__Error"
+	nanosInADay = float64((24 * time.Hour) / time.Nanosecond)
+	// defaultReplaceEmpty = "__StarionSyncNull"
+	defaultReplaceEmpty = ""
+	defaultReplaceError = "2001-01-12T18:13:13.000Z"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -137,8 +138,8 @@ func main() {
 	columnIndexs := flag.String("colIndexes", "", "Number index of datetime columns, start at 1")
 	numberOfRows := flag.Int("rowNumber", 0, "Number of row (include header))")
 	timezone := flag.String("timezone", "UTC", "Timezone of worksheet")
-	replaceEmpty := flag.String("replaceEmpty", defaultReplaceEmpty, "value replaced for empty cell")
-	replaceError := flag.String("replaceError", defaultReplaceError, "value replaced for date error cell")
+	replaceEmpty := flag.String("replaceEmpty", defaultReplaceEmpty, "Value to replace empty cell")
+	replaceError := flag.String("replaceError", defaultReplaceError, "Value to replace date error cell (should be an ISO date to correctly infer schema)")
 	out := flag.String("out", "-", "Output path, - to output to stdin")
 
 	flag.Parse()

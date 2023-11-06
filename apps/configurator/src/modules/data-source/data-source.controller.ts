@@ -6,6 +6,7 @@ import {
   Param,
   Put,
   Delete,
+  Patch,
 } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 import {
@@ -22,6 +23,7 @@ import { WorkflowService } from '../workflow/workflow.service';
 import { createSyncConnectionWf } from '../../workflows';
 import { deleteDataSourceWf } from '../../workflows/dataSource.workflows';
 import { DeleteResult } from '../../common/type/deleteResult';
+import { UpdateSyncConnectionDto } from './dto/updateSyncConnection.dto';
 
 @Controller('datasources')
 export class DataSourceController {
@@ -86,6 +88,11 @@ export class DataSourceController {
     return result.data;
   }
 
+  @Post(':id/triggers/manual')
+  async triggerManually(@Param('id') id: string) {
+    return this.dataSourceService.triggerSyncConnection(id);
+  }
+
   @Post()
   async create(@Body() dto: CreateDataSourceDto) {
     const result = await this.dataSourceService.create(dto);
@@ -107,6 +114,14 @@ export class DataSourceController {
     @Body() data: UpdateDataSourceData,
   ) {
     return this.dataSourceService.update(id, data);
+  }
+
+  @Patch(':dataSourceId/connection')
+  updateConnection(
+    @Param('dataSourceId') id: string,
+    @Body() data: UpdateSyncConnectionDto,
+  ) {
+    return this.dataSourceService.updateSyncConnection(id, data);
   }
 
   @Delete(':id')

@@ -7,6 +7,7 @@ import {
   ExternalError,
   GoogleSheetsDataSourceConfig,
   GoogleSheetsProviderConfig,
+  IdColumnName,
 } from '@lib/core';
 
 @Injectable()
@@ -64,6 +65,8 @@ export class GoogleSheetsDiscoverer implements DataDiscoverer {
 
   async checkEmpty(sheetName: string, config: GoogleSheetsDataSourceConfig) {
     let isEmpty = false;
+    let isIdColContained = false;
+
     const { auth, spreadsheetId } = config;
     const client = await this.googleSheetsService.createSheetsClient(
       auth.refreshToken,
@@ -79,11 +82,20 @@ export class GoogleSheetsDiscoverer implements DataDiscoverer {
       let headerValuesCount = 0;
       const headerValues = headerRangeValues[0];
       this.logger.debug(`Header values: ${headerValues}`);
-      headerValues.forEach((value) => {
+      for (const value of headerValues) {
         if (value !== '') {
           headerValuesCount++;
+          if (value === IdColumnName) {
+            if (isIdColContained) {
+              throw new ExternalError(
+                ERROR_CODE.ID_COLUMN_DUPLICATED,
+                `The id column (${IdColumnName}) is duplicated`,
+              );
+            }
+            isIdColContained = true;
+          }
         }
-      });
+      }
       if (!headerValues.length || headerValuesCount === 0) {
         isEmpty = true;
       }

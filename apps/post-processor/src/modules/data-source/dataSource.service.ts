@@ -18,7 +18,14 @@ export class DataSourceService {
   ) {}
 
   async handleDataSourceError(dataSourceId: DataSourceId) {
-    this.logger.debug('handleDataSourceError', dataSourceId);
+    await this.stopSyncConnection(dataSourceId);
+  }
+
+  async handleSyncflowFailed(dataSourceId: DataSourceId) {
+    await this.stopSyncConnection(dataSourceId);
+  }
+
+  async stopSyncConnection(dataSourceId: DataSourceId) {
     const syncConnection =
       await this.syncConnectionRepository.getByDataSourceId(dataSourceId);
     if (!syncConnection) {

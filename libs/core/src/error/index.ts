@@ -34,7 +34,37 @@ export class ExternalError extends BaseError {
 }
 
 export class InternalError extends BaseError {
-  constructor(public readonly code: ErrorCode, message: string) {
+  constructor(
+    public readonly code: ErrorCode,
+    public readonly message: string,
+    public readonly data?: {
+      [key: string]: any;
+    },
+  ) {
     super(message);
+  }
+
+  public setData(key: string, value: any) {
+    this.data[key] = value;
+  }
+
+  public toJSON() {
+    return {
+      code: this.code,
+      message: this.message,
+      data: this.data,
+    };
+  }
+}
+
+export class InternalProcessorError extends InternalError {
+  constructor(
+    public readonly code: ErrorCode,
+    public readonly message: string,
+    public readonly data?: {
+      [key: string]: any;
+    },
+  ) {
+    super(code, message, data);
   }
 }

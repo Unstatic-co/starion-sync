@@ -39,6 +39,23 @@ export class TriggerRepository implements ITriggerRepository {
     return result.toJSON();
   }
 
+  public async getByDataSourceId(dataSourceId: string, options?: QueryOptions) {
+    const conditions = {
+      sourceId: Utils.toObjectId(dataSourceId),
+      isDeleted: false,
+    };
+    if (options?.includeDeleted) {
+      delete conditions.isDeleted;
+    }
+    let query = this.triggerModel.find(conditions);
+    if (options?.session) {
+      query = query.session(options.session);
+    }
+    const result = await query;
+    if (!result) return null;
+    return result.map((item) => item.toJSON());
+  }
+
   public async getByWorkflowId(id: string, options?: QueryOptions) {
     const conditions = {
       'workflow.id': Utils.toObjectId(id),
