@@ -1,15 +1,14 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { DataProviderService } from '../data-provider/data-provider.service';
 import {
   DataSourceId,
   ProviderSyncflowsRegistry,
   ProviderType,
   SyncConnection,
   SyncConnectionId,
+  SyncConnectionState,
   SyncflowRegistry,
 } from '@lib/core';
 import {
-  IDataProviderRepository,
   IDataSourceRepository,
   ISyncConnectionRepository,
   InjectTokens,
@@ -22,7 +21,6 @@ import {
   CreateSyncConnectionDto,
   CreateSyncConnectionTriggerConfigDto,
 } from './dto/createSyncConnection.dto';
-import { DataSourceService } from '../data-source/data-source.service';
 import {
   DEFAULT_CRON_TRIGGER_FREQUENCY,
   TriggerRegistry,
@@ -37,13 +35,8 @@ export class SyncConnectionService {
   private readonly logger = new Logger(SyncConnectionService.name);
 
   constructor(
-    private readonly dataProviderService: DataProviderService,
-    private readonly dataSourceService: DataSourceService,
-    private readonly triggerService: TriggerService,
     @Inject(InjectTokens.SYNC_CONNECTION_REPOSITORY)
     private readonly syncConnectionRepository: ISyncConnectionRepository,
-    @Inject(InjectTokens.DATA_PROVIDER_REPOSITORY)
-    private readonly dataProviderRepository: IDataProviderRepository,
     @Inject(InjectTokens.DATA_SOURCE_REPOSITORY)
     private readonly dataSourceRepository: IDataSourceRepository,
   ) {}
@@ -100,6 +93,29 @@ export class SyncConnectionService {
       isAlreadyCreated,
       data: syncConnection,
     };
+  }
+
+  async updateStateWithDataSourceId(
+    dataSourceId: DataSourceId,
+    data: Partial<SyncConnectionState>,
+  ) {
+    this.logger.debug(
+      `Update sync connection state with data source id: ${dataSourceId}`,
+    );
+    const syncConnection =
+      await this.syncConnectionRepository.getByDataSourceId(dataSourceId);
+    if (!syncConnection) {
+      throw new ApiError(ErrorCode.NO_DATA_EXISTS, `Sync connection not found`);
+    }
+    const updates = {};
+    if (data.status) {
+      Object.assign(updates, { status: data.status });
+    }
+    await this.syncConnectionRepository.updateState({
+      id: syncConnection.id,
+      ...updates,
+    });
+    this.logger.log(`Sync connection state updated, ds = ${dataSourceId}`);
   }
 
   async delete(id: SyncConnectionId): Promise<DeleteResult<SyncConnection>> {

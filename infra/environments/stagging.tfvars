@@ -4,6 +4,7 @@ environment = "stagging"
 github_owner     = "Unstatic-co"
 github_repo_url  = "https://github.com/Unstatic-co/starion-sync"
 github_repo_name = "starion-sync"
+github_branch    = "stagging"
 
 fly_region                    = "lax"
 do_region                     = "nyc1"

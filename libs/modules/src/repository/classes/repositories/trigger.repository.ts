@@ -1,10 +1,14 @@
-import { SyncflowId } from '@lib/core';
+import { DataSourceId, SyncflowId } from '@lib/core';
 import { IRepository } from '../baseRepository';
 import { QueryOptions } from '../common';
 import { Trigger, TriggerConfig, TriggerId } from '@lib/core/entities/trigger';
 
 export interface ITriggerRepository extends IRepository {
   getById(id: TriggerId, options?: QueryOptions): Promise<Trigger | null>;
+  getByDataSourceId(
+    dataSourceId: DataSourceId,
+    options?: QueryOptions,
+  ): Promise<Trigger[]>;
   getByWorkflowId(
     id: SyncflowId,
     options?: QueryOptions,

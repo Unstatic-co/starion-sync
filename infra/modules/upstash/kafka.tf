@@ -101,6 +101,17 @@ resource "upstash_kafka_topic" "syncflow_completed" {
   cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
 }
 
+resource "upstash_kafka_topic" "syncflow_failed" {
+  topic_name       = "syncflow.failed"
+  partitions       = var.is_production ? 5 : 2
+  retention_time   = 625135
+  retention_size   = 725124
+  max_message_size = 829213
+  cleanup_policy   = "delete"
+
+  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+}
+
 resource "upstash_kafka_topic" "notify_table" {
   topic_name       = "notifyTable"
   partitions       = var.is_production ? 10 : 5

@@ -4,6 +4,7 @@ import { BrokerService } from './broker.service';
 import {
   DataSourceErrorPayload,
   EventNames,
+  SyncflowFailedPayload,
   SyncflowSucceedPayload,
 } from '@lib/core';
 import { SyncflowService } from '../syncflow/syncflow.service';
@@ -21,15 +22,23 @@ export class BrokerController {
 
   @EventPattern(EventNames.SYNCFLOW_SUCCEED)
   async handleSyncflowSucceedEvent(payload: SyncflowSucceedPayload) {
-    this.logger.debug(
+    this.logger.log(
       `handle syncflow succeed event, ds = ${payload.dataSourceId}`,
     );
     return this.syncflowService.handleSyncflowSucceed(payload);
   }
 
+  @EventPattern(EventNames.SYNCFLOW_FAILED)
+  async handleSyncflowFailedErrorEvent(payload: SyncflowFailedPayload) {
+    this.logger.log(
+      `handle syncflow failed event, ds = ${payload.dataSourceId}`,
+    );
+    return this.dataSourceService.handleSyncflowFailed(payload.dataSourceId);
+  }
+
   @EventPattern(EventNames.DATA_SOURCE_ERROR)
   async handleDataSourceErrorEvent(payload: DataSourceErrorPayload) {
-    this.logger.debug(
+    this.logger.log(
       `handle data source error event, ds = ${payload.dataSourceId}`,
     );
     return this.dataSourceService.handleDataSourceError(payload.dataSourceId);
