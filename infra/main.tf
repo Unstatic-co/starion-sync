@@ -84,6 +84,7 @@ module "googlecloud" {
   github_repo_name = var.github_repo_name
   github_repo_url  = var.github_repo_url
   github_owner     = var.github_owner
+  github_branch    = var.github_branch
 
   gcp_project                   = var.gcp_project
   gcp_region                    = var.gcp_region

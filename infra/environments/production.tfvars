@@ -4,6 +4,7 @@ environment = "production"
 github_owner     = "Unstatic-co"
 github_repo_url  = "https://github.com/Unstatic-co/starion-sync"
 github_repo_name = "starion-sync"
+github_branch    = "main"
 
 fly_region                    = "lax"
 do_region                     = "nyc1"
