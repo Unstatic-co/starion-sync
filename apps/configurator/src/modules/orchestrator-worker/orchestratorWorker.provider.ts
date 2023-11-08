@@ -15,6 +15,7 @@ export const OrchestratorWorkerProvider = {
   inject: [
     ConfigService,
     InjectTokens.ORCHESTRATOR_NATIVE_CONNECTION,
+    CommonActivities,
     BrokerActivities,
     SyncConnectionActivities,
     TriggerActivities,
@@ -23,12 +24,14 @@ export const OrchestratorWorkerProvider = {
   useFactory: async (
     configService: ConfigService,
     orchestratorConnection: NativeConnection,
+    commonActivities: CommonActivities,
     brokerActivities: BrokerActivities,
     syncConnectionActivities: SyncConnectionActivities,
     triggerActivities: TriggerActivities,
     dataSourceActivities: DataSourceActivities,
   ) => {
     const activities = {
+      testWorkflow: commonActivities.testWorkflow.bind(commonActivities),
       emitEvent: brokerActivities.emitEvent.bind(brokerActivities),
       deleteDataSource:
         dataSourceActivities.deleteDataSource.bind(dataSourceActivities),

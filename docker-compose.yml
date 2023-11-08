@@ -41,9 +41,9 @@ services:
       - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - NODE_DEBUG=tls
-      - GRPC_TRACE=all
-      - GRPC_VERBOSITY=DEBUG
+      # - NODE_DEBUG=tls
+      # - GRPC_TRACE=all
+      # - GRPC_VERBOSITY=DEBUG
     volumes:
       - ./client.pem:/certs/client.crt
       - ./client.key:/certs/client.key

@@ -11,7 +11,7 @@ export const OrchestratorConnectionConfigProvider = {
     return {
       address: config.get(`${ConfigName.ORCHESTRATOR}.address`),
       tls: {
-        serverNameOverride: "Unstatic",
+        serverNameOverride: "unstatic",
         clientCertPair: {
           crt: fs.readFileSync("/certs/client.crt"),
           key: fs.readFileSync("/certs/client.key"),
@@ -32,7 +32,7 @@ export const OrchestratorNativeConnectionConfigProvider = {
     return {
       address: config.get(`${ConfigName.ORCHESTRATOR}.address`),
       tls: {
-        serverNameOverride: "Unstatic",
+        serverNameOverride: "unstatic",
         clientCertPair: {
           crt: fs.readFileSync("/certs/client.crt"),
           key: fs.readFileSync("/certs/client.key"),

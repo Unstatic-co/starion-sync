@@ -8,7 +8,6 @@ import {
   Delete,
   Patch,
 } from '@nestjs/common';
-import { ApiOperation } from '@nestjs/swagger';
 import {
   DataSourceService,
   DeleteDataSourceResult,
@@ -32,12 +31,13 @@ export class DataSourceController {
     private readonly dataSourceService: DataSourceService,
     private readonly syncConnectionService: SyncConnectionService,
     private readonly orchestratorService: OrchestratorService,
-  ) {}
+  ) { }
 
   @Get('/test')
-  @ApiOperation({ summary: 'get config' })
   test() {
-    return this.dataSourceService.test();
+    return this.orchestratorService.executeWorkflow("testWf", {
+      workflowId: `test-${Date.now()}`,
+    });
   }
 
   @Get(':dataSourceId')
