@@ -34,7 +34,9 @@ export class FormSyncService {
     if (!dataSource) {
       throw new ApiError(404, 'data source not found');
     }
-    this.logger.log(`Running form sync for data source ${dataSource.id}`);
+    this.logger.log(
+      `Running form sync for data source ${data.config.dataSourceId}`,
+    );
 
     const formSync = new FormSync();
     const promises = [];
