@@ -46,11 +46,20 @@ export class FormSyncService {
       this.logger.debug(`Generated record id ${data.payload.recordId}`);
       if (data.metadata?.localId) {
         promises.push(
-          this.cacheManager.set(
-            CacheRegistry.RecordLocalIdMapping.Key(data.payload.recordId),
-            data.metadata.localId,
-            CacheRegistry.RecordLocalIdMapping.TTL,
-          ),
+          this.cacheManager
+            .set(
+              CacheRegistry.RecordLocalIdMapping.Key(data.payload.recordId),
+              data.metadata.localId,
+              CacheRegistry.RecordLocalIdMapping.TTL,
+            )
+            .then(() => {
+              this.logger.debug(`Saved local id ${data.metadata.localId}`);
+            })
+            .catch((err) => {
+              this.logger.warn(
+                `Failed to save local id ${data.metadata.localId}`,
+              );
+            }),
         );
       }
     }
