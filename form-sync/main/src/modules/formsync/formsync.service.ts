@@ -34,12 +34,16 @@ export class FormSyncService {
     if (!dataSource) {
       throw new ApiError(404, 'data source not found');
     }
+    this.logger.log(
+      `Running form sync for data source ${data.config.dataSourceId}`,
+    );
 
     const formSync = new FormSync();
     const promises = [];
 
     if (data.type === FormSyncType.INSERT) {
       Object.assign(data.payload, { recordId: uuid() });
+      this.logger.debug(`Generated record id ${data.payload.recordId}`);
       if (data.metadata?.localId) {
         promises.push(
           this.cacheManager.set(
