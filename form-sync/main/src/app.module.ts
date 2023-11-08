@@ -93,6 +93,7 @@ import { redisStore } from 'cache-manager-redis-yet';
             },
             password,
             database: 0,
+            pingInterval: 1000 * 60 * 4,
           }),
         };
       },

@@ -369,7 +369,7 @@ resource "fly_machine" "formsync" {
   env = {
     NODE_ENV                = var.environment
     PORT                    = "8080"
-    LOG_LEVEL               = var.is_production ? "info" : "debug"
+    LOG_LEVEL               = var.is_production ? "debug" : "debug"
     API_KEYS                = join(",", var.api_keys)
     DB_URI                  = local.dest_db_uri
     DB_NAME                 = "starion-form-sync"
