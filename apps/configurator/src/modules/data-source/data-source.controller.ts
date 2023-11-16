@@ -7,6 +7,7 @@ import {
   Put,
   Delete,
   Patch,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 import {
@@ -125,12 +126,15 @@ export class DataSourceController {
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string) {
+  async delete(
+    @Param('id') id: string,
+    @Query('deleteData') deleteData: boolean,
+  ) {
     const result = (await this.orchestratorService.executeWorkflow(
       deleteDataSourceWf,
       {
         workflowId: `${id}`,
-        args: [id],
+        args: [id, { isDeleteData: deleteData }],
         waitResult: true,
       },
     )) as DeleteResult<DeleteDataSourceResult>;

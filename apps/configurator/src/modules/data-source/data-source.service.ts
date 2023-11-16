@@ -92,6 +92,15 @@ export class DataSourceService {
     return res;
   }
 
+  async deleteData(dataSource: DataSource) {
+    const dataTableName =
+      dataSource.config.dest?.tableName || `_${dataSource.id}`;
+    await this.destinationDatabaseService.deleteData(
+      dataSource.id,
+      dataTableName,
+    );
+  }
+
   async create(dto: CreateDataSourceDto): Promise<CreationResult<DataSource>> {
     try {
       const isAlreadyCreated = false;

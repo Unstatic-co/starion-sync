@@ -26,4 +26,6 @@ export class DestinationDatabaseService implements IDestinationDatabaseService {
   async getSchema(id: string) {}
 
   async getData(id: string) {}
+
+  async deleteData(id: string, dataTableName: string) {}
 }

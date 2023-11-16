@@ -3,8 +3,8 @@ import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import {
   ConnectionDeletedPayload,
   DataSourceDeletedPayload,
+  DataSourceId,
   EventNames,
-  SyncConnectionId,
 } from '@lib/core';
 import { DataSourceActivities } from '../modules/activities/dataSource.activities';
 
@@ -12,16 +12,24 @@ const { deleteDataSource, terminateDataSourceWorkflows } =
   proxyActivities<DataSourceActivities>({
     startToCloseTimeout: '10 second',
   });
-
+const { deleteDataSourceData } = proxyActivities<DataSourceActivities>({
+  startToCloseTimeout: '20 second',
+});
 const { emitEvent } = proxyActivities<BrokerActivities>({
   startToCloseTimeout: '10 second',
 });
 
-export async function deleteDataSourceWf(id: SyncConnectionId) {
+export async function deleteDataSourceWf(
+  id: DataSourceId,
+  options?: {
+    isDeleteData?: boolean;
+  },
+) {
   const result = await deleteDataSource(id);
-
   await terminateDataSourceWorkflows(id);
-
+  if (options?.isDeleteData) {
+    await deleteDataSourceData(result.data.dataSource);
+  }
   if (result.isAlreadyDeleted === false) {
     const payload: DataSourceDeletedPayload = {
       dataSourceId: id,
