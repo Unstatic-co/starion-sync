@@ -86,6 +86,10 @@ resource "fly_machine" "redis" {
     REDIS_PASSWORD = var.redis_password
   }
 
+  lifecycle {
+    prevent_destroy = true
+  }
+
   depends_on = [
     null_resource.redis_builder,
   ]
@@ -176,6 +180,10 @@ resource "fly_machine" "mongodb" {
     MONGO_INITDB_ROOT_USERNAME = var.mongodb_user
     MONGO_INITDB_ROOT_PASSWORD = var.mongodb_password
     MONGO_INITDB_DATABASE      = "starion-sync"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 
   depends_on = [
@@ -289,6 +297,10 @@ resource "fly_machine" "postgres" {
       "internal_port" : 5432,
     }
   ]
+
+  lifecycle {
+    prevent_destroy = true
+  }
 
   env = {
     POSTGRES_USER     = var.postgres_user
