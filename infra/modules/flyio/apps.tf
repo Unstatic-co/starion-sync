@@ -372,6 +372,7 @@ resource "fly_machine" "formsync" {
     LOG_LEVEL               = var.is_production ? "debug" : "debug"
     API_KEYS                = join(",", var.api_keys)
     DB_URI                  = local.dest_db_uri
+    DB_TLS_ENABLED          = "true"
     DB_NAME                 = "starion-form-sync"
     METADATA_DB_URI         = local.metadata_db_uri
     REDIS_HOST              = local.redis_host
