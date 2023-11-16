@@ -68,4 +68,10 @@ export class FormSyncService {
     const service = this.formSyncFactory.get(dataSource.provider);
     return service.run(formSync);
   }
+
+  async test() {
+    this.logger.debug('Test set cache');
+    await this.cacheManager.set('test', 'test', 10000);
+    this.logger.debug('Set cache success');
+  }
 }

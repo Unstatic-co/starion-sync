@@ -48,14 +48,16 @@ import { redisStore } from 'cache-manager-redis-yet';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const dbConfig = configService.get<DatabaseConfig>(ConfigName.DATABASE);
-        const { uri, database } = dbConfig;
+        const { uri, database, tlsEnabled } = dbConfig;
         return {
           type: 'postgres',
           url: uri,
           database,
-          ssl: {
-            rejectUnauthorized: false,
-          },
+          ssl: tlsEnabled
+            ? {
+                rejectUnauthorized: false,
+              }
+            : false,
           entities: entities,
           synchronize: true,
         };
@@ -84,17 +86,23 @@ import { redisStore } from 'cache-manager-redis-yet';
           `${ConfigName.REDIS}`,
         );
         const { host, port, password, tls } = redisConfig;
+        const store = await redisStore({
+          socket: {
+            host,
+            port: Number(port),
+            tls,
+            reconnectStrategy: (retries) => Math.min(retries * 50, 500),
+          },
+          password,
+          database: 0,
+          pingInterval: 1000 * 60 * 4,
+        } as RedisClientOptions);
+        store.client.on('error', (error) => {
+          console.error(error);
+        });
+
         return {
-          store: await redisStore({
-            socket: {
-              host,
-              port: Number(port),
-              tls,
-            },
-            password,
-            database: 0,
-            pingInterval: 1000 * 60 * 4,
-          }),
+          store,
         };
       },
     }),
