@@ -23,13 +23,8 @@ declare -a DOCKER_ARGS=(
     -f "$DOCKER_FILE"
 )
 
-if [[ -n "${ARGS:-}" ]]; then
-    declare -a BUILD_ARGS
-    IFS=' ' read -r -a BUILD_ARGS <<<"$ARGS"
-    DOCKER_ARGS=("${DOCKER_ARGS[@]}" "${BUILD_ARGS[@]}")
-fi
-
 # export DOCKER_BUILDKIT=1
 flyctl auth docker --access-token "$FLY_ACCESS_TOKEN"
-docker build "${DOCKER_ARGS[@]}" .
+docker buildx build --help
+docker build "${DOCKER_ARGS[@]}" "--build-arg REDIS_PASSWORD=123456" .
 docker push registry.fly.io/"$DOCKER_IMAGE_NAME:$DOCKER_IMAGE_DIGEST"

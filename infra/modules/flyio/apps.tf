@@ -217,16 +217,16 @@ resource "null_resource" "fly_app_webhook_trigger" {
   }
 }
 
-resource "null_resource" "fly_ipv4_apps" {
-  count = local.apps_count
+resource "null_resource" "fly_ipv4_webhook_trigger" {
+  count = local.webhook_trigger_count
   triggers = {
-    app = local.apps_app_name
+    app = local.webhook_trigger_app_name
   }
   provisioner "local-exec" {
-    command = "flyctl ips allocate-v4 -a ${local.apps_app_name} -y -t $FLY_API_TOKEN"
+    command = "flyctl ips allocate-v4 -a ${local.webhook_trigger_app_name} -y -t $FLY_API_TOKEN"
   }
   depends_on = [
-    null_resource.fly_app_apps
+    null_resource.fly_app_webhook_trigger
   ]
 }
 resource "null_resource" "fly_ipv6_webhook_trigger" {
@@ -267,7 +267,7 @@ resource "null_resource" "fly_machine_webhook_trigger" {
   count = local.webhook_trigger_count
   triggers = {
     hash = local.webhook_trigger_hash
-    env  = jsondecode(local.webhook_trigger_env)
+    env  = jsonencode(local.webhook_trigger_env)
   }
 
   provisioner "local-exec" {
@@ -340,16 +340,16 @@ resource "null_resource" "fly_app_formsync" {
   }
 }
 
-resource "null_resource" "fly_ipv4_apps" {
-  count = local.apps_count
+resource "null_resource" "fly_ipv4_formsync" {
+  count = local.formsync_count
   triggers = {
-    app = local.apps_app_name
+    app = local.formsync_app_name
   }
   provisioner "local-exec" {
-    command = "flyctl ips allocate-v4 -a ${local.apps_app_name} -y -t $FLY_API_TOKEN"
+    command = "flyctl ips allocate-v4 -a ${local.formsync_app_name} -y -t $FLY_API_TOKEN"
   }
   depends_on = [
-    null_resource.fly_app_apps
+    null_resource.fly_app_formsync
   ]
 }
 resource "null_resource" "fly_ipv6_formsync" {

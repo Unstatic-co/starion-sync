@@ -1,15 +1,15 @@
 output "redis_uri" {
-  value     = length(fly_ip.redis_ip_v4) > 0 ? "redis://default:123456@${fly_ip.redis_ip_v4[0].address}:6379" : null
+  value     = local.redis_count > 0 ? "redis://default:${var.redis_password}@${local.redis_app_name}.fly.dev:6379" : null
   sensitive = true
 }
 
 output "mongodb_uri" {
-  value     = length(fly_ip.mongodb_ip_v4) > 0 ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4[0].address}:27017/starion-sync?directConnection=true&authSource=admin" : null
+  value     = local.mongodb_count > 0 ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${local.mongodb_app_name}.fly.dev:27017/starion-sync?directConnection=true&authSource=admin" : null
   sensitive = true
 }
 
 output "metadata_db_uri" {
-  value     = length(fly_ip.mongodb_ip_v4) > 0 ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${fly_ip.mongodb_ip_v4[0].address}:27017/starion-form-sync?directConnection=true&authSource=admin" : null
+  value     = local.mongodb_count > 0 ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${local.mongodb_app_name}.fly.dev:27017/starion-form-sync?directConnection=true&authSource=admin" : null
   sensitive = true
 }
 
