@@ -82,85 +82,85 @@ resource "null_resource" "apps_builder" {
   }
 }
 
-resource "fly_machine" "apps" {
-  count = local.apps_count
+// resource "fly_machine" "apps" {
+// count = local.apps_count
 
-  app    = fly_app.apps[0].name
-  region = var.region
-  name   = "${var.project}-${var.environment}-apps"
+// app    = fly_app.apps[0].name
+// region = var.region
+// name   = "${var.project}-${var.environment}-apps"
 
-  cputype  = "shared"
-  cpus     = 2
-  memorymb = 2048
+// cputype  = "shared"
+// cpus     = 2
+// memorymb = 2048
 
-  image = "registry.fly.io/${fly_app.apps[0].name}:${local.apps_hash}"
+// image = "registry.fly.io/${fly_app.apps[0].name}:${local.apps_hash}"
 
-  services = [
-    {
-      "protocol" : "tcp",
-      "ports" : [
-        {
-          port : 443,
-          handlers : [
-            "tls",
-            "http"
-          ]
-        },
-        {
-          "port" : 80,
-          "handlers" : [
-            "http"
-          ]
-        }
-      ],
-      "internal_port" : 8080,
-    }
-  ]
+// services = [
+// {
+// "protocol" : "tcp",
+// "ports" : [
+// {
+// port : 443,
+// handlers : [
+// "tls",
+// "http"
+// ]
+// },
+// {
+// "port" : 80,
+// "handlers" : [
+// "http"
+// ]
+// }
+// ],
+// "internal_port" : 8080,
+// }
+// ]
 
-  env = {
-    NODE_ENV                = var.environment
-    LOG_LEVEL               = "debug"
-    BROKER_URIS             = var.broker_uris
-    DB_TYPE                 = "mongodb"
-    DB_URI                  = local.db_uri
-    DEST_DB_URI             = local.dest_db_uri
-    BROKER_TYPE             = "kafka"
-    KAFKA_SSL_ENABLED       = "true"
-    KAFKA_SASL_ENABLED      = "true"
-    KAFKA_SASL_USERNAME     = var.kafka_sasl_username
-    KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
-    REDIS_HOST              = local.redis_host
-    REDIS_PORT              = local.redis_port
-    REDIS_PASSWORD          = local.redis_password
-    REDIS_TLS_ENABLED       = local.redis_tls_enabled
-    ORCHESTRATOR_ADDRESS    = var.orchestrator_address
-    S3_URL                  = var.s3_endpoint
-    S3_REGION               = var.s3_region
-    S3_DIFF_DATA_BUCKET     = var.s3_bucket
-    S3_ACCESS_KEY           = var.s3_access_key
-    S3_SECRET_KEY           = var.s3_secret_key
-    DOWNLOADER_URL          = var.downloader_url
-    COMPARER_URL            = var.comparer_url
-    LOADER_URL              = var.loader_url
-    API_KEYS                = join(",", var.api_keys)
-    PROCESSOR_API_KEY       = random_shuffle.processor_api_key.result[0]
-    WEBHOOK_PRIVATE_KEY     = var.webhook_private_key
-    WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
-    MICROSOFT_CLIENT_ID     = var.microsoft_client_id
-    MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
-    GOOGLE_CLIENT_ID        = var.google_client_id
-    GOOGLE_CLIENT_SECRET    = var.google_client_secret
-    TRIGGER_RESTART         = "false"
-  }
+// env = {
+// NODE_ENV                = var.environment
+// LOG_LEVEL               = "debug"
+// BROKER_URIS             = var.broker_uris
+// DB_TYPE                 = "mongodb"
+// DB_URI                  = local.db_uri
+// DEST_DB_URI             = local.dest_db_uri
+// BROKER_TYPE             = "kafka"
+// KAFKA_SSL_ENABLED       = "true"
+// KAFKA_SASL_ENABLED      = "true"
+// KAFKA_SASL_USERNAME     = var.kafka_sasl_username
+// KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
+// REDIS_HOST              = local.redis_host
+// REDIS_PORT              = local.redis_port
+// REDIS_PASSWORD          = local.redis_password
+// REDIS_TLS_ENABLED       = local.redis_tls_enabled
+// ORCHESTRATOR_ADDRESS    = var.orchestrator_address
+// S3_URL                  = var.s3_endpoint
+// S3_REGION               = var.s3_region
+// S3_DIFF_DATA_BUCKET     = var.s3_bucket
+// S3_ACCESS_KEY           = var.s3_access_key
+// S3_SECRET_KEY           = var.s3_secret_key
+// DOWNLOADER_URL          = var.downloader_url
+// COMPARER_URL            = var.comparer_url
+// LOADER_URL              = var.loader_url
+// API_KEYS                = join(",", var.api_keys)
+// PROCESSOR_API_KEY       = random_shuffle.processor_api_key.result[0]
+// WEBHOOK_PRIVATE_KEY     = var.webhook_private_key
+// WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
+// MICROSOFT_CLIENT_ID     = var.microsoft_client_id
+// MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
+// GOOGLE_CLIENT_ID        = var.google_client_id
+// GOOGLE_CLIENT_SECRET    = var.google_client_secret
+// TRIGGER_RESTART         = "false"
+// }
 
-  depends_on = [
-    null_resource.apps_builder,
-    fly_machine.redis,
-    # fly_machine.postgres,
-    fly_machine.mongodb,
-    null_resource.mongodb_replica_set_setup,
-  ]
-}
+// depends_on = [
+// null_resource.apps_builder,
+// fly_machine.redis,
+// # fly_machine.postgres,
+// fly_machine.mongodb,
+// null_resource.mongodb_replica_set_setup,
+// ]
+// }
 
 resource "random_shuffle" "processor_api_key" {
   input        = var.processor_api_keys
@@ -215,70 +215,70 @@ resource "null_resource" "webhook_trigger_builder" {
   }
 }
 
-resource "fly_machine" "webhook_trigger" {
-  app    = fly_app.webhook_trigger.name
-  region = var.region
-  name   = "${var.project}-${var.environment}-webhook-trigger"
+// resource "fly_machine" "webhook_trigger" {
+// app    = fly_app.webhook_trigger.name
+// region = var.region
+// name   = "${var.project}-${var.environment}-webhook-trigger"
 
-  cputype  = "shared"
-  cpus     = 1
-  memorymb = 256
+// cputype  = "shared"
+// cpus     = 1
+// memorymb = 256
 
-  image = "registry.fly.io/${fly_app.webhook_trigger.name}:${local.webhook_trigger_hash}"
+// image = "registry.fly.io/${fly_app.webhook_trigger.name}:${local.webhook_trigger_hash}"
 
-  services = [
-    {
-      "protocol" : "tcp",
-      "ports" : [
-        {
-          port : 443,
-          handlers : [
-            "tls",
-            "http"
-          ]
-        },
-        {
-          "port" : 80,
-          "handlers" : [
-            "http"
-          ]
-        }
-      ],
-      "internal_port" : 8080,
-    }
-  ]
+// services = [
+// {
+// "protocol" : "tcp",
+// "ports" : [
+// {
+// port : 443,
+// handlers : [
+// "tls",
+// "http"
+// ]
+// },
+// {
+// "port" : 80,
+// "handlers" : [
+// "http"
+// ]
+// }
+// ],
+// "internal_port" : 8080,
+// }
+// ]
 
-  env = {
-    NODE_ENV                 = var.environment
-    LOG_LEVEL                = var.is_production ? "info" : "debug"
-    PORT                     = "8080"
-    DB_TYPE                  = "mongodb"
-    DB_URI                   = local.db_uri
-    DEST_DB_URI              = local.dest_db_uri
-    BROKER_TYPE              = "kafka"
-    BROKER_URIS              = var.broker_uris
-    KAFKA_CLIENT_ID          = "webhook-trigger"
-    KAFKA_CONSUMER_GROUP_ID  = "webhook-trigger-consumer"
-    KAFKA_SSL_ENABLED        = "true"
-    KAFKA_SASL_ENABLED       = "true"
-    KAFKA_SASL_USERNAME      = var.kafka_sasl_username
-    KAFKA_SASL_PASSWORD      = var.kafka_sasl_password
-    REDIS_HOST               = local.redis_host
-    REDIS_PORT               = local.redis_port
-    REDIS_PASSWORD           = local.redis_password
-    REDIS_TLS_ENABLED        = local.redis_tls_enabled
-    GOOGLE_CLIENT_ID         = var.google_client_id
-    GOOGLE_CLIENT_SECRET     = var.google_client_secret
-    WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url
-    TRIGGER_RESTART          = "true"
-  }
+// env = {
+// NODE_ENV                 = var.environment
+// LOG_LEVEL                = var.is_production ? "info" : "debug"
+// PORT                     = "8080"
+// DB_TYPE                  = "mongodb"
+// DB_URI                   = local.db_uri
+// DEST_DB_URI              = local.dest_db_uri
+// BROKER_TYPE              = "kafka"
+// BROKER_URIS              = var.broker_uris
+// KAFKA_CLIENT_ID          = "webhook-trigger"
+// KAFKA_CONSUMER_GROUP_ID  = "webhook-trigger-consumer"
+// KAFKA_SSL_ENABLED        = "true"
+// KAFKA_SASL_ENABLED       = "true"
+// KAFKA_SASL_USERNAME      = var.kafka_sasl_username
+// KAFKA_SASL_PASSWORD      = var.kafka_sasl_password
+// REDIS_HOST               = local.redis_host
+// REDIS_PORT               = local.redis_port
+// REDIS_PASSWORD           = local.redis_password
+// REDIS_TLS_ENABLED        = local.redis_tls_enabled
+// GOOGLE_CLIENT_ID         = var.google_client_id
+// GOOGLE_CLIENT_SECRET     = var.google_client_secret
+// WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url
+// TRIGGER_RESTART          = "true"
+// }
 
-  depends_on = [
-    null_resource.webhook_trigger_builder,
-    fly_machine.redis,
-    fly_machine.mongodb,
-  ]
-}
+// depends_on = [
+// null_resource.webhook_trigger_builder,
+// fly_machine.redis,
+// fly_machine.mongodb,
+// ]
+// }
 
 // **************************** Form Sync ****************************
 
@@ -333,68 +333,68 @@ resource "null_resource" "formsync_builder" {
   }
 }
 
-resource "fly_machine" "formsync" {
-  app    = fly_app.formsync.name
-  region = var.region
-  name   = "${var.project}-${var.environment}-formsync"
+// resource "fly_machine" "formsync" {
+// app    = fly_app.formsync.name
+// region = var.region
+// name   = "${var.project}-${var.environment}-formsync"
 
-  cputype  = "shared"
-  cpus     = 1
-  memorymb = 256
+// cputype  = "shared"
+// cpus     = 1
+// memorymb = 256
 
-  image = "registry.fly.io/${fly_app.formsync.name}:${local.formsync_hash}"
+// image = "registry.fly.io/${fly_app.formsync.name}:${local.formsync_hash}"
 
-  services = [
-    {
-      "protocol" : "tcp",
-      "ports" : [
-        {
-          port : 443,
-          handlers : [
-            "tls",
-            "http"
-          ]
-        },
-        {
-          "port" : 80,
-          "handlers" : [
-            "http"
-          ]
-        }
-      ],
-      "internal_port" : 8080,
-    }
-  ]
+// services = [
+// {
+// "protocol" : "tcp",
+// "ports" : [
+// {
+// port : 443,
+// handlers : [
+// "tls",
+// "http"
+// ]
+// },
+// {
+// "port" : 80,
+// "handlers" : [
+// "http"
+// ]
+// }
+// ],
+// "internal_port" : 8080,
+// }
+// ]
 
-  env = {
-    NODE_ENV                = var.environment
-    PORT                    = "8080"
-    LOG_LEVEL               = var.is_production ? "debug" : "debug"
-    API_KEYS                = join(",", var.api_keys)
-    DB_URI                  = local.dest_db_uri
-    DB_TLS_ENABLED          = "true"
-    DB_NAME                 = "starion-form-sync"
-    METADATA_DB_URI         = local.metadata_db_uri
-    REDIS_HOST              = local.redis_host
-    REDIS_PORT              = local.redis_port
-    REDIS_PASSWORD          = local.redis_password
-    REDIS_TLS_ENABLED       = local.redis_tls_enabled
-    METADATA_HOST_URL       = var.metadata_url
-    STARION_SYNC_BASE_URL   = local.configurator_url
-    WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
-    STARION_SYNC_API_KEY    = random_shuffle.configurator_api_key.result[0]
-    MICROSOFT_CLIENT_ID     = var.microsoft_client_id
-    MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
-    GOOGLE_CLIENT_ID        = var.google_client_id
-    GOOGLE_CLIENT_SECRET    = var.google_client_secret
-  }
+// env = {
+// NODE_ENV                = var.environment
+// PORT                    = "8080"
+// LOG_LEVEL               = var.is_production ? "debug" : "debug"
+// API_KEYS                = join(",", var.api_keys)
+// DB_URI                  = local.dest_db_uri
+// DB_TLS_ENABLED          = "true"
+// DB_NAME                 = "starion-form-sync"
+// METADATA_DB_URI         = local.metadata_db_uri
+// REDIS_HOST              = local.redis_host
+// REDIS_PORT              = local.redis_port
+// REDIS_PASSWORD          = local.redis_password
+// REDIS_TLS_ENABLED       = local.redis_tls_enabled
+// METADATA_HOST_URL       = var.metadata_url
+// STARION_SYNC_BASE_URL   = local.configurator_url
+// WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
+// STARION_SYNC_API_KEY    = random_shuffle.configurator_api_key.result[0]
+// MICROSOFT_CLIENT_ID     = var.microsoft_client_id
+// MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
+// GOOGLE_CLIENT_ID        = var.google_client_id
+// GOOGLE_CLIENT_SECRET    = var.google_client_secret
+// }
 
-  depends_on = [
-    null_resource.formsync_builder,
-    fly_machine.redis,
-    fly_machine.mongodb,
-  ]
-}
+// depends_on = [
+// null_resource.formsync_builder,
+// fly_machine.redis,
+// fly_machine.mongodb,
+// ]
+// }
 
 // **************************** Cron Trigger ****************************
 
@@ -438,67 +438,67 @@ resource "null_resource" "cron_trigger_builder" {
   }
 }
 
-resource "fly_machine" "cron_trigger" {
-  count = local.cron_trigger_count
+// resource "fly_machine" "cron_trigger" {
+// count = local.cron_trigger_count
 
-  app    = fly_app.cron_trigger[0].name
-  region = var.region
-  name   = "${var.project}-${var.environment}-cron-trigger"
+// app    = fly_app.cron_trigger[0].name
+// region = var.region
+// name   = "${var.project}-${var.environment}-cron-trigger"
 
-  cputype  = "shared"
-  cpus     = 1
-  memorymb = 256
+// cputype  = "shared"
+// cpus     = 1
+// memorymb = 256
 
-  image = "registry.fly.io/${fly_app.cron_trigger[0].name}:${local.cron_trigger_hash}"
+// image = "registry.fly.io/${fly_app.cron_trigger[0].name}:${local.cron_trigger_hash}"
 
-  services = [
-    {
-      "protocol" : "tcp",
-      "ports" : [
-        {
-          port : 443,
-          handlers : [
-            "tls",
-            "http"
-          ]
-        },
-        {
-          "port" : 80,
-          "handlers" : [
-            "http"
-          ]
-        }
-      ],
-      "internal_port" : 8080,
-    }
-  ]
+// services = [
+// {
+// "protocol" : "tcp",
+// "ports" : [
+// {
+// port : 443,
+// handlers : [
+// "tls",
+// "http"
+// ]
+// },
+// {
+// "port" : 80,
+// "handlers" : [
+// "http"
+// ]
+// }
+// ],
+// "internal_port" : 8080,
+// }
+// ]
 
-  env = {
-    NODE_ENV                = var.environment
-    LOG_LEVEL               = var.is_production ? "info" : "debug"
-    DB_TYPE                 = "mongodb"
-    DB_URI                  = local.db_uri
-    DEST_DB_URI             = local.dest_db_uri
-    BROKER_TYPE             = "kafka"
-    BROKER_URIS             = var.broker_uris
-    KAFKA_CLIENT_ID         = "cron-trigger"
-    KAFKA_CONSUMER_GROUP_ID = "cron-trigger-consumer"
-    KAFKA_SSL_ENABLED       = "true"
-    KAFKA_SASL_ENABLED      = "true"
-    KAFKA_SASL_USERNAME     = var.kafka_sasl_username
-    KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
-    REDIS_HOST              = local.redis_host
-    REDIS_PORT              = local.redis_port
-    REDIS_PASSWORD          = local.redis_password
-    REDIS_TLS_ENABLED       = local.redis_tls_enabled
-  }
+// env = {
+// NODE_ENV                = var.environment
+// LOG_LEVEL               = var.is_production ? "info" : "debug"
+// DB_TYPE                 = "mongodb"
+// DB_URI                  = local.db_uri
+// DEST_DB_URI             = local.dest_db_uri
+// BROKER_TYPE             = "kafka"
+// BROKER_URIS             = var.broker_uris
+// KAFKA_CLIENT_ID         = "cron-trigger"
+// KAFKA_CONSUMER_GROUP_ID = "cron-trigger-consumer"
+// KAFKA_SSL_ENABLED       = "true"
+// KAFKA_SASL_ENABLED      = "true"
+// KAFKA_SASL_USERNAME     = var.kafka_sasl_username
+// KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
+// REDIS_HOST              = local.redis_host
+// REDIS_PORT              = local.redis_port
+// REDIS_PASSWORD          = local.redis_password
+// REDIS_TLS_ENABLED       = local.redis_tls_enabled
+// }
 
-  depends_on = [
-    null_resource.cron_trigger_builder,
-    fly_machine.redis,
-    fly_machine.mongodb,
-  ]
-}
+// depends_on = [
+// null_resource.cron_trigger_builder,
+// fly_machine.redis,
+// fly_machine.mongodb,
+// ]
+// }
 
 // **************************** Configurator ****************************
 
@@ -556,76 +556,76 @@ resource "fly_ip" "configurator_ip_v6" {
   type = "v6"
 }
 
-resource "fly_machine" "configurator" {
-  count = local.configurator_count
+// resource "fly_machine" "configurator" {
+// count = local.configurator_count
 
-  app    = fly_app.configurator[0].name
-  region = var.region
-  name   = "${var.project}-${var.environment}-configurator"
+// app    = fly_app.configurator[0].name
+// region = var.region
+// name   = "${var.project}-${var.environment}-configurator"
 
-  cputype  = "shared"
-  cpus     = 1
-  memorymb = 512
+// cputype  = "shared"
+// cpus     = 1
+// memorymb = 512
 
-  image = "registry.fly.io/${fly_app.configurator[0].name}:${local.configurator_hash}"
+// image = "registry.fly.io/${fly_app.configurator[0].name}:${local.configurator_hash}"
 
-  services = [
-    {
-      "protocol" : "tcp",
-      "ports" : [
-        {
-          port : 443,
-          handlers : [
-            "tls",
-            "http"
-          ]
-        },
-        {
-          "port" : 80,
-          "handlers" : [
-            "http"
-          ]
-        }
-      ],
-      "internal_port" : 8080,
-    }
-  ]
+// services = [
+// {
+// "protocol" : "tcp",
+// "ports" : [
+// {
+// port : 443,
+// handlers : [
+// "tls",
+// "http"
+// ]
+// },
+// {
+// "port" : 80,
+// "handlers" : [
+// "http"
+// ]
+// }
+// ],
+// "internal_port" : 8080,
+// }
+// ]
 
-  env = {
-    NODE_ENV                       = var.environment
-    PORT                           = "8080"
-    LOG_LEVEL                      = var.is_production ? "info" : "debug"
-    BROKER_URIS                    = var.broker_uris
-    DB_TYPE                        = "mongodb"
-    DB_URI                         = local.db_uri
-    DEST_DB_URI                    = local.dest_db_uri
-    BROKER_TYPE                    = "kafka"
-    KAFKA_CLIENT_ID                = "configurator"
-    KAFKA_CONSUMER_GROUP_ID        = "configurator-consumer"
-    KAFKA_SSL_ENABLED              = "true"
-    KAFKA_SASL_ENABLED             = "true"
-    KAFKA_SASL_USERNAME            = var.kafka_sasl_username
-    KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
-    REDIS_HOST                     = local.redis_host
-    REDIS_PORT                     = local.redis_port
-    REDIS_PASSWORD                 = local.redis_password
-    REDIS_TLS_ENABLED              = local.redis_tls_enabled
-    ORCHESTRATOR_ADDRESS           = var.orchestrator_address
-    ORCHESTRATOR_WORKER_TASKQUEUE  = "configurator"
-    ORCHESTRATOR_DEFAULT_TASKQUEUE = "configurator"
-    API_KEYS                       = join(",", var.api_keys)
-    MICROSOFT_CLIENT_ID            = var.microsoft_client_id
-    MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
-    GOOGLE_CLIENT_ID               = var.google_client_id
-    GOOGLE_CLIENT_SECRET           = var.google_client_secret
-    TRIGGER_RESTART                = "true"
-  }
+// env = {
+// NODE_ENV                       = var.environment
+// PORT                           = "8080"
+// LOG_LEVEL                      = var.is_production ? "info" : "debug"
+// BROKER_URIS                    = var.broker_uris
+// DB_TYPE                        = "mongodb"
+// DB_URI                         = local.db_uri
+// DEST_DB_URI                    = local.dest_db_uri
+// BROKER_TYPE                    = "kafka"
+// KAFKA_CLIENT_ID                = "configurator"
+// KAFKA_CONSUMER_GROUP_ID        = "configurator-consumer"
+// KAFKA_SSL_ENABLED              = "true"
+// KAFKA_SASL_ENABLED             = "true"
+// KAFKA_SASL_USERNAME            = var.kafka_sasl_username
+// KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
+// REDIS_HOST                     = local.redis_host
+// REDIS_PORT                     = local.redis_port
+// REDIS_PASSWORD                 = local.redis_password
+// REDIS_TLS_ENABLED              = local.redis_tls_enabled
+// ORCHESTRATOR_ADDRESS           = var.orchestrator_address
+// ORCHESTRATOR_WORKER_TASKQUEUE  = "configurator"
+// ORCHESTRATOR_DEFAULT_TASKQUEUE = "configurator"
+// API_KEYS                       = join(",", var.api_keys)
+// MICROSOFT_CLIENT_ID            = var.microsoft_client_id
+// MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
+// GOOGLE_CLIENT_ID               = var.google_client_id
+// GOOGLE_CLIENT_SECRET           = var.google_client_secret
+// TRIGGER_RESTART                = "true"
+// }
 
-  depends_on = [
-    null_resource.configurator_builder,
-    fly_machine.mongodb,
-  ]
-}
+// depends_on = [
+// null_resource.configurator_builder,
+// fly_machine.mongodb,
+// ]
+// }
 
 // **************************** Controller ****************************
 
@@ -669,69 +669,69 @@ resource "null_resource" "controller_builder" {
   }
 }
 
-resource "fly_machine" "controller" {
-  count = local.controller_count
+// resource "fly_machine" "controller" {
+// count = local.controller_count
 
-  app    = fly_app.controller[0].name
-  region = var.region
-  name   = "${var.project}-${var.environment}-controller"
+// app    = fly_app.controller[0].name
+// region = var.region
+// name   = "${var.project}-${var.environment}-controller"
 
-  cputype  = "shared"
-  cpus     = 1
-  memorymb = 1024
+// cputype  = "shared"
+// cpus     = 1
+// memorymb = 1024
 
-  image = "registry.fly.io/${fly_app.controller[0].name}:${local.controller_hash}"
+// image = "registry.fly.io/${fly_app.controller[0].name}:${local.controller_hash}"
 
-  services = [
-    {
-      "protocol" : "tcp",
-      "ports" : [
-        {
-          port : 443,
-          handlers : [
-            "tls",
-            "http"
-          ]
-        },
-        {
-          "port" : 80,
-          "handlers" : [
-            "http"
-          ]
-        }
-      ],
-      "internal_port" : 8080,
-    }
-  ]
+// services = [
+// {
+// "protocol" : "tcp",
+// "ports" : [
+// {
+// port : 443,
+// handlers : [
+// "tls",
+// "http"
+// ]
+// },
+// {
+// "port" : 80,
+// "handlers" : [
+// "http"
+// ]
+// }
+// ],
+// "internal_port" : 8080,
+// }
+// ]
 
-  env = {
-    NODE_ENV                       = var.environment
-    LOG_LEVEL                      = var.is_production ? "info" : "debug"
-    BROKER_URIS                    = var.broker_uris
-    DB_TYPE                        = "mongodb"
-    DB_URI                         = local.db_uri
-    BROKER_TYPE                    = "kafka"
-    KAFKA_CLIENT_ID                = "controller"
-    KAFKA_CONSUMER_GROUP_ID        = "controller-consumer"
-    KAFKA_SSL_ENABLED              = "true"
-    KAFKA_SASL_ENABLED             = "true"
-    KAFKA_SASL_USERNAME            = var.kafka_sasl_username
-    KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
-    ORCHESTRATOR_ADDRESS           = var.orchestrator_address
-    ORCHESTRATOR_WORKER_TASKQUEUE  = "controller"
-    ORCHESTRATOR_DEFAULT_TASKQUEUE = "controller"
-    MICROSOFT_CLIENT_ID            = var.microsoft_client_id
-    MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
-    GOOGLE_CLIENT_ID               = var.google_client_id
-    GOOGLE_CLIENT_SECRET           = var.google_client_secret
-    TRIGGER_RESTART                = "true"
-  }
+// env = {
+// NODE_ENV                       = var.environment
+// LOG_LEVEL                      = var.is_production ? "info" : "debug"
+// BROKER_URIS                    = var.broker_uris
+// DB_TYPE                        = "mongodb"
+// DB_URI                         = local.db_uri
+// BROKER_TYPE                    = "kafka"
+// KAFKA_CLIENT_ID                = "controller"
+// KAFKA_CONSUMER_GROUP_ID        = "controller-consumer"
+// KAFKA_SSL_ENABLED              = "true"
+// KAFKA_SASL_ENABLED             = "true"
+// KAFKA_SASL_USERNAME            = var.kafka_sasl_username
+// KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
+// ORCHESTRATOR_ADDRESS           = var.orchestrator_address
+// ORCHESTRATOR_WORKER_TASKQUEUE  = "controller"
+// ORCHESTRATOR_DEFAULT_TASKQUEUE = "controller"
+// MICROSOFT_CLIENT_ID            = var.microsoft_client_id
+// MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
+// GOOGLE_CLIENT_ID               = var.google_client_id
+// GOOGLE_CLIENT_SECRET           = var.google_client_secret
+// TRIGGER_RESTART                = "true"
+// }
 
-  depends_on = [
-    null_resource.controller_builder,
-    fly_machine.mongodb,
-  ]
-}
+// depends_on = [
+// null_resource.controller_builder,
+// fly_machine.mongodb,
+// ]
+// }
 
 // **************************** Worker ****************************
 
@@ -775,73 +775,73 @@ resource "null_resource" "worker_builder" {
   }
 }
 
-resource "fly_machine" "worker" {
-  count = local.worker_count
+// resource "fly_machine" "worker" {
+// count = local.worker_count
 
-  app    = fly_app.worker[0].name
-  region = var.region
-  name   = "${var.project}-${var.environment}-worker"
+// app    = fly_app.worker[0].name
+// region = var.region
+// name   = "${var.project}-${var.environment}-worker"
 
-  cputype  = "shared"
-  cpus     = 1
-  memorymb = 1024
+// cputype  = "shared"
+// cpus     = 1
+// memorymb = 1024
 
-  image = "registry.fly.io/${fly_app.worker[0].name}:${local.worker_hash}"
+// image = "registry.fly.io/${fly_app.worker[0].name}:${local.worker_hash}"
 
-  services = [
-    {
-      "protocol" : "tcp",
-      "ports" : [
-        {
-          port : 443,
-          handlers : [
-            "tls",
-            "http"
-          ]
-        },
-        {
-          "port" : 80,
-          "handlers" : [
-            "http"
-          ]
-        }
-      ],
-      "internal_port" : 8080,
-    }
-  ]
+// services = [
+// {
+// "protocol" : "tcp",
+// "ports" : [
+// {
+// port : 443,
+// handlers : [
+// "tls",
+// "http"
+// ]
+// },
+// {
+// "port" : 80,
+// "handlers" : [
+// "http"
+// ]
+// }
+// ],
+// "internal_port" : 8080,
+// }
+// ]
 
-  env = {
-    NODE_ENV                       = var.environment
-    LOG_LEVEL                      = var.is_production ? "info" : "debug"
-    BROKER_URIS                    = var.broker_uris
-    DB_TYPE                        = "mongodb"
-    DB_URI                         = local.db_uri
-    BROKER_TYPE                    = "kafka"
-    KAFKA_CLIENT_ID                = "worker"
-    KAFKA_CONSUMER_GROUP_ID        = "worker-consumer"
-    KAFKA_SSL_ENABLED              = "true"
-    KAFKA_SASL_ENABLED             = "true"
-    KAFKA_SASL_USERNAME            = var.kafka_sasl_username
-    KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
-    ORCHESTRATOR_ADDRESS           = var.orchestrator_address
-    ORCHESTRATOR_WORKER_TASKQUEUE  = "worker"
-    ORCHESTRATOR_DEFAULT_TASKQUEUE = "worker"
-    DOWNLOADER_URL                 = var.downloader_url
-    COMPARER_URL                   = var.comparer_url
-    LOADER_URL                     = var.loader_url
-    PROCESSOR_API_KEY              = random_shuffle.processor_api_key.result[0]
-    MICROSOFT_CLIENT_ID            = var.microsoft_client_id
-    MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
-    GOOGLE_CLIENT_ID               = var.google_client_id
-    GOOGLE_CLIENT_SECRET           = var.google_client_secret
-    TRIGGER_RESTART                = "true"
-  }
+// env = {
+// NODE_ENV                       = var.environment
+// LOG_LEVEL                      = var.is_production ? "info" : "debug"
+// BROKER_URIS                    = var.broker_uris
+// DB_TYPE                        = "mongodb"
+// DB_URI                         = local.db_uri
+// BROKER_TYPE                    = "kafka"
+// KAFKA_CLIENT_ID                = "worker"
+// KAFKA_CONSUMER_GROUP_ID        = "worker-consumer"
+// KAFKA_SSL_ENABLED              = "true"
+// KAFKA_SASL_ENABLED             = "true"
+// KAFKA_SASL_USERNAME            = var.kafka_sasl_username
+// KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
+// ORCHESTRATOR_ADDRESS           = var.orchestrator_address
+// ORCHESTRATOR_WORKER_TASKQUEUE  = "worker"
+// ORCHESTRATOR_DEFAULT_TASKQUEUE = "worker"
+// DOWNLOADER_URL                 = var.downloader_url
+// COMPARER_URL                   = var.comparer_url
+// LOADER_URL                     = var.loader_url
+// PROCESSOR_API_KEY              = random_shuffle.processor_api_key.result[0]
+// MICROSOFT_CLIENT_ID            = var.microsoft_client_id
+// MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
+// GOOGLE_CLIENT_ID               = var.google_client_id
+// GOOGLE_CLIENT_SECRET           = var.google_client_secret
+// TRIGGER_RESTART                = "true"
+// }
 
-  depends_on = [
-    null_resource.worker_builder,
-    fly_machine.mongodb,
-  ]
-}
+// depends_on = [
+// null_resource.worker_builder,
+// fly_machine.mongodb,
+// ]
+// }
 
 // **************************** Post Processor ****************************
 
@@ -885,70 +885,70 @@ resource "null_resource" "post_processor_builder" {
   }
 }
 
-resource "fly_machine" "post-processor" {
-  count = local.post_processor_count
+// resource "fly_machine" "post-processor" {
+// count = local.post_processor_count
 
-  app    = fly_app.post_processor[0].name
-  region = var.region
-  name   = "${var.project}-${var.environment}-post-processor"
+// app    = fly_app.post_processor[0].name
+// region = var.region
+// name   = "${var.project}-${var.environment}-post-processor"
 
-  cputype  = "shared"
-  cpus     = 1
-  memorymb = 256
+// cputype  = "shared"
+// cpus     = 1
+// memorymb = 256
 
-  image = "registry.fly.io/${fly_app.post_processor[0].name}:${local.post_processor_hash}"
+// image = "registry.fly.io/${fly_app.post_processor[0].name}:${local.post_processor_hash}"
 
-  services = [
-    {
-      "protocol" : "tcp",
-      "ports" : [
-        {
-          port : 443,
-          handlers : [
-            "tls",
-            "http"
-          ]
-        },
-        {
-          "port" : 80,
-          "handlers" : [
-            "http"
-          ]
-        }
-      ],
-      "internal_port" : 8080,
-    }
-  ]
+// services = [
+// {
+// "protocol" : "tcp",
+// "ports" : [
+// {
+// port : 443,
+// handlers : [
+// "tls",
+// "http"
+// ]
+// },
+// {
+// "port" : 80,
+// "handlers" : [
+// "http"
+// ]
+// }
+// ],
+// "internal_port" : 8080,
+// }
+// ]
 
-  env = {
-    NODE_ENV                              = var.environment
-    LOG_LEVEL                             = var.is_production ? "info" : "debug"
-    BROKER_URIS                           = var.broker_uris
-    DB_TYPE                               = "mongodb"
-    DB_URI                                = local.db_uri
-    BROKER_TYPE                           = "kafka"
-    KAFKA_CLIENT_ID                       = "post-processor"
-    KAFKA_CONSUMER_GROUP_ID               = "post-processor-consumer"
-    KAFKA_SSL_ENABLED                     = "true"
-    KAFKA_SASL_ENABLED                    = "true"
-    KAFKA_SASL_USERNAME                   = var.kafka_sasl_username
-    KAFKA_SASL_PASSWORD                   = var.kafka_sasl_password
-    ORCHESTRATOR_ADDRESS                  = var.orchestrator_address
-    ORCHESTRATOR_post-processor_TASKQUEUE = "post-processor"
-    ORCHESTRATOR_DEFAULT_TASKQUEUE        = "post-processor"
-    S3_URL                                = var.s3_endpoint
-    S3_REGION                             = var.s3_region
-    S3_DIFF_DATA_BUCKET                   = var.s3_bucket
-    S3_ACCESS_KEY                         = var.s3_access_key
-    S3_SECRET_KEY                         = var.s3_secret_key
-    TRIGGER_RESTART                       = "true"
-  }
+// env = {
+// NODE_ENV                              = var.environment
+// LOG_LEVEL                             = var.is_production ? "info" : "debug"
+// BROKER_URIS                           = var.broker_uris
+// DB_TYPE                               = "mongodb"
+// DB_URI                                = local.db_uri
+// BROKER_TYPE                           = "kafka"
+// KAFKA_CLIENT_ID                       = "post-processor"
+// KAFKA_CONSUMER_GROUP_ID               = "post-processor-consumer"
+// KAFKA_SSL_ENABLED                     = "true"
+// KAFKA_SASL_ENABLED                    = "true"
+// KAFKA_SASL_USERNAME                   = var.kafka_sasl_username
+// KAFKA_SASL_PASSWORD                   = var.kafka_sasl_password
+// ORCHESTRATOR_ADDRESS                  = var.orchestrator_address
+// ORCHESTRATOR_post-processor_TASKQUEUE = "post-processor"
+// ORCHESTRATOR_DEFAULT_TASKQUEUE        = "post-processor"
+// S3_URL                                = var.s3_endpoint
+// S3_REGION                             = var.s3_region
+// S3_DIFF_DATA_BUCKET                   = var.s3_bucket
+// S3_ACCESS_KEY                         = var.s3_access_key
+// S3_SECRET_KEY                         = var.s3_secret_key
+// TRIGGER_RESTART                       = "true"
+// }
 
-  depends_on = [
-    null_resource.post_processor_builder,
-    fly_machine.mongodb,
-  ]
-}
+// depends_on = [
+// null_resource.post_processor_builder,
+// fly_machine.mongodb,
+// ]
+// }
 
 // **************************** Webhook ****************************
 
@@ -992,64 +992,64 @@ resource "null_resource" "webhook_builder" {
   }
 }
 
-resource "fly_machine" "webhook" {
-  count = local.webhook_count
+// resource "fly_machine" "webhook" {
+// count = local.webhook_count
 
-  app    = fly_app.webhook[0].name
-  region = var.region
-  name   = "${var.project}-${var.environment}-webhook"
+// app    = fly_app.webhook[0].name
+// region = var.region
+// name   = "${var.project}-${var.environment}-webhook"
 
-  cputype  = "shared"
-  cpus     = 1
-  memorymb = 256
+// cputype  = "shared"
+// cpus     = 1
+// memorymb = 256
 
-  image = "registry.fly.io/${fly_app.webhook[0].name}:${local.webhook_hash}"
+// image = "registry.fly.io/${fly_app.webhook[0].name}:${local.webhook_hash}"
 
-  services = [
-    {
-      "protocol" : "tcp",
-      "ports" : [
-        {
-          port : 443,
-          handlers : [
-            "tls",
-            "http"
-          ]
-        },
-        {
-          "port" : 80,
-          "handlers" : [
-            "http"
-          ]
-        }
-      ],
-      "internal_port" : 8080,
-    }
-  ]
+// services = [
+// {
+// "protocol" : "tcp",
+// "ports" : [
+// {
+// port : 443,
+// handlers : [
+// "tls",
+// "http"
+// ]
+// },
+// {
+// "port" : 80,
+// "handlers" : [
+// "http"
+// ]
+// }
+// ],
+// "internal_port" : 8080,
+// }
+// ]
 
-  env = {
-    NODE_ENV                = var.environment
-    LOG_LEVEL               = var.is_production ? "info" : "debug"
-    BROKER_URIS             = var.broker_uris
-    DB_TYPE                 = "mongodb"
-    DB_URI                  = local.db_uri
-    BROKER_TYPE             = "kafka"
-    KAFKA_CLIENT_ID         = "webhook"
-    KAFKA_CONSUMER_GROUP_ID = "webhook-consumer"
-    KAFKA_SSL_ENABLED       = "true"
-    KAFKA_SASL_ENABLED      = "true"
-    KAFKA_SASL_USERNAME     = var.kafka_sasl_username
-    KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
-    REDIS_HOST              = local.redis_host
-    REDIS_PORT              = local.redis_port
-    REDIS_PASSWORD          = local.redis_password
-    REDIS_TLS_ENABLED       = local.redis_tls_enabled
-    WEBHOOK_PRIVATE_KEY     = var.webhook_private_key
-  }
+// env = {
+// NODE_ENV                = var.environment
+// LOG_LEVEL               = var.is_production ? "info" : "debug"
+// BROKER_URIS             = var.broker_uris
+// DB_TYPE                 = "mongodb"
+// DB_URI                  = local.db_uri
+// BROKER_TYPE             = "kafka"
+// KAFKA_CLIENT_ID         = "webhook"
+// KAFKA_CONSUMER_GROUP_ID = "webhook-consumer"
+// KAFKA_SSL_ENABLED       = "true"
+// KAFKA_SASL_ENABLED      = "true"
+// KAFKA_SASL_USERNAME     = var.kafka_sasl_username
+// KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
+// REDIS_HOST              = local.redis_host
+// REDIS_PORT              = local.redis_port
+// REDIS_PASSWORD          = local.redis_password
+// REDIS_TLS_ENABLED       = local.redis_tls_enabled
+// WEBHOOK_PRIVATE_KEY     = var.webhook_private_key
+// }
 
-  depends_on = [
-    null_resource.webhook_builder,
-    fly_machine.redis,
-    fly_machine.mongodb,
-  ]
-}
+// depends_on = [
+// null_resource.webhook_builder,
+// fly_machine.redis,
+// fly_machine.mongodb,
+// ]
+// }
