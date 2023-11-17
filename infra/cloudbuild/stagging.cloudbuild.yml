@@ -132,6 +132,7 @@ steps:
         export TF_VAR_dest_db_uri=$$DEST_DB_URI
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
 
+        flyctl version
         terraform apply -no-color -auto-approve tfplan
 #        terraform destroy -var-file="environments/stagging.tfvars" -auto-approve
 substitutions:

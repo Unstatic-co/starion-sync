@@ -195,25 +195,25 @@ locals {
   webhook_trigger_hash = md5(join("", [for i in local.webhook_trigger_files : filemd5(i)]))
 }
 
-resource "null_resource" "webhook_trigger_builder" {
-  triggers = {
-    hash = local.webhook_trigger_hash
-  }
+# resource "null_resource" "webhook_trigger_builder" {
+# triggers = {
+# hash = local.webhook_trigger_hash
+# }
 
-  provisioner "local-exec" {
-    command = abspath("${path.module}/build-image.sh")
-    interpreter = [
-      "/bin/bash"
-    ]
-    environment = {
-      FLY_ACCESS_TOKEN    = var.fly_api_token
-      DOCKER_FILE         = abspath("${local.webhook_trigger_path}/Dockerfile")
-      DOCKER_IMAGE_NAME   = fly_app.webhook_trigger.name
-      DOCKER_IMAGE_DIGEST = local.webhook_trigger_hash
-    }
-    working_dir = abspath("${path.root}/../")
-  }
-}
+# provisioner "local-exec" {
+# command = abspath("${path.module}/build-image.sh")
+# interpreter = [
+# "/bin/bash"
+# ]
+# environment = {
+# FLY_ACCESS_TOKEN    = var.fly_api_token
+# DOCKER_FILE         = abspath("${local.webhook_trigger_path}/Dockerfile")
+# DOCKER_IMAGE_NAME   = fly_app.webhook_trigger.name
+# DOCKER_IMAGE_DIGEST = local.webhook_trigger_hash
+# }
+# working_dir = abspath("${path.root}/../")
+# }
+# }
 
 // resource "fly_machine" "webhook_trigger" {
 // app    = fly_app.webhook_trigger.name
@@ -277,6 +277,135 @@ resource "null_resource" "webhook_trigger_builder" {
 // null_resource.webhook_trigger_builder,
 // fly_machine.redis,
 // fly_machine.mongodb,
+// ]
+// }
+
+// // **************************** Webhook Trigger New ****************************
+// locals {
+// webhook_trigger_app_name        = "${var.project}-${var.environment}-webhook-trigger-new"
+// webhook_trigger_path            = abspath("${path.root}/../apps/triggers/webhook")
+// webhook_trigger_dockerfile_path = "${local.webhook_trigger_path}/Dockerfile"
+// webhook_trigger_files = sort(setunion(
+// [
+// local.webhook_trigger_dockerfile_path,
+// "${path.module}/build/webhook-trigger/fly.toml"
+// ],
+// [for f in fileset("${local.webhook_trigger_path}", "**") : "${local.webhook_trigger_path}/${f}"],
+// ))
+// webhook_trigger_hash      = md5(join("", [for i in local.webhook_trigger_files : filemd5(i)]))
+// webhook_trigger_image_url = "registry.fly.io/${local.webhook_trigger_app_name}:${local.webhook_trigger_hash}"
+// }
+// resource "null_resource" "fly_app_webhook_trigger" {
+// triggers = {
+// name = local.webhook_trigger_app_name
+// org  = var.organization
+// }
+// provisioner "local-exec" {
+// when    = create
+// command = "flyctl apps create ${local.webhook_trigger_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
+// }
+// provisioner "local-exec" {
+// when    = destroy
+// command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
+// }
+// }
+
+// resource "null_resource" "fly_ipv6_webhook_trigger" {
+// triggers = {
+// app = local.webhook_trigger_app_name
+// }
+// provisioner "local-exec" {
+// command = "flyctl ips allocate-v6 -a ${local.webhook_trigger_app_name} -t $FLY_API_TOKEN"
+// }
+// depends_on = [
+// null_resource.fly_app_webhook_trigger
+// ]
+// }
+
+// resource "null_resource" "webhook_trigger_builder" {
+// triggers = {
+// hash = local.webhook_trigger_hash
+// }
+
+// provisioner "local-exec" {
+// command = abspath("${path.module}/build-image.sh")
+// interpreter = [
+// "/bin/bash"
+// ]
+// environment = {
+// FLY_ACCESS_TOKEN    = var.fly_api_token
+// DOCKER_FILE         = local.webhook_trigger_dockerfile_path
+// DOCKER_IMAGE_NAME   = local.webhook_trigger_app_name
+// DOCKER_IMAGE_DIGEST = self.triggers.hash
+// }
+// working_dir = abspath("${path.root}/../")
+// }
+// }
+
+// resource "null_resource" "fly_machine_webhook_trigger" {
+// triggers = {
+// hash = local.webhook_trigger_hash
+// env = {
+// NODE_ENV                 = var.environment
+// LOG_LEVEL                = var.is_production ? "info" : "debug"
+// PORT                     = "8080"
+// DB_TYPE                  = "mongodb"
+// DB_URI                   = local.db_uri
+// DEST_DB_URI              = local.dest_db_uri
+// BROKER_TYPE              = "kafka"
+// BROKER_URIS              = var.broker_uris
+// KAFKA_CLIENT_ID          = "webhook-trigger"
+// KAFKA_CONSUMER_GROUP_ID  = "webhook-trigger-consumer"
+// KAFKA_SSL_ENABLED        = "true"
+// KAFKA_SASL_ENABLED       = "true"
+// KAFKA_SASL_USERNAME      = var.kafka_sasl_username
+// KAFKA_SASL_PASSWORD      = var.kafka_sasl_password
+// REDIS_HOST               = local.redis_host
+// REDIS_PORT               = local.redis_port
+// REDIS_PASSWORD           = local.redis_password
+// REDIS_TLS_ENABLED        = local.redis_tls_enabled
+// GOOGLE_CLIENT_ID         = var.google_client_id
+// GOOGLE_CLIENT_SECRET     = var.google_client_secret
+// WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url
+// TRIGGER_REBUILD          = "true"
+// }
+// }
+
+// provisioner "local-exec" {
+// command     = <<EOT
+// flyctl deploy . \
+// -y -t $FLY_API_TOKEN \
+// -a ${local.webhook_trigger_app_name} \
+// -i "${local.webhook_trigger_image_url}" \
+// -e KAFKA_SASL_USERNAME=${var.kafka_sasl_username} \
+// -e NODE_ENV=${var.environment} \
+// -e LOG_LEVEL=${var.is_production ? "info" : "debug"} \
+// -e PORT=8080 \
+// -e DB_TYPE=mongodb \
+// -e DB_URI="${local.db_uri}" \
+// -e DEST_DB_URI="${local.dest_db_uri}" \
+// -e BROKER_TYPE=kafka \
+// -e BROKER_URIS="${var.broker_uris}" \
+// -e KAFKA_CLIENT_ID=webhook-trigger \
+// -e KAFKA_CONSUMER_GROUP_ID=webhook-trigger-consumer \
+// -e KAFKA_SSL_ENABLED=true \
+// -e KAFKA_SASL_ENABLED=true \
+// -e KAFKA_SASL_USERNAME=${var.kafka_sasl_username} \
+// -e KAFKA_SASL_PASSWORD=${var.kafka_sasl_password} \
+// -e REDIS_HOST=${local.redis_host} \
+// -e REDIS_PORT=${local.redis_port} \
+// -e REDIS_PASSWORD=${local.redis_password} \
+// -e REDIS_TLS_ENABLED=${local.redis_tls_enabled} \
+// -e GOOGLE_CLIENT_ID=${var.google_client_id} \
+// -e GOOGLE_CLIENT_SECRET=${var.google_client_secret} \
+// -e WEBHOOK_TRIGGER_BASE_URL=${local.webhook_trigger_base_url}
+// EOT
+// working_dir = abspath("${path.module}/build/webhook-trigger")
+// }
+
+// depends_on = [
+// null_resource.fly_app_webhook_trigger,
+// null_resource.webhook_trigger_builder
 // ]
 // }
 
@@ -1053,3 +1182,96 @@ resource "null_resource" "webhook_builder" {
 // fly_machine.mongodb,
 // ]
 // }
+
+// **************************** Test App ****************************
+locals {
+  test_app_count           = 1
+  test_app_name            = "${var.project}-${var.environment}-test-app"
+  test_app_path            = abspath("${path.root}/../apps/webhook")
+  test_app_dockerfile_path = "${local.test_app_path}/Dockerfile.test"
+  test_app_files = sort(setunion(
+    [
+      local.test_app_dockerfile_path,
+      "${path.module}/build/test-app/fly.toml"
+    ],
+    [for f in fileset("${local.test_app_path}", "**") : "${local.test_app_path}/${f}"],
+  ))
+  test_app_hash      = md5(join("", [for i in local.test_app_files : filemd5(i)]))
+  test_app_image_url = "registry.fly.io/${local.test_app_name}:${local.test_app_hash}"
+  test_app_env = {
+    TRIGGER_REBUILD = "true"
+  }
+}
+resource "null_resource" "fly_app_test_app" {
+  count = local.test_app_count
+  triggers = {
+    name = local.test_app_name
+    org  = var.organization
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl apps create ${local.test_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
+  }
+}
+
+resource "null_resource" "fly_ipv6_test_app" {
+  count = local.test_app_count
+  triggers = {
+    app = local.test_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v6 -a ${local.test_app_name} -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_test_app
+  ]
+}
+
+resource "null_resource" "test_app_builder" {
+  count = local.test_app_count
+  triggers = {
+    hash = local.test_app_hash
+  }
+
+  provisioner "local-exec" {
+    command = abspath("${path.module}/build-image.sh")
+    interpreter = [
+      "/bin/bash"
+    ]
+    environment = {
+      FLY_ACCESS_TOKEN    = var.fly_api_token
+      DOCKER_FILE         = local.test_app_dockerfile_path
+      DOCKER_IMAGE_NAME   = local.test_app_name
+      DOCKER_IMAGE_DIGEST = self.triggers.hash
+    }
+    working_dir = abspath("${path.root}/../")
+  }
+}
+
+resource "null_resource" "fly_machine_test_app" {
+  count = local.test_app_count
+  triggers = {
+    hash = local.test_app_hash
+    env  = jsonencode(local.test_app_env)
+  }
+
+  provisioner "local-exec" {
+    command     = <<EOT
+      flyctl deploy . \
+        -y -t $FLY_API_TOKEN \
+        -a ${local.test_app_name} \
+        -i "${local.test_app_image_url}" \
+        ${join(" ", [for key, value in local.test_app_env : "-e ${key}=\"${value}\""])}
+    EOT
+    working_dir = abspath("${path.module}/build/test-app")
+  }
+
+  depends_on = [
+    null_resource.fly_app_test_app,
+    null_resource.test_app_builder
+  ]
+}
