@@ -1,5 +1,5 @@
 # app = "test-app"
-primary_region = "lax"
+# primary_region = "lax"
 
 # [build]
 # image = "nginx:alpine"
@@ -11,21 +11,28 @@ internal_port = 6379
 [[services.ports]]
 port = 6379
 
-# [services.concurrency]
-# type = "connections"
-# hard_limit = 1000
-# soft_limit = 500
+[services.concurrency]
+type = "connections"
+hard_limit = 1000
+soft_limit = 500
 
 [[vm]]
-# size = "shared-cpu-2x"
-memory = 256
+size = "shared-cpu-1x"
+memory = "256mb"
 cpus = 1
-cpu_kind = "shared" # performance
+cpu_kind = "shared"    # performance
 # processes = ["app"]
 
 [metrics]
 port = 9091
 path = "/metrics" # default for most prometheus exporters
+
+# [experimental]
+# entrypoint = ["sh","-c","redis-server --requirepass $REDIS_PASSWORD"]
+
+# [mounts]
+# source = "starion-sync-redis"
+# destination = "/data"
 
 # [env]
 # API_KEYS = "api-key"

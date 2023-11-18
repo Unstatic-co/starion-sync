@@ -12,6 +12,7 @@ locals {
   redis_env = {
     REDIS_PASSWORD = var.redis_password
   }
+  redis_volume_name = "${var.environment}_redis_volume"
 }
 resource "null_resource" "fly_app_redis" {
   count = local.redis_count
@@ -54,6 +55,26 @@ resource "null_resource" "fly_ipv6_redis" {
   ]
 }
 
+resource "null_resource" "fly_volume_redis" {
+  count = local.redis_count
+  triggers = {
+    app    = local.redis_app_name
+    name   = local.redis_volume_name
+    region = var.region
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl volumes create ${local.redis_volume_name} --size 3 --region ${var.region} -a ${local.redis_app_name} -y -t $FLY_API_TOKEN"
+  }
+  # provisioner "local-exec" {
+  # when = destroy
+  # command = ""
+  # }
+  depends_on = [
+    null_resource.fly_app_redis
+  ]
+}
+
 resource "null_resource" "redis_builder" {
   count = local.redis_count
   triggers = {
@@ -70,7 +91,7 @@ resource "null_resource" "redis_builder" {
       DOCKER_FILE         = local.redis_dockerfile_path
       DOCKER_IMAGE_NAME   = local.redis_app_name
       DOCKER_IMAGE_DIGEST = self.triggers.hash
-      ARGS                = "--build-arg REDIS_PASSWORD=${var.redis_password}"
+      ARGS                = "--build-arg \"REDIS_PASSWORD=${var.redis_password}\""
     }
     working_dir = abspath("${path.module}/build/redis")
   }
@@ -80,16 +101,23 @@ resource "null_resource" "fly_machine_redis" {
   count = local.redis_count
   triggers = {
     hash           = local.redis_hash
+    region         = var.region
     env            = jsonencode(local.redis_env)
-    trigger_deploy = "false"
+    volume         = local.redis_volume_name
+    trigger_deploy = "true"
   }
 
   provisioner "local-exec" {
     command     = <<EOT
+      echo '[mounts]\nsource = "${local.redis_volume_name}"\ndestination = "/data"\n' >> fly.toml && \
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
+        -c fly.toml \
         -a ${local.redis_app_name} \
+        -r ${self.triggers.region} \
         -i "${local.redis_image_url}" \
+        --ha=false \
+        -e REDIS_ARGS="--requirepass ${var.redis_password} --port 6379 --bind 0.0.0.0 --protected-mode no --maxmemory-policy noeviction --appendonly yes --save 720 1 60 100 12 10000 --dir /data" \
         ${join(" ", [for key, value in local.redis_env : "-e ${key}=\"${value}\""])}
     EOT
     working_dir = abspath("${path.module}/build/redis")
@@ -97,17 +125,18 @@ resource "null_resource" "fly_machine_redis" {
 
   depends_on = [
     null_resource.fly_app_redis,
-    null_resource.redis_builder
+    null_resource.fly_volume_redis,
+    null_resource.redis_builder,
   ]
 }
 
 // **************************** Mongodb New ****************************
 locals {
-  mongodb_dockerfile_path = "${path.module}/build/mongodb/Dockerfile"
+  mongodb_dockerfile_path = abspath("${path.module}/build/mongodb/Dockerfile")
   mongodb_files = sort(setunion(
     [
       local.mongodb_dockerfile_path,
-      "${path.module}/build/mongodb/fly.toml"
+      abspath("${path.module}/build/mongodb/fly.toml")
     ],
   ))
   mongodb_hash      = md5(join("", [for i in local.mongodb_files : filemd5(i)]))
@@ -117,6 +146,7 @@ locals {
     MONGO_INITDB_ROOT_PASSWORD = var.mongodb_password
     MONGO_INITDB_DATABASE      = "starion-sync"
   }
+  mongodb_volume_name = "${var.environment}_mongodb_volume"
 }
 resource "null_resource" "fly_app_mongodb" {
   count = local.mongodb_count
@@ -159,6 +189,26 @@ resource "null_resource" "fly_ipv6_mongodb" {
   ]
 }
 
+resource "null_resource" "fly_volume_mongodb" {
+  count = local.mongodb_count
+  triggers = {
+    app    = local.mongodb_app_name
+    name   = local.mongodb_volume_name
+    region = var.region
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl volumes create ${local.mongodb_volume_name} --size 10 --region ${var.region} -a ${local.mongodb_app_name} -y -t $FLY_API_TOKEN"
+  }
+  # provisioner "local-exec" {
+  # when = destroy
+  # command = ""
+  # }
+  depends_on = [
+    null_resource.fly_app_mongodb
+  ]
+}
+
 resource "null_resource" "mongodb_builder" {
   count = local.mongodb_count
   triggers = {
@@ -183,16 +233,21 @@ resource "null_resource" "mongodb_builder" {
 resource "null_resource" "fly_machine_mongodb" {
   count = local.mongodb_count
   triggers = {
-    hash = local.mongodb_hash
-    env  = jsonencode(local.mongodb_env)
+    hash   = local.mongodb_hash
+    env    = jsonencode(local.mongodb_env)
+    region = var.region
   }
 
   provisioner "local-exec" {
     command     = <<EOT
+      echo '[mounts]\nsource = "${local.redis_volume_name}"\ndestination = "/data/db"\n' >> fly.toml && \
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
+        -c fly.toml \
         -a ${local.mongodb_app_name} \
+        -r ${self.triggers.region} \
         -i "${local.mongodb_image_url}" \
+        --ha=false \
         ${join(" ", [for key, value in local.mongodb_env : "-e ${key}=\"${value}\""])}
     EOT
     working_dir = abspath("${path.module}/build/mongodb")
@@ -200,35 +255,36 @@ resource "null_resource" "fly_machine_mongodb" {
 
   depends_on = [
     null_resource.fly_app_mongodb,
+    null_resource.fly_volume_mongodb,
     null_resource.mongodb_builder
   ]
 }
 
-# resource "null_resource" "mongodb_replica_set_setup" {
-# count = local.mongodb_count
+// resource "null_resource" "mongodb_replica_set_setup" {
+// count = local.mongodb_count
 
-# triggers = {
-# hash = local.mongodb_hash
-# }
+// triggers = {
+// hash = local.mongodb_hash
+// }
 
-# provisioner "local-exec" {
-# command = abspath("${path.module}/build/mongodb/init.sh")
-# interpreter = [
-# "/bin/bash"
-# ]
-# environment = {
-# FLY_ACCESS_TOKEN           = var.fly_api_token
-# FLY_MACHINE_ID             = fly_machine.mongodb[0].id
-# FLY_APP                    = fly_app.mongodb[0].name
-# MONGO_INITDB_ROOT_USERNAME = var.mongodb_user
-# MONGO_INITDB_ROOT_PASSWORD = var.mongodb_password
-# }
-# }
+// provisioner "local-exec" {
+// command = abspath("${path.module}/build/mongodb/init.sh")
+// interpreter = [
+// "/bin/bash"
+// ]
+// environment = {
+// FLY_ACCESS_TOKEN           = var.fly_api_token
+// FLY_MACHINE_ID             = fly_machine.mongodb[0].id
+// FLY_APP                    = fly_app.mongodb[0].name
+// MONGO_INITDB_ROOT_USERNAME = var.mongodb_user
+// MONGO_INITDB_ROOT_PASSWORD = var.mongodb_password
+// }
+// }
 
-# depends_on = [
-# fly_machine.mongodb,
-# ]
-# }
+// depends_on = [
+// fly_machine.mongodb,
+// ]
+// }
 
 // // ********************* Postgres *********************
 

@@ -21,10 +21,12 @@ declare -a DOCKER_ARGS=(
     --platform
     linux/amd64
     -f "$DOCKER_FILE"
+    $ARGS
 )
 
 # export DOCKER_BUILDKIT=1
 flyctl auth docker --access-token "$FLY_ACCESS_TOKEN"
 docker buildx build --help
-docker build "${DOCKER_ARGS[@]}" "--build-arg REDIS_PASSWORD=123456" .
+# echo "ARGS: ${DOCKER_ARGS[@]}"
+docker build "${DOCKER_ARGS[@]}" .
 docker push registry.fly.io/"$DOCKER_IMAGE_NAME:$DOCKER_IMAGE_DIGEST"
