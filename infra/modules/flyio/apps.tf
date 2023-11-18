@@ -1,11 +1,11 @@
 locals {
-  db_uri            = local.mongodb_count > 0 ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${local.mongodb_app_name}.fly.dev:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin" : var.db_uri
-  metadata_db_uri   = local.mongodb_count > 0 ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${local.mongodb_app_name}.fly.dev:27017/starion-form-sync?directConnection=true&replicaSet=rs0&authSource=admin" : var.db_uri
-  dest_db_uri       = local.postgres_count > 0 ? "postgres://${var.postgres_user}:${var.postgres_password}@${local.postgres_app_name}.fly.dev:5432/starion-sync?sslmode=disable" : var.dest_db_uri
-  redis_host        = local.redis_count > 0 ? "${local.redis_app_name}.fly.dev" : var.redis_host
-  redis_port        = local.redis_count > 0 ? "6379" : var.redis_port
-  redis_password    = local.redis_count > 0 ? var.redis_password : var.redis_password
-  redis_tls_enabled = local.redis_count > 0 ? "false" : "true"
+  db_uri            = !var.is_production ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${local.mongodb_app_name}.fly.dev:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin" : var.db_uri
+  metadata_db_uri   = !var.is_production ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${local.mongodb_app_name}.fly.dev:27017/starion-form-sync?directConnection=true&replicaSet=rs0&authSource=admin" : var.db_uri
+  dest_db_uri       = !var.is_production ? "postgres://${var.postgres_user}:${var.postgres_password}@${local.postgres_app_name}.fly.dev:5432/starion-sync?sslmode=disable" : var.dest_db_uri
+  redis_host        = !var.is_production ? "${local.redis_app_name}.fly.dev" : var.redis_host
+  redis_port        = !var.is_production ? "6379" : var.redis_port
+  redis_password    = !var.is_production ? var.redis_password : var.redis_password
+  redis_tls_enabled = !var.is_production ? "false" : "true"
   # downloader_url           = "https://${fly_app.downloader.name}.fly.dev"
   # comparer_url             = "https://${fly_app.comparer.name}.fly.dev"
   # loader_url               = "https://${fly_app.loader.name}.fly.dev"
@@ -166,11 +166,11 @@ resource "null_resource" "fly_machine_apps" {
 // **************************** Webhook Trigger New ****************************
 locals {
   webhook_trigger_path            = abspath("${path.root}/../apps/triggers/webhook")
-  webhook_trigger_dockerfile_path = "${local.webhook_trigger_path}/Dockerfile"
+  webhook_trigger_dockerfile_path = abspath("${local.webhook_trigger_path}/Dockerfile")
   webhook_trigger_files = sort(setunion(
     [
       local.webhook_trigger_dockerfile_path,
-      "${path.module}/build/webhook-trigger/fly.toml"
+      abspath("${path.module}/build/webhook-trigger/fly.toml")
     ],
     [for f in fileset("${local.webhook_trigger_path}", "**") : "${local.webhook_trigger_path}/${f}"],
   ))
@@ -198,7 +198,7 @@ locals {
     GOOGLE_CLIENT_ID         = var.google_client_id
     GOOGLE_CLIENT_SECRET     = var.google_client_secret
     WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url
-    TRIGGER_REBUILD          = "true"
+    TRIGGER_REBUILD          = "false"
   }
 }
 resource "null_resource" "fly_app_webhook_trigger" {
@@ -266,8 +266,9 @@ resource "null_resource" "webhook_trigger_builder" {
 resource "null_resource" "fly_machine_webhook_trigger" {
   count = local.webhook_trigger_count
   triggers = {
-    hash = local.webhook_trigger_hash
-    env  = jsonencode(local.webhook_trigger_env)
+    hash   = local.webhook_trigger_hash
+    region = var.region
+    env    = jsonencode(local.webhook_trigger_env)
   }
 
   provisioner "local-exec" {
@@ -275,8 +276,9 @@ resource "null_resource" "fly_machine_webhook_trigger" {
       flyctl deploy . \
       -y -t $FLY_API_TOKEN \
       -a ${local.webhook_trigger_app_name} \
+      -r ${self.triggers.region} \
       -i "${local.webhook_trigger_image_url}" \
-      ${join(" ", [for key, value in local.test_app_env : "-e ${key}=\"${value}\""])}
+      ${join(" ", [for key, value in local.webhook_trigger_env : "-e ${key}=\"${value}\""])}
     EOT
     working_dir = abspath("${path.module}/build/webhook-trigger")
   }
@@ -291,11 +293,11 @@ resource "null_resource" "fly_machine_webhook_trigger" {
 
 locals {
   formsync_path            = abspath("${path.root}/../form-sync/main")
-  formsync_dockerfile_path = "${local.formsync_path}/Dockerfile"
+  formsync_dockerfile_path = abspath("${local.formsync_path}/Dockerfile")
   formsync_files = sort(setunion(
     [
       local.formsync_dockerfile_path,
-      "${path.module}/build/formsync/fly.toml"
+      abspath("${path.module}/build/formsync/fly.toml")
     ],
     [for f in fileset("${local.formsync_path}", "**") : "${local.formsync_path}/${f}"],
   ))
@@ -382,15 +384,16 @@ resource "null_resource" "formsync_builder" {
       DOCKER_IMAGE_NAME   = local.formsync_app_name
       DOCKER_IMAGE_DIGEST = self.triggers.hash
     }
-    working_dir = abspath("${path.root}/../")
+    working_dir = local.formsync_path
   }
 }
 
 resource "null_resource" "fly_machine_formsync" {
   count = local.formsync_count
   triggers = {
-    hash = local.formsync_hash
-    env  = jsonencode(local.formsync_env)
+    hash   = local.formsync_hash
+    region = var.region
+    env    = jsonencode(local.formsync_env)
   }
 
   provisioner "local-exec" {
@@ -398,6 +401,7 @@ resource "null_resource" "fly_machine_formsync" {
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -a ${local.formsync_app_name} \
+        -r ${self.triggers.region} \
         -i "${local.formsync_image_url}" \
         ${join(" ", [for key, value in local.formsync_env : "-e ${key}=\"${value}\""])}
     EOT
@@ -1071,11 +1075,11 @@ resource "null_resource" "webhook_builder" {
 // **************************** Test App ****************************
 locals {
   test_app_path            = abspath("${path.root}/../apps/test")
-  test_app_dockerfile_path = "${local.test_app_path}/Dockerfile"
+  test_app_dockerfile_path = abspath("${local.test_app_path}/Dockerfile")
   test_app_files = sort(setunion(
     [
       local.test_app_dockerfile_path,
-      "${path.module}/build/test-app/fly.toml"
+      abspath("${path.module}/build/test-app/fly.toml")
     ],
     [for f in fileset("${local.test_app_path}", "**") : "${local.test_app_path}/${f}"],
   ))
@@ -1138,8 +1142,9 @@ resource "null_resource" "test_app_builder" {
 resource "null_resource" "fly_machine_test_app" {
   count = local.test_app_count
   triggers = {
-    hash = local.test_app_hash
-    env  = jsonencode(local.test_app_env)
+    hash   = local.test_app_hash
+    region = var.region
+    env    = jsonencode(local.test_app_env)
   }
 
   provisioner "local-exec" {
@@ -1147,6 +1152,7 @@ resource "null_resource" "fly_machine_test_app" {
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -a ${local.test_app_name} \
+        -r ${self.triggers.region} \
         -i "${local.test_app_image_url}" \
         ${join(" ", [for key, value in local.test_app_env : "-e ${key}=\"${value}\""])}
     EOT

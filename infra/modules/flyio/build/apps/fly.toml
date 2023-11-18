@@ -1,5 +1,5 @@
 # app = "test-app"
-primary_region = "lax"
+# primary_region = "lax"
 
 # [build]
 # image = "nginx:alpine"
