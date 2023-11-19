@@ -1,0 +1,39 @@
+# app = "test-app"
+# primary_region = "lax"
+
+# [build]
+# image = "nginx:alpine"
+
+[[services]]
+protocol = "tcp"
+internal_port = 8080
+
+[[services.ports]]
+port = 443
+handlers = ["tls", "http"]
+
+[[services.ports]]
+port = 80
+handlers = ["http"]
+force_https = true
+
+# [services.concurrency]
+# type = "connections"
+# hard_limit = 1000
+# soft_limit = 500
+
+[[vm]]
+# size = "shared-cpu-2x"
+memory = 2048
+cpus = 2
+cpu_kind = "shared" # performance
+# processes = ["app"]
+
+[metrics]
+port = 9091
+path = "/metrics" # default for most prometheus exporters
+
+# [env]
+# API_KEYS = "api-key"
+# NODE_ENV = "stagging"
+# CHANGE_ME = "change-me"
