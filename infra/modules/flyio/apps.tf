@@ -138,6 +138,10 @@ resource "null_resource" "apps_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_apps
+  ]
 }
 
 resource "null_resource" "fly_machine_apps" {
@@ -264,6 +268,10 @@ resource "null_resource" "webhook_trigger_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_webhook_trigger
+  ]
 }
 
 resource "null_resource" "fly_machine_webhook_trigger" {
@@ -390,6 +398,10 @@ resource "null_resource" "formsync_builder" {
     }
     working_dir = local.formsync_path
   }
+
+  depends_on = [
+    null_resource.fly_app_formsync
+  ]
 }
 
 resource "null_resource" "fly_machine_formsync" {
@@ -500,6 +512,10 @@ resource "null_resource" "cron_trigger_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_cron_trigger
+  ]
 }
 
 resource "null_resource" "fly_machine_cron_trigger" {
@@ -622,6 +638,10 @@ resource "null_resource" "configurator_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_configurator
+  ]
 }
 
 resource "null_resource" "fly_machine_configurator" {
@@ -737,6 +757,10 @@ resource "null_resource" "controller_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_controller
+  ]
 }
 
 resource "null_resource" "fly_machine_controller" {
@@ -855,6 +879,10 @@ resource "null_resource" "worker_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_worker
+  ]
 }
 
 resource "null_resource" "fly_machine_worker" {
@@ -970,6 +998,10 @@ resource "null_resource" "post_processor_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_post_processor
+  ]
 }
 
 resource "null_resource" "fly_machine_post_processor" {
@@ -1082,6 +1114,10 @@ resource "null_resource" "webhook_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_webhook
+  ]
 }
 
 resource "null_resource" "fly_machine_webhook" {
@@ -1178,6 +1214,10 @@ resource "null_resource" "test_app_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_test_app
+  ]
 }
 
 resource "null_resource" "fly_machine_test_app" {
