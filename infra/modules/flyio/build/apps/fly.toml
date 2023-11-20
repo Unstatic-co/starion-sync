@@ -23,10 +23,10 @@ force_https = true
 # soft_limit = 500
 
 [[vm]]
-# size = "shared-cpu-2x"
+size = "shared-cpu-1x"
 memory = 2048
 cpus = 2
-cpu_kind = "shared" # performance
+cpu_kind = "shared"    # performance
 # processes = ["app"]
 
 [metrics]

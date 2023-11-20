@@ -109,7 +109,7 @@ resource "null_resource" "fly_machine_redis" {
 
   provisioner "local-exec" {
     command     = <<EOT
-      echo '[mounts]\nsource = "${local.redis_volume_name}"\ndestination = "/data"\n' > fly.toml && \
+      echo '[mounts]\nsource = "${local.redis_volume_name}"\ndestination = "/data"\n' >> fly.toml && \
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -c fly.toml \
@@ -240,7 +240,7 @@ resource "null_resource" "fly_machine_mongodb" {
 
   provisioner "local-exec" {
     command     = <<EOT
-      echo '[mounts]\nsource = "${local.redis_volume_name}"\ndestination = "/data/db"\n' > fly.toml && \
+      echo '[mounts]\nsource = "${local.redis_volume_name}"\ndestination = "/data/db"\n' >> fly.toml && \
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -c fly.toml \

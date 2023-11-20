@@ -418,10 +418,10 @@ resource "google_cloud_run_service" "metadata" {
           name  = "LOG_LEVEL"
           value = "debug"
         }
-        // env {
-        // name  = "API_KEYS"
-        // value = join(",", var.processor_api_keys)
-        // }
+        env {
+          name  = "API_KEYS"
+          value = join(",", var.processor_api_keys)
+        }
         env {
           name  = "DB_URI"
           value = var.metadata_db_uri

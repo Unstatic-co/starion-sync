@@ -1,7 +1,8 @@
 locals {
   db_uri            = !var.is_production ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${local.mongodb_app_name}.fly.dev:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin" : var.db_uri
   metadata_db_uri   = !var.is_production ? "mongodb://${var.mongodb_user}:${var.mongodb_password}@${local.mongodb_app_name}.fly.dev:27017/starion-form-sync?directConnection=true&replicaSet=rs0&authSource=admin" : var.db_uri
-  dest_db_uri       = !var.is_production ? "postgres://${var.postgres_user}:${var.postgres_password}@${local.postgres_app_name}.fly.dev:5432/starion-sync?sslmode=disable" : var.dest_db_uri
+  dest_db_uri       = var.is_production ? var.dest_db_uri : var.dest_db_uri
+  formsync_db_uri   = var.is_production ? var.dest_db_uri : var.dest_db_uri
   redis_host        = !var.is_production ? "${local.redis_app_name}.fly.dev" : var.redis_host
   redis_port        = !var.is_production ? "6379" : var.redis_port
   redis_password    = !var.is_production ? var.redis_password : var.redis_password
@@ -30,7 +31,7 @@ locals {
   apps_files = sort(setunion(
     [
       local.apps_dockerfile_path,
-      "${path.module}/build/apps/fly.toml"
+      abspath("${path.module}/build/apps/fly.toml")
     ],
     [for f in fileset("${local.configurator_path}", "**") : "${local.configurator_path}/${f}"],
     [for f in fileset("${local.controller_path}", "**") : "${local.controller_path}/${f}"],
@@ -142,8 +143,9 @@ resource "null_resource" "apps_builder" {
 resource "null_resource" "fly_machine_apps" {
   count = local.apps_count
   triggers = {
-    hash = local.apps_hash
-    env  = jsonencode(local.apps_env)
+    hash   = local.apps_hash
+    region = var.region
+    env    = jsonencode(local.apps_env)
   }
 
   provisioner "local-exec" {
@@ -151,6 +153,7 @@ resource "null_resource" "fly_machine_apps" {
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -a ${local.apps_app_name} \
+        -r ${self.triggers.region} \
         -i "${local.apps_image_url}" \
         ${join(" ", [for key, value in local.apps_env : "-e ${key}=\"${value}\""])}
     EOT
@@ -308,7 +311,7 @@ locals {
     PORT                    = "8080"
     LOG_LEVEL               = var.is_production ? "debug" : "debug"
     API_KEYS                = join(",", var.api_keys)
-    DB_URI                  = local.dest_db_uri
+    DB_URI                  = local.formsync_db_uri
     DB_TLS_ENABLED          = "true"
     DB_NAME                 = "starion-form-sync"
     METADATA_DB_URI         = local.metadata_db_uri
@@ -324,6 +327,7 @@ locals {
     MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
     GOOGLE_CLIENT_ID        = var.google_client_id
     GOOGLE_CLIENT_SECRET    = var.google_client_secret
+    TRIGGER_REDEPLOY        = "true"
   }
 }
 resource "null_resource" "fly_app_formsync" {
