@@ -234,13 +234,14 @@ resource "null_resource" "fly_machine_mongodb" {
   count = local.mongodb_count
   triggers = {
     hash   = local.mongodb_hash
-    env    = jsonencode(local.mongodb_env)
     region = var.region
+    env    = jsonencode(local.mongodb_env)
+    volume = local.mongodb_volume_name
   }
 
   provisioner "local-exec" {
     command     = <<EOT
-      echo '[mounts]\nsource = "${local.redis_volume_name}"\ndestination = "/data/db"\n' >> fly.toml && \
+      echo '[mounts]\nsource = "${local.mongodb_volume_name}"\ndestination = "/data/db"\n' >> fly.toml && \
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -c fly.toml \
