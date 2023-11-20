@@ -236,7 +236,7 @@ resource "null_resource" "fly_machine_mongodb" {
     hash   = local.mongodb_hash
     region = var.region
     env    = jsonencode(local.mongodb_env)
-    # volume = local.mongodb_volume_name
+    volume = local.mongodb_volume_name
   }
 
   provisioner "local-exec" {
