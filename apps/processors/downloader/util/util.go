@@ -27,7 +27,7 @@ func GetMD5Hash(text string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func GenerateTempFileName(prefix string, extension string) (string, error) {
+func GenerateTempFileName(prefix string, extension string, nameOnly bool) (string, error) {
 	if extension == "" {
 		extension = "tmp"
 	}
@@ -40,20 +40,19 @@ func GenerateTempFileName(prefix string, extension string) (string, error) {
 	timestamp := time.Now().UnixNano()
 	hashBytes := sha256.Sum256(append(randomBytes, []byte(fmt.Sprintf("%d", timestamp))...))
 	filename := fmt.Sprintf("%s_%s.%s", prefix, hex.EncodeToString(hashBytes[:8]), extension)
+	if nameOnly {
+		return filename, nil
+	}
 	return filepath.Join(os.TempDir(), filename), nil
 }
 
-func CreateTempFileWithContent(filePrefix string, content string) (string, error) {
-	tempFilePath, err := GenerateTempFileName(filePrefix, "")
-	if err != nil {
-		return "", err
-	}
-	tempFile, err := os.CreateTemp("", tempFilePath)
+func CreateTempFileWithContent(filePrefix string, fileExtension string, content string) (string, error) {
+	tempFile, err := os.CreateTemp("", fmt.Sprintf("%s_*.%s", filePrefix, fileExtension))
 	if err != nil {
 		fmt.Println("Error creating temporary file:", err)
 		return "", err
 	}
-	defer os.Remove(tempFile.Name()) // Remove the temporary file when the program exits
+	// defer os.Remove(tempFile.Name()) // Remove the temporary file when the program exits
 	defer tempFile.Close()
 
 	_, err = tempFile.WriteString(content)
@@ -62,7 +61,8 @@ func CreateTempFileWithContent(filePrefix string, content string) (string, error
 		return "", err
 	}
 
-	return tempFilePath, nil
+	// return the temp file path
+	return tempFile.Name(), nil
 }
 
 func DeleteFile(filePath string) error {
@@ -81,6 +81,18 @@ func MarshalJsonFile(filePath string, v interface{}) error {
 	err = jsoniter.Unmarshal(externalErrContent, &v)
 	if err != nil {
 		return fmt.Errorf("Cannot unmarshal json file: %+v", err.Error())
+	}
+	return nil
+}
+
+func UnmarsalJsonFile(filePath string, v interface{}) error {
+	content, err := jsoniter.Marshal(v)
+	if err != nil {
+		return fmt.Errorf("Cannot marshal json file: %+v", err.Error())
+	}
+	err = os.WriteFile(filePath, content, 0644)
+	if err != nil {
+		return fmt.Errorf("Cannot write file: %+v", err.Error())
 	}
 	return nil
 }

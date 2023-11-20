@@ -176,11 +176,13 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 		debugParam = "on"
 	}
 
-	externalErrorFile, err := util.GenerateTempFileName("ext", "json")
+	externalErrorFile, err := util.CreateTempFileWithContent("ext", "json", "{}")
 	if err != nil {
 		return fmt.Errorf("Cannot generate temp file: %w", err)
 	}
+	log.Println("External error file: ", externalErrorFile)
 	s3Host, _ := util.ConvertS3URLToHost(config.AppConfig.S3Endpoint)
+	defer util.DeleteFile(externalErrorFile)
 
 	cmd := exec.CommandContext(
 		ctx,
@@ -213,20 +215,19 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 	cmd.Stderr = errorWriter
 
 	if err := cmd.Run(); err != nil {
+		log.Debug("Error when running download script: ", err)
+		// check external error
+		var externalError DownloadExternalError
+		marshalErr := util.MarshalJsonFile(externalErrorFile, &externalError)
+		if marshalErr != nil {
+			return fmt.Errorf("Cannot read external error file: %w", err)
+		}
+		if externalError.Code != 0 {
+			return e.NewExternalErrorWithDescription(externalError.Code, externalError.Msg, "External error when running download script")
+		}
+
 		return err
 	}
-
-	// check external error
-	var externalError DownloadExternalError
-	err = util.MarshalJsonFile(externalErrorFile, &externalError)
-	if err != nil {
-		fmt.Errorf("Cannot read external error file: %w", err)
-	}
-	if externalError.Code != 0 {
-		return e.NewExternalErrorWithDescription(externalError.Code, externalError.Msg, "External error when running download script")
-	}
-
-	go util.DeleteFile(externalErrorFile)
 
 	return nil
 }
