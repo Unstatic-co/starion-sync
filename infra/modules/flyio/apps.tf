@@ -138,6 +138,10 @@ resource "null_resource" "apps_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_apps
+  ]
 }
 
 resource "null_resource" "fly_machine_apps" {
@@ -152,6 +156,7 @@ resource "null_resource" "fly_machine_apps" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
+        --strategy canary \
         -a ${local.apps_app_name} \
         -r ${self.triggers.region} \
         -i "${local.apps_image_url}" \
@@ -201,7 +206,7 @@ locals {
     GOOGLE_CLIENT_ID         = var.google_client_id
     GOOGLE_CLIENT_SECRET     = var.google_client_secret
     WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url
-    TRIGGER_REBUILD          = "false"
+    TRIGGER_REDEPLOY         = "false"
   }
 }
 resource "null_resource" "fly_app_webhook_trigger" {
@@ -264,6 +269,10 @@ resource "null_resource" "webhook_trigger_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_webhook_trigger
+  ]
 }
 
 resource "null_resource" "fly_machine_webhook_trigger" {
@@ -278,6 +287,7 @@ resource "null_resource" "fly_machine_webhook_trigger" {
     command     = <<EOT
       flyctl deploy . \
       -y -t $FLY_API_TOKEN \
+      --strategy canary \
       -a ${local.webhook_trigger_app_name} \
       -r ${self.triggers.region} \
       -i "${local.webhook_trigger_image_url}" \
@@ -390,6 +400,10 @@ resource "null_resource" "formsync_builder" {
     }
     working_dir = local.formsync_path
   }
+
+  depends_on = [
+    null_resource.fly_app_formsync
+  ]
 }
 
 resource "null_resource" "fly_machine_formsync" {
@@ -404,6 +418,7 @@ resource "null_resource" "fly_machine_formsync" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
+        --strategy canary \
         -a ${local.formsync_app_name} \
         -r ${self.triggers.region} \
         -i "${local.formsync_image_url}" \
@@ -500,6 +515,10 @@ resource "null_resource" "cron_trigger_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_cron_trigger
+  ]
 }
 
 resource "null_resource" "fly_machine_cron_trigger" {
@@ -515,6 +534,7 @@ resource "null_resource" "fly_machine_cron_trigger" {
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -c "fly.toml" \
+        --strategy canary \
         -a ${local.cron_trigger_app_name} \
         -r ${self.triggers.region} \
         -i "${local.cron_trigger_image_url}" \
@@ -622,6 +642,10 @@ resource "null_resource" "configurator_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_configurator
+  ]
 }
 
 resource "null_resource" "fly_machine_configurator" {
@@ -637,6 +661,7 @@ resource "null_resource" "fly_machine_configurator" {
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -c "fly.toml" \
+        --strategy canary \
         -a ${local.configurator_app_name} \
         -r ${self.triggers.region} \
         -i "${local.configurator_image_url}" \
@@ -737,6 +762,10 @@ resource "null_resource" "controller_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_controller
+  ]
 }
 
 resource "null_resource" "fly_machine_controller" {
@@ -752,6 +781,7 @@ resource "null_resource" "fly_machine_controller" {
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -c "fly.toml" \
+        --strategy canary \
         -a ${local.controller_app_name} \
         -r ${self.triggers.region} \
         -i "${local.controller_image_url}" \
@@ -855,6 +885,10 @@ resource "null_resource" "worker_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_worker
+  ]
 }
 
 resource "null_resource" "fly_machine_worker" {
@@ -870,6 +904,7 @@ resource "null_resource" "fly_machine_worker" {
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -c "fly.toml" \
+        --strategy canary \
         -a ${local.worker_app_name} \
         -r ${self.triggers.region} \
         -i "${local.worker_image_url}" \
@@ -970,6 +1005,10 @@ resource "null_resource" "post_processor_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_post_processor
+  ]
 }
 
 resource "null_resource" "fly_machine_post_processor" {
@@ -985,6 +1024,7 @@ resource "null_resource" "fly_machine_post_processor" {
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -c "fly.toml" \
+        --strategy canary \
         -a ${local.post_processor_app_name} \
         -r ${self.triggers.region} \
         -i "${local.post_processor_image_url}" \
@@ -1082,6 +1122,10 @@ resource "null_resource" "webhook_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_webhook
+  ]
 }
 
 resource "null_resource" "fly_machine_webhook" {
@@ -1097,6 +1141,7 @@ resource "null_resource" "fly_machine_webhook" {
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -c "fly.toml" \
+        --strategy canary \
         -a ${local.webhook_app_name} \
         -r ${self.triggers.region} \
         -i "${local.webhook_image_url}" \
@@ -1178,6 +1223,10 @@ resource "null_resource" "test_app_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_test_app
+  ]
 }
 
 resource "null_resource" "fly_machine_test_app" {
@@ -1193,6 +1242,7 @@ resource "null_resource" "fly_machine_test_app" {
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
         -c "fly.toml" \
+        --strategy canary \
         -a ${local.test_app_name} \
         -r ${self.triggers.region} \
         -i "${local.test_app_image_url}" \
