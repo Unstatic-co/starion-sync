@@ -31,7 +31,7 @@ export class SyncConnectionController {
       {
         workflowId: `${data.sourceId}`,
         args: [data],
-        workflowExecutionTimeout: 5000,
+        // workflowExecutionTimeout: 5000,
         waitResult: true,
         searchAttributes: {
           DataSourceId: [data.sourceId],

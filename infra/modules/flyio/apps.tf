@@ -138,6 +138,10 @@ resource "null_resource" "apps_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_apps
+  ]
 }
 
 resource "null_resource" "fly_machine_apps" {
@@ -152,6 +156,7 @@ resource "null_resource" "fly_machine_apps" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
+        --strategy canary \
         -a ${local.apps_app_name} \
         -r ${self.triggers.region} \
         -i "${local.apps_image_url}" \
@@ -201,7 +206,7 @@ locals {
     GOOGLE_CLIENT_ID         = var.google_client_id
     GOOGLE_CLIENT_SECRET     = var.google_client_secret
     WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url
-    TRIGGER_REBUILD          = "false"
+    TRIGGER_REDEPLOY         = "false"
   }
 }
 resource "null_resource" "fly_app_webhook_trigger" {
@@ -264,6 +269,10 @@ resource "null_resource" "webhook_trigger_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_webhook_trigger
+  ]
 }
 
 resource "null_resource" "fly_machine_webhook_trigger" {
@@ -278,6 +287,7 @@ resource "null_resource" "fly_machine_webhook_trigger" {
     command     = <<EOT
       flyctl deploy . \
       -y -t $FLY_API_TOKEN \
+      --strategy canary \
       -a ${local.webhook_trigger_app_name} \
       -r ${self.triggers.region} \
       -i "${local.webhook_trigger_image_url}" \
@@ -390,6 +400,10 @@ resource "null_resource" "formsync_builder" {
     }
     working_dir = local.formsync_path
   }
+
+  depends_on = [
+    null_resource.fly_app_formsync
+  ]
 }
 
 resource "null_resource" "fly_machine_formsync" {
@@ -404,6 +418,7 @@ resource "null_resource" "fly_machine_formsync" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
+        --strategy canary \
         -a ${local.formsync_app_name} \
         -r ${self.triggers.region} \
         -i "${local.formsync_image_url}" \
@@ -418,29 +433,71 @@ resource "null_resource" "fly_machine_formsync" {
   ]
 }
 
-// **************************** Cron Trigger ****************************
-
-resource "fly_app" "cron_trigger" {
-  count = local.cron_trigger_count
-
-  name = "${var.project}-${var.environment}-cron-trigger"
-  org  = var.organization
-}
-
+// **************************** Cron Trigger New ****************************
 locals {
-  cron_trigger_path = abspath("${path.root}/../apps/triggers/cron")
+  cron_trigger_path            = abspath("${path.root}/../apps/triggers/cron")
+  cron_trigger_dockerfile_path = abspath("${local.cron_trigger_path}/Dockerfile")
   cron_trigger_files = sort(setunion(
     [
-      "${local.cron_trigger_path}/Dockerfile",
+      local.cron_trigger_dockerfile_path,
+      abspath("${path.module}/build/cron-trigger/fly.toml")
     ],
     [for f in fileset("${local.cron_trigger_path}", "**") : "${local.cron_trigger_path}/${f}"],
   ))
-  cron_trigger_hash = md5(join("", [for i in local.cron_trigger_files : filemd5(i)]))
+  cron_trigger_hash      = md5(join("", [for i in local.cron_trigger_files : filemd5(i)]))
+  cron_trigger_image_url = "registry.fly.io/${local.cron_trigger_app_name}:${local.cron_trigger_hash}"
+  cron_trigger_env = {
+    NODE_ENV                = var.environment
+    LOG_LEVEL               = var.is_production ? "info" : "debug"
+    DB_TYPE                 = "mongodb"
+    DB_URI                  = local.db_uri
+    DEST_DB_URI             = local.dest_db_uri
+    BROKER_TYPE             = "kafka"
+    BROKER_URIS             = var.broker_uris
+    KAFKA_CLIENT_ID         = "cron-trigger"
+    KAFKA_CONSUMER_GROUP_ID = "cron-trigger-consumer"
+    KAFKA_SSL_ENABLED       = "true"
+    KAFKA_SASL_ENABLED      = "true"
+    KAFKA_SASL_USERNAME     = var.kafka_sasl_username
+    KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
+    REDIS_HOST              = local.redis_host
+    REDIS_PORT              = local.redis_port
+    REDIS_PASSWORD          = local.redis_password
+    REDIS_TLS_ENABLED       = local.redis_tls_enabled
+    TRIGGER_REBUILD         = "true"
+  }
+}
+resource "null_resource" "fly_app_cron_trigger" {
+  count = local.cron_trigger_count
+  triggers = {
+    name = local.cron_trigger_app_name
+    org  = var.organization
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl apps create ${local.cron_trigger_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
+  }
+}
+
+resource "null_resource" "fly_ipv6_cron_trigger" {
+  count = local.cron_trigger_count
+  triggers = {
+    app = local.cron_trigger_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v6 -a ${local.cron_trigger_app_name} -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_cron_trigger
+  ]
 }
 
 resource "null_resource" "cron_trigger_builder" {
   count = local.cron_trigger_count
-
   triggers = {
     hash = local.cron_trigger_hash
   }
@@ -452,99 +509,122 @@ resource "null_resource" "cron_trigger_builder" {
     ]
     environment = {
       FLY_ACCESS_TOKEN    = var.fly_api_token
-      DOCKER_FILE         = abspath("${local.cron_trigger_path}/Dockerfile")
-      DOCKER_IMAGE_NAME   = fly_app.cron_trigger[0].name
-      DOCKER_IMAGE_DIGEST = local.cron_trigger_hash
+      DOCKER_FILE         = local.cron_trigger_dockerfile_path
+      DOCKER_IMAGE_NAME   = local.cron_trigger_app_name
+      DOCKER_IMAGE_DIGEST = self.triggers.hash
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_cron_trigger
+  ]
 }
 
-// resource "fly_machine" "cron_trigger" {
-// count = local.cron_trigger_count
+resource "null_resource" "fly_machine_cron_trigger" {
+  count = local.cron_trigger_count
+  triggers = {
+    hash   = local.cron_trigger_hash
+    region = var.region
+    env    = jsonencode(local.cron_trigger_env)
+  }
 
-// app    = fly_app.cron_trigger[0].name
-// region = var.region
-// name   = "${var.project}-${var.environment}-cron-trigger"
+  provisioner "local-exec" {
+    command     = <<EOT
+      flyctl deploy . \
+        -y -t $FLY_API_TOKEN \
+        -c "fly.toml" \
+        --strategy canary \
+        -a ${local.cron_trigger_app_name} \
+        -r ${self.triggers.region} \
+        -i "${local.cron_trigger_image_url}" \
+        ${join(" ", [for key, value in local.cron_trigger_env : "-e ${key}=\"${value}\""])}
+    EOT
+    working_dir = abspath("${path.module}/build/cron-trigger")
+  }
 
-// cputype  = "shared"
-// cpus     = 1
-// memorymb = 256
-
-// image = "registry.fly.io/${fly_app.cron_trigger[0].name}:${local.cron_trigger_hash}"
-
-// services = [
-// {
-// "protocol" : "tcp",
-// "ports" : [
-// {
-// port : 443,
-// handlers : [
-// "tls",
-// "http"
-// ]
-// },
-// {
-// "port" : 80,
-// "handlers" : [
-// "http"
-// ]
-// }
-// ],
-// "internal_port" : 8080,
-// }
-// ]
-
-// env = {
-// NODE_ENV                = var.environment
-// LOG_LEVEL               = var.is_production ? "info" : "debug"
-// DB_TYPE                 = "mongodb"
-// DB_URI                  = local.db_uri
-// DEST_DB_URI             = local.dest_db_uri
-// BROKER_TYPE             = "kafka"
-// BROKER_URIS             = var.broker_uris
-// KAFKA_CLIENT_ID         = "cron-trigger"
-// KAFKA_CONSUMER_GROUP_ID = "cron-trigger-consumer"
-// KAFKA_SSL_ENABLED       = "true"
-// KAFKA_SASL_ENABLED      = "true"
-// KAFKA_SASL_USERNAME     = var.kafka_sasl_username
-// KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
-// REDIS_HOST              = local.redis_host
-// REDIS_PORT              = local.redis_port
-// REDIS_PASSWORD          = local.redis_password
-// REDIS_TLS_ENABLED       = local.redis_tls_enabled
-// }
-
-// depends_on = [
-// null_resource.cron_trigger_builder,
-// fly_machine.redis,
-// fly_machine.mongodb,
-// ]
-// }
-
-// **************************** Configurator ****************************
-
-resource "fly_app" "configurator" {
-  count = local.configurator_count
-
-  name = "${var.project}-${var.environment}-configurator"
-  org  = var.organization
+  depends_on = [
+    null_resource.fly_app_cron_trigger,
+    null_resource.cron_trigger_builder,
+    null_resource.fly_machine_redis,
+    null_resource.fly_machine_mongodb,
+  ]
 }
 
+// **************************** Configurator New ****************************
 locals {
-  configurator_path = abspath("${path.root}/../apps/configurator")
+  configurator_path            = abspath("${path.root}/../apps/configurator")
+  configurator_dockerfile_path = abspath("${local.configurator_path}/Dockerfile")
   configurator_files = sort(setunion(
     [
-      "${local.configurator_path}/Dockerfile",
+      local.configurator_dockerfile_path,
+      abspath("${path.module}/build/configurator/fly.toml")
     ],
     [for f in fileset("${local.configurator_path}", "**") : "${local.configurator_path}/${f}"],
   ))
-  configurator_hash = md5(join("", [for i in local.configurator_files : filemd5(i)]))
+  configurator_hash      = md5(join("", [for i in local.configurator_files : filemd5(i)]))
+  configurator_image_url = "registry.fly.io/${local.configurator_app_name}:${local.configurator_hash}"
+  configurator_env = {
+    NODE_ENV                       = var.environment
+    PORT                           = "8080"
+    LOG_LEVEL                      = var.is_production ? "info" : "debug"
+    BROKER_URIS                    = var.broker_uris
+    DB_TYPE                        = "mongodb"
+    DB_URI                         = local.db_uri
+    DEST_DB_URI                    = local.dest_db_uri
+    BROKER_TYPE                    = "kafka"
+    KAFKA_CLIENT_ID                = "configurator"
+    KAFKA_CONSUMER_GROUP_ID        = "configurator-consumer"
+    KAFKA_SSL_ENABLED              = "true"
+    KAFKA_SASL_ENABLED             = "true"
+    KAFKA_SASL_USERNAME            = var.kafka_sasl_username
+    KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
+    REDIS_HOST                     = local.redis_host
+    REDIS_PORT                     = local.redis_port
+    REDIS_PASSWORD                 = local.redis_password
+    REDIS_TLS_ENABLED              = local.redis_tls_enabled
+    ORCHESTRATOR_ADDRESS           = var.orchestrator_address
+    ORCHESTRATOR_WORKER_TASKQUEUE  = "configurator"
+    ORCHESTRATOR_DEFAULT_TASKQUEUE = "configurator"
+    API_KEYS                       = join(",", var.api_keys)
+    MICROSOFT_CLIENT_ID            = var.microsoft_client_id
+    MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
+    GOOGLE_CLIENT_ID               = var.google_client_id
+    GOOGLE_CLIENT_SECRET           = var.google_client_secret
+    TRIGGER_REDEPLOY               = "true"
+  }
+}
+resource "null_resource" "fly_app_configurator" {
+  count = local.configurator_count
+  triggers = {
+    name = local.configurator_app_name
+    org  = var.organization
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl apps create ${local.configurator_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
+  }
+}
+
+resource "null_resource" "fly_ipv6_configurator" {
+  count = local.configurator_count
+  triggers = {
+    app = local.configurator_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v6 -a ${local.configurator_app_name} -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_configurator
+  ]
 }
 
 resource "null_resource" "configurator_builder" {
   count = local.configurator_count
-
   triggers = {
     hash = local.configurator_hash
   }
@@ -556,122 +636,115 @@ resource "null_resource" "configurator_builder" {
     ]
     environment = {
       FLY_ACCESS_TOKEN    = var.fly_api_token
-      DOCKER_FILE         = abspath("${local.configurator_path}/Dockerfile")
-      DOCKER_IMAGE_NAME   = fly_app.configurator[0].name
-      DOCKER_IMAGE_DIGEST = local.configurator_hash
+      DOCKER_FILE         = local.configurator_dockerfile_path
+      DOCKER_IMAGE_NAME   = local.configurator_app_name
+      DOCKER_IMAGE_DIGEST = self.triggers.hash
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_configurator
+  ]
 }
 
-resource "fly_ip" "configurator_ip_v4" {
+resource "null_resource" "fly_machine_configurator" {
   count = local.configurator_count
+  triggers = {
+    hash   = local.configurator_hash
+    region = var.region
+    env    = jsonencode(local.configurator_env)
+  }
 
-  app  = fly_app.configurator[0].name
-  type = "v4"
+  provisioner "local-exec" {
+    command     = <<EOT
+      flyctl deploy . \
+        -y -t $FLY_API_TOKEN \
+        -c "fly.toml" \
+        --strategy canary \
+        -a ${local.configurator_app_name} \
+        -r ${self.triggers.region} \
+        -i "${local.configurator_image_url}" \
+        ${join(" ", [for key, value in local.configurator_env : "-e ${key}=\"${value}\""])}
+    EOT
+    working_dir = abspath("${path.module}/build/configurator")
+  }
+
+  depends_on = [
+    null_resource.fly_app_configurator,
+    null_resource.configurator_builder,
+    null_resource.fly_machine_mongodb,
+  ]
 }
 
-resource "fly_ip" "configurator_ip_v6" {
-  count = local.configurator_count
-
-  app  = fly_app.configurator[0].name
-  type = "v6"
-}
-
-// resource "fly_machine" "configurator" {
-// count = local.configurator_count
-
-// app    = fly_app.configurator[0].name
-// region = var.region
-// name   = "${var.project}-${var.environment}-configurator"
-
-// cputype  = "shared"
-// cpus     = 1
-// memorymb = 512
-
-// image = "registry.fly.io/${fly_app.configurator[0].name}:${local.configurator_hash}"
-
-// services = [
-// {
-// "protocol" : "tcp",
-// "ports" : [
-// {
-// port : 443,
-// handlers : [
-// "tls",
-// "http"
-// ]
-// },
-// {
-// "port" : 80,
-// "handlers" : [
-// "http"
-// ]
-// }
-// ],
-// "internal_port" : 8080,
-// }
-// ]
-
-// env = {
-// NODE_ENV                       = var.environment
-// PORT                           = "8080"
-// LOG_LEVEL                      = var.is_production ? "info" : "debug"
-// BROKER_URIS                    = var.broker_uris
-// DB_TYPE                        = "mongodb"
-// DB_URI                         = local.db_uri
-// DEST_DB_URI                    = local.dest_db_uri
-// BROKER_TYPE                    = "kafka"
-// KAFKA_CLIENT_ID                = "configurator"
-// KAFKA_CONSUMER_GROUP_ID        = "configurator-consumer"
-// KAFKA_SSL_ENABLED              = "true"
-// KAFKA_SASL_ENABLED             = "true"
-// KAFKA_SASL_USERNAME            = var.kafka_sasl_username
-// KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
-// REDIS_HOST                     = local.redis_host
-// REDIS_PORT                     = local.redis_port
-// REDIS_PASSWORD                 = local.redis_password
-// REDIS_TLS_ENABLED              = local.redis_tls_enabled
-// ORCHESTRATOR_ADDRESS           = var.orchestrator_address
-// ORCHESTRATOR_WORKER_TASKQUEUE  = "configurator"
-// ORCHESTRATOR_DEFAULT_TASKQUEUE = "configurator"
-// API_KEYS                       = join(",", var.api_keys)
-// MICROSOFT_CLIENT_ID            = var.microsoft_client_id
-// MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
-// GOOGLE_CLIENT_ID               = var.google_client_id
-// GOOGLE_CLIENT_SECRET           = var.google_client_secret
-// TRIGGER_RESTART                = "true"
-// }
-
-// depends_on = [
-// null_resource.configurator_builder,
-// fly_machine.mongodb,
-// ]
-// }
-
-// **************************** Controller ****************************
-
-resource "fly_app" "controller" {
-  count = local.controller_count
-
-  name = "${var.project}-${var.environment}-controller"
-  org  = var.organization
-}
-
+// **************************** Controller New ****************************
 locals {
-  controller_path = abspath("${path.root}/../apps/controller")
+  controller_path            = abspath("${path.root}/../apps/controller")
+  controller_dockerfile_path = abspath("${local.controller_path}/Dockerfile")
   controller_files = sort(setunion(
     [
-      "${local.controller_path}/Dockerfile",
+      local.controller_dockerfile_path,
+      abspath("${path.module}/build/controller/fly.toml")
     ],
     [for f in fileset("${local.controller_path}", "**") : "${local.controller_path}/${f}"],
   ))
-  controller_hash = md5(join("", [for i in local.controller_files : filemd5(i)]))
+  controller_hash      = md5(join("", [for i in local.controller_files : filemd5(i)]))
+  controller_image_url = "registry.fly.io/${local.controller_app_name}:${local.controller_hash}"
+  controller_env = {
+    NODE_ENV                       = var.environment
+    LOG_LEVEL                      = var.is_production ? "info" : "debug"
+    BROKER_URIS                    = var.broker_uris
+    DB_TYPE                        = "mongodb"
+    DB_URI                         = local.db_uri
+    BROKER_TYPE                    = "kafka"
+    KAFKA_CLIENT_ID                = "controller"
+    KAFKA_CONSUMER_GROUP_ID        = "controller-consumer"
+    KAFKA_SSL_ENABLED              = "true"
+    KAFKA_SASL_ENABLED             = "true"
+    KAFKA_SASL_USERNAME            = var.kafka_sasl_username
+    KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
+    ORCHESTRATOR_ADDRESS           = var.orchestrator_address
+    ORCHESTRATOR_WORKER_TASKQUEUE  = "controller"
+    ORCHESTRATOR_DEFAULT_TASKQUEUE = "controller"
+    MICROSOFT_CLIENT_ID            = var.microsoft_client_id
+    MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
+    GOOGLE_CLIENT_ID               = var.google_client_id
+    GOOGLE_CLIENT_SECRET           = var.google_client_secret
+    TRIGGER_RESTART                = "true"
+    TRIGGER_REBUILD                = "true"
+  }
+}
+resource "null_resource" "fly_app_controller" {
+  count = local.controller_count
+  triggers = {
+    name = local.controller_app_name
+    org  = var.organization
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl apps create ${local.controller_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
+  }
+}
+
+resource "null_resource" "fly_ipv6_controller" {
+  count = local.controller_count
+  triggers = {
+    app = local.controller_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v6 -a ${local.controller_app_name} -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_controller
+  ]
 }
 
 resource "null_resource" "controller_builder" {
   count = local.controller_count
-
   triggers = {
     hash = local.controller_hash
   }
@@ -683,101 +756,118 @@ resource "null_resource" "controller_builder" {
     ]
     environment = {
       FLY_ACCESS_TOKEN    = var.fly_api_token
-      DOCKER_FILE         = abspath("${local.controller_path}/Dockerfile")
-      DOCKER_IMAGE_NAME   = fly_app.controller[0].name
-      DOCKER_IMAGE_DIGEST = local.controller_hash
+      DOCKER_FILE         = local.controller_dockerfile_path
+      DOCKER_IMAGE_NAME   = local.controller_app_name
+      DOCKER_IMAGE_DIGEST = self.triggers.hash
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_controller
+  ]
 }
 
-// resource "fly_machine" "controller" {
-// count = local.controller_count
+resource "null_resource" "fly_machine_controller" {
+  count = local.controller_count
+  triggers = {
+    hash   = local.controller_hash
+    region = var.region
+    env    = jsonencode(local.controller_env)
+  }
 
-// app    = fly_app.controller[0].name
-// region = var.region
-// name   = "${var.project}-${var.environment}-controller"
+  provisioner "local-exec" {
+    command     = <<EOT
+      flyctl deploy . \
+        -y -t $FLY_API_TOKEN \
+        -c "fly.toml" \
+        --strategy canary \
+        -a ${local.controller_app_name} \
+        -r ${self.triggers.region} \
+        -i "${local.controller_image_url}" \
+        ${join(" ", [for key, value in local.controller_env : "-e ${key}=\"${value}\""])}
+    EOT
+    working_dir = abspath("${path.module}/build/controller")
+  }
 
-// cputype  = "shared"
-// cpus     = 1
-// memorymb = 1024
-
-// image = "registry.fly.io/${fly_app.controller[0].name}:${local.controller_hash}"
-
-// services = [
-// {
-// "protocol" : "tcp",
-// "ports" : [
-// {
-// port : 443,
-// handlers : [
-// "tls",
-// "http"
-// ]
-// },
-// {
-// "port" : 80,
-// "handlers" : [
-// "http"
-// ]
-// }
-// ],
-// "internal_port" : 8080,
-// }
-// ]
-
-// env = {
-// NODE_ENV                       = var.environment
-// LOG_LEVEL                      = var.is_production ? "info" : "debug"
-// BROKER_URIS                    = var.broker_uris
-// DB_TYPE                        = "mongodb"
-// DB_URI                         = local.db_uri
-// BROKER_TYPE                    = "kafka"
-// KAFKA_CLIENT_ID                = "controller"
-// KAFKA_CONSUMER_GROUP_ID        = "controller-consumer"
-// KAFKA_SSL_ENABLED              = "true"
-// KAFKA_SASL_ENABLED             = "true"
-// KAFKA_SASL_USERNAME            = var.kafka_sasl_username
-// KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
-// ORCHESTRATOR_ADDRESS           = var.orchestrator_address
-// ORCHESTRATOR_WORKER_TASKQUEUE  = "controller"
-// ORCHESTRATOR_DEFAULT_TASKQUEUE = "controller"
-// MICROSOFT_CLIENT_ID            = var.microsoft_client_id
-// MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
-// GOOGLE_CLIENT_ID               = var.google_client_id
-// GOOGLE_CLIENT_SECRET           = var.google_client_secret
-// TRIGGER_RESTART                = "true"
-// }
-
-// depends_on = [
-// null_resource.controller_builder,
-// fly_machine.mongodb,
-// ]
-// }
-
-// **************************** Worker ****************************
-
-resource "fly_app" "worker" {
-  count = local.worker_count
-
-  name = "${var.project}-${var.environment}-worker"
-  org  = var.organization
+  depends_on = [
+    null_resource.fly_app_controller,
+    null_resource.controller_builder,
+    null_resource.fly_machine_mongodb,
+  ]
 }
 
+// **************************** Worker New ****************************
 locals {
-  worker_path = abspath("${path.root}/../apps/worker")
+  worker_path            = abspath("${path.root}/../apps/worker")
+  worker_dockerfile_path = abspath("${local.worker_path}/Dockerfile")
   worker_files = sort(setunion(
     [
-      "${local.worker_path}/Dockerfile",
+      local.worker_dockerfile_path,
+      abspath("${path.module}/build/worker/fly.toml")
     ],
     [for f in fileset("${local.worker_path}", "**") : "${local.worker_path}/${f}"],
   ))
-  worker_hash = md5(join("", [for i in local.worker_files : filemd5(i)]))
+  worker_hash      = md5(join("", [for i in local.worker_files : filemd5(i)]))
+  worker_image_url = "registry.fly.io/${local.worker_app_name}:${local.worker_hash}"
+  worker_env = {
+    NODE_ENV                       = var.environment
+    LOG_LEVEL                      = var.is_production ? "info" : "debug"
+    BROKER_URIS                    = var.broker_uris
+    DB_TYPE                        = "mongodb"
+    DB_URI                         = local.db_uri
+    BROKER_TYPE                    = "kafka"
+    KAFKA_CLIENT_ID                = "worker"
+    KAFKA_CONSUMER_GROUP_ID        = "worker-consumer"
+    KAFKA_SSL_ENABLED              = "true"
+    KAFKA_SASL_ENABLED             = "true"
+    KAFKA_SASL_USERNAME            = var.kafka_sasl_username
+    KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
+    ORCHESTRATOR_ADDRESS           = var.orchestrator_address
+    ORCHESTRATOR_WORKER_TASKQUEUE  = "worker"
+    ORCHESTRATOR_DEFAULT_TASKQUEUE = "worker"
+    DOWNLOADER_URL                 = var.downloader_url
+    COMPARER_URL                   = var.comparer_url
+    LOADER_URL                     = var.loader_url
+    PROCESSOR_API_KEY              = random_shuffle.processor_api_key.result[0]
+    MICROSOFT_CLIENT_ID            = var.microsoft_client_id
+    MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
+    GOOGLE_CLIENT_ID               = var.google_client_id
+    GOOGLE_CLIENT_SECRET           = var.google_client_secret
+    TRIGGER_REDEPLOY               = "true"
+  }
+}
+resource "null_resource" "fly_app_worker" {
+  count = local.worker_count
+  triggers = {
+    name = local.worker_app_name
+    org  = var.organization
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl apps create ${local.worker_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
+  }
+}
+
+resource "null_resource" "fly_ipv6_worker" {
+  count = local.worker_count
+  triggers = {
+    app = local.worker_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v6 -a ${local.worker_app_name} -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_worker
+  ]
 }
 
 resource "null_resource" "worker_builder" {
   count = local.worker_count
-
   triggers = {
     hash = local.worker_hash
   }
@@ -789,105 +879,115 @@ resource "null_resource" "worker_builder" {
     ]
     environment = {
       FLY_ACCESS_TOKEN    = var.fly_api_token
-      DOCKER_FILE         = abspath("${local.worker_path}/Dockerfile")
-      DOCKER_IMAGE_NAME   = fly_app.worker[0].name
-      DOCKER_IMAGE_DIGEST = local.worker_hash
+      DOCKER_FILE         = local.worker_dockerfile_path
+      DOCKER_IMAGE_NAME   = local.worker_app_name
+      DOCKER_IMAGE_DIGEST = self.triggers.hash
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_worker
+  ]
 }
 
-// resource "fly_machine" "worker" {
-// count = local.worker_count
+resource "null_resource" "fly_machine_worker" {
+  count = local.worker_count
+  triggers = {
+    hash   = local.worker_hash
+    region = var.region
+    env    = jsonencode(local.worker_env)
+  }
 
-// app    = fly_app.worker[0].name
-// region = var.region
-// name   = "${var.project}-${var.environment}-worker"
+  provisioner "local-exec" {
+    command     = <<EOT
+      flyctl deploy . \
+        -y -t $FLY_API_TOKEN \
+        -c "fly.toml" \
+        --strategy canary \
+        -a ${local.worker_app_name} \
+        -r ${self.triggers.region} \
+        -i "${local.worker_image_url}" \
+        ${join(" ", [for key, value in local.worker_env : "-e ${key}=\"${value}\""])}
+    EOT
+    working_dir = abspath("${path.module}/build/worker")
+  }
 
-// cputype  = "shared"
-// cpus     = 1
-// memorymb = 1024
-
-// image = "registry.fly.io/${fly_app.worker[0].name}:${local.worker_hash}"
-
-// services = [
-// {
-// "protocol" : "tcp",
-// "ports" : [
-// {
-// port : 443,
-// handlers : [
-// "tls",
-// "http"
-// ]
-// },
-// {
-// "port" : 80,
-// "handlers" : [
-// "http"
-// ]
-// }
-// ],
-// "internal_port" : 8080,
-// }
-// ]
-
-// env = {
-// NODE_ENV                       = var.environment
-// LOG_LEVEL                      = var.is_production ? "info" : "debug"
-// BROKER_URIS                    = var.broker_uris
-// DB_TYPE                        = "mongodb"
-// DB_URI                         = local.db_uri
-// BROKER_TYPE                    = "kafka"
-// KAFKA_CLIENT_ID                = "worker"
-// KAFKA_CONSUMER_GROUP_ID        = "worker-consumer"
-// KAFKA_SSL_ENABLED              = "true"
-// KAFKA_SASL_ENABLED             = "true"
-// KAFKA_SASL_USERNAME            = var.kafka_sasl_username
-// KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
-// ORCHESTRATOR_ADDRESS           = var.orchestrator_address
-// ORCHESTRATOR_WORKER_TASKQUEUE  = "worker"
-// ORCHESTRATOR_DEFAULT_TASKQUEUE = "worker"
-// DOWNLOADER_URL                 = var.downloader_url
-// COMPARER_URL                   = var.comparer_url
-// LOADER_URL                     = var.loader_url
-// PROCESSOR_API_KEY              = random_shuffle.processor_api_key.result[0]
-// MICROSOFT_CLIENT_ID            = var.microsoft_client_id
-// MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
-// GOOGLE_CLIENT_ID               = var.google_client_id
-// GOOGLE_CLIENT_SECRET           = var.google_client_secret
-// TRIGGER_RESTART                = "true"
-// }
-
-// depends_on = [
-// null_resource.worker_builder,
-// fly_machine.mongodb,
-// ]
-// }
-
-// **************************** Post Processor ****************************
-
-resource "fly_app" "post_processor" {
-  count = local.post_processor_count
-
-  name = "${var.project}-${var.environment}-post-processor"
-  org  = var.organization
+  depends_on = [
+    null_resource.fly_app_worker,
+    null_resource.worker_builder,
+    null_resource.fly_machine_mongodb,
+  ]
 }
 
+// **************************** Post Processor New ****************************
 locals {
-  post_processor_path = abspath("${path.root}/../apps/post-processor")
+  post_processor_path            = abspath("${path.root}/../apps/post-processor")
+  post_processor_dockerfile_path = abspath("${local.post_processor_path}/Dockerfile")
   post_processor_files = sort(setunion(
     [
-      "${local.post_processor_path}/Dockerfile",
+      local.post_processor_dockerfile_path,
+      abspath("${path.module}/build/post-processor/fly.toml")
     ],
     [for f in fileset("${local.post_processor_path}", "**") : "${local.post_processor_path}/${f}"],
   ))
-  post_processor_hash = md5(join("", [for i in local.post_processor_files : filemd5(i)]))
+  post_processor_hash      = md5(join("", [for i in local.post_processor_files : filemd5(i)]))
+  post_processor_image_url = "registry.fly.io/${local.post_processor_app_name}:${local.post_processor_hash}"
+  post_processor_env = {
+    NODE_ENV                              = var.environment
+    LOG_LEVEL                             = var.is_production ? "info" : "debug"
+    BROKER_URIS                           = var.broker_uris
+    DB_TYPE                               = "mongodb"
+    DB_URI                                = local.db_uri
+    BROKER_TYPE                           = "kafka"
+    KAFKA_CLIENT_ID                       = "post-processor"
+    KAFKA_CONSUMER_GROUP_ID               = "post-processor-consumer"
+    KAFKA_SSL_ENABLED                     = "true"
+    KAFKA_SASL_ENABLED                    = "true"
+    KAFKA_SASL_USERNAME                   = var.kafka_sasl_username
+    KAFKA_SASL_PASSWORD                   = var.kafka_sasl_password
+    ORCHESTRATOR_ADDRESS                  = var.orchestrator_address
+    ORCHESTRATOR_post-processor_TASKQUEUE = "post-processor"
+    ORCHESTRATOR_DEFAULT_TASKQUEUE        = "post-processor"
+    S3_URL                                = var.s3_endpoint
+    S3_REGION                             = var.s3_region
+    S3_DIFF_DATA_BUCKET                   = var.s3_bucket
+    S3_ACCESS_KEY                         = var.s3_access_key
+    S3_SECRET_KEY                         = var.s3_secret_key
+    TRIGGER_REDEPLOY                      = "true"
+  }
+}
+resource "null_resource" "fly_app_post_processor" {
+  count = local.post_processor_count
+  triggers = {
+    name = local.post_processor_app_name
+    org  = var.organization
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl apps create ${local.post_processor_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
+  }
+}
+
+resource "null_resource" "fly_ipv6_post_processor" {
+  count = local.post_processor_count
+  triggers = {
+    app = local.post_processor_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v6 -a ${local.post_processor_app_name} -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_post_processor
+  ]
 }
 
 resource "null_resource" "post_processor_builder" {
   count = local.post_processor_count
-
   triggers = {
     hash = local.post_processor_hash
   }
@@ -899,102 +999,112 @@ resource "null_resource" "post_processor_builder" {
     ]
     environment = {
       FLY_ACCESS_TOKEN    = var.fly_api_token
-      DOCKER_FILE         = abspath("${local.post_processor_path}/Dockerfile")
-      DOCKER_IMAGE_NAME   = fly_app.post_processor[0].name
-      DOCKER_IMAGE_DIGEST = local.post_processor_hash
+      DOCKER_FILE         = local.post_processor_dockerfile_path
+      DOCKER_IMAGE_NAME   = local.post_processor_app_name
+      DOCKER_IMAGE_DIGEST = self.triggers.hash
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_post_processor
+  ]
 }
 
-// resource "fly_machine" "post-processor" {
-// count = local.post_processor_count
+resource "null_resource" "fly_machine_post_processor" {
+  count = local.post_processor_count
+  triggers = {
+    hash   = local.post_processor_hash
+    region = var.region
+    env    = jsonencode(local.post_processor_env)
+  }
 
-// app    = fly_app.post_processor[0].name
-// region = var.region
-// name   = "${var.project}-${var.environment}-post-processor"
+  provisioner "local-exec" {
+    command     = <<EOT
+      flyctl deploy . \
+        -y -t $FLY_API_TOKEN \
+        -c "fly.toml" \
+        --strategy canary \
+        -a ${local.post_processor_app_name} \
+        -r ${self.triggers.region} \
+        -i "${local.post_processor_image_url}" \
+        ${join(" ", [for key, value in local.post_processor_env : "-e ${key}=\"${value}\""])}
+    EOT
+    working_dir = abspath("${path.module}/build/post-processor")
+  }
 
-// cputype  = "shared"
-// cpus     = 1
-// memorymb = 256
-
-// image = "registry.fly.io/${fly_app.post_processor[0].name}:${local.post_processor_hash}"
-
-// services = [
-// {
-// "protocol" : "tcp",
-// "ports" : [
-// {
-// port : 443,
-// handlers : [
-// "tls",
-// "http"
-// ]
-// },
-// {
-// "port" : 80,
-// "handlers" : [
-// "http"
-// ]
-// }
-// ],
-// "internal_port" : 8080,
-// }
-// ]
-
-// env = {
-// NODE_ENV                              = var.environment
-// LOG_LEVEL                             = var.is_production ? "info" : "debug"
-// BROKER_URIS                           = var.broker_uris
-// DB_TYPE                               = "mongodb"
-// DB_URI                                = local.db_uri
-// BROKER_TYPE                           = "kafka"
-// KAFKA_CLIENT_ID                       = "post-processor"
-// KAFKA_CONSUMER_GROUP_ID               = "post-processor-consumer"
-// KAFKA_SSL_ENABLED                     = "true"
-// KAFKA_SASL_ENABLED                    = "true"
-// KAFKA_SASL_USERNAME                   = var.kafka_sasl_username
-// KAFKA_SASL_PASSWORD                   = var.kafka_sasl_password
-// ORCHESTRATOR_ADDRESS                  = var.orchestrator_address
-// ORCHESTRATOR_post-processor_TASKQUEUE = "post-processor"
-// ORCHESTRATOR_DEFAULT_TASKQUEUE        = "post-processor"
-// S3_URL                                = var.s3_endpoint
-// S3_REGION                             = var.s3_region
-// S3_DIFF_DATA_BUCKET                   = var.s3_bucket
-// S3_ACCESS_KEY                         = var.s3_access_key
-// S3_SECRET_KEY                         = var.s3_secret_key
-// TRIGGER_RESTART                       = "true"
-// }
-
-// depends_on = [
-// null_resource.post_processor_builder,
-// fly_machine.mongodb,
-// ]
-// }
-
-// **************************** Webhook ****************************
-
-resource "fly_app" "webhook" {
-  count = local.webhook_count
-
-  name = "${var.project}-${var.environment}-webhook"
-  org  = var.organization
+  depends_on = [
+    null_resource.fly_app_post_processor,
+    null_resource.post_processor_builder,
+    null_resource.fly_machine_mongodb,
+  ]
 }
 
+// **************************** Webhook New ****************************
 locals {
-  webhook_path = abspath("${path.root}/../apps/webhook")
+  webhook_path            = abspath("${path.root}/../apps/webhook")
+  webhook_dockerfile_path = abspath("${local.webhook_path}/Dockerfile")
   webhook_files = sort(setunion(
     [
-      "${local.webhook_path}/Dockerfile",
+      local.webhook_dockerfile_path,
+      abspath("${path.module}/build/webhook/fly.toml")
     ],
     [for f in fileset("${local.webhook_path}", "**") : "${local.webhook_path}/${f}"],
   ))
-  webhook_hash = md5(join("", [for i in local.webhook_files : filemd5(i)]))
+  webhook_hash      = md5(join("", [for i in local.webhook_files : filemd5(i)]))
+  webhook_image_url = "registry.fly.io/${local.webhook_app_name}:${local.webhook_hash}"
+  webhook_env = {
+    NODE_ENV                = var.environment
+    LOG_LEVEL               = var.is_production ? "info" : "debug"
+    BROKER_URIS             = var.broker_uris
+    DB_TYPE                 = "mongodb"
+    DB_URI                  = local.db_uri
+    BROKER_TYPE             = "kafka"
+    KAFKA_CLIENT_ID         = "webhook"
+    KAFKA_CONSUMER_GROUP_ID = "webhook-consumer"
+    KAFKA_SSL_ENABLED       = "true"
+    KAFKA_SASL_ENABLED      = "true"
+    KAFKA_SASL_USERNAME     = var.kafka_sasl_username
+    KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
+    REDIS_HOST              = local.redis_host
+    REDIS_PORT              = local.redis_port
+    REDIS_PASSWORD          = local.redis_password
+    REDIS_TLS_ENABLED       = local.redis_tls_enabled
+    WEBHOOK_PRIVATE_KEY     = var.webhook_private_key
+    TRIGGER_REDEPLOY        = "true"
+  }
+}
+resource "null_resource" "fly_app_webhook" {
+  count = local.webhook_count
+  triggers = {
+    name = local.webhook_app_name
+    org  = var.organization
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl apps create ${local.webhook_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
+  }
+}
+
+resource "null_resource" "fly_ipv6_webhook" {
+  count = local.webhook_count
+  triggers = {
+    app = local.webhook_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v6 -a ${local.webhook_app_name} -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_webhook
+  ]
 }
 
 resource "null_resource" "webhook_builder" {
   count = local.webhook_count
-
   triggers = {
     hash = local.webhook_hash
   }
@@ -1006,75 +1116,47 @@ resource "null_resource" "webhook_builder" {
     ]
     environment = {
       FLY_ACCESS_TOKEN    = var.fly_api_token
-      DOCKER_FILE         = abspath("${local.webhook_path}/Dockerfile")
-      DOCKER_IMAGE_NAME   = fly_app.webhook[0].name
-      DOCKER_IMAGE_DIGEST = local.webhook_hash
+      DOCKER_FILE         = local.webhook_dockerfile_path
+      DOCKER_IMAGE_NAME   = local.webhook_app_name
+      DOCKER_IMAGE_DIGEST = self.triggers.hash
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_webhook
+  ]
 }
 
-// resource "fly_machine" "webhook" {
-// count = local.webhook_count
+resource "null_resource" "fly_machine_webhook" {
+  count = local.webhook_count
+  triggers = {
+    hash   = local.webhook_hash
+    region = var.region
+    env    = jsonencode(local.webhook_env)
+  }
 
-// app    = fly_app.webhook[0].name
-// region = var.region
-// name   = "${var.project}-${var.environment}-webhook"
+  provisioner "local-exec" {
+    command     = <<EOT
+      flyctl deploy . \
+        -y -t $FLY_API_TOKEN \
+        -c "fly.toml" \
+        --strategy canary \
+        -a ${local.webhook_app_name} \
+        -r ${self.triggers.region} \
+        -i "${local.webhook_image_url}" \
+        ${join(" ", [for key, value in local.webhook_env : "-e ${key}=\"${value}\""])}
+    EOT
+    working_dir = abspath("${path.module}/build/webhook")
+  }
 
-// cputype  = "shared"
-// cpus     = 1
-// memorymb = 256
-
-// image = "registry.fly.io/${fly_app.webhook[0].name}:${local.webhook_hash}"
-
-// services = [
-// {
-// "protocol" : "tcp",
-// "ports" : [
-// {
-// port : 443,
-// handlers : [
-// "tls",
-// "http"
-// ]
-// },
-// {
-// "port" : 80,
-// "handlers" : [
-// "http"
-// ]
-// }
-// ],
-// "internal_port" : 8080,
-// }
-// ]
-
-// env = {
-// NODE_ENV                = var.environment
-// LOG_LEVEL               = var.is_production ? "info" : "debug"
-// BROKER_URIS             = var.broker_uris
-// DB_TYPE                 = "mongodb"
-// DB_URI                  = local.db_uri
-// BROKER_TYPE             = "kafka"
-// KAFKA_CLIENT_ID         = "webhook"
-// KAFKA_CONSUMER_GROUP_ID = "webhook-consumer"
-// KAFKA_SSL_ENABLED       = "true"
-// KAFKA_SASL_ENABLED      = "true"
-// KAFKA_SASL_USERNAME     = var.kafka_sasl_username
-// KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
-// REDIS_HOST              = local.redis_host
-// REDIS_PORT              = local.redis_port
-// REDIS_PASSWORD          = local.redis_password
-// REDIS_TLS_ENABLED       = local.redis_tls_enabled
-// WEBHOOK_PRIVATE_KEY     = var.webhook_private_key
-// }
-
-// depends_on = [
-// null_resource.webhook_builder,
-// fly_machine.redis,
-// fly_machine.mongodb,
-// ]
-// }
+  depends_on = [
+    null_resource.fly_app_webhook,
+    null_resource.webhook_builder,
+    null_resource.fly_machine_redis,
+    null_resource.fly_machine_mongodb,
+  ]
+}
 
 // **************************** Test App ****************************
 locals {
@@ -1141,6 +1223,10 @@ resource "null_resource" "test_app_builder" {
     }
     working_dir = abspath("${path.root}/../")
   }
+
+  depends_on = [
+    null_resource.fly_app_test_app
+  ]
 }
 
 resource "null_resource" "fly_machine_test_app" {
@@ -1155,6 +1241,8 @@ resource "null_resource" "fly_machine_test_app" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
+        -c "fly.toml" \
+        --strategy canary \
         -a ${local.test_app_name} \
         -r ${self.triggers.region} \
         -i "${local.test_app_image_url}" \
