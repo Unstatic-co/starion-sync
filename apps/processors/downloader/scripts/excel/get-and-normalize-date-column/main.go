@@ -1,8 +1,12 @@
 package main
 
 import (
+	"downloader/pkg/e"
+	"downloader/service/excel"
+	"downloader/util"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -109,15 +113,32 @@ func (s *MicrosoftExcelService) GetValuesOfExcelColumn(columnIndex int) ([]float
 	request.Header.Set("workbook-session-id", s.SessionId)
 	response, err := client.Do(request)
 	if err != nil {
-		log.Fatalln("Error fetching values of date columns")
+		return nil, fmt.Errorf("Error fetching values of date columns: %w", err)
+	}
+
+	defer response.Body.Close()
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
 		return nil, err
 	}
 
+	// // stimulate
+	// response.StatusCode = 404
+	// responseBody = []byte(`{"error":{"code":"ItemNotFound","message":"Item not found"}}`)
+
+	if !(response.StatusCode >= 200 && response.StatusCode < 300) {
+		var errRes excel.ErrorResponse
+		err := jsoniter.Unmarshal(responseBody, &errRes)
+		if err != nil {
+			return nil, fmt.Errorf("Error unmarshalling: %w", err)
+		}
+		return nil, excel.WrapWorksheetApiError(response.StatusCode, errRes.Error.Msg)
+	}
+
 	var resValue GetValueOfExcelColumnResponse
-	err = json.NewDecoder(response.Body).Decode(&resValue)
+	err = jsoniter.Unmarshal(responseBody, &resValue)
 	if err != nil || len(resValue.Values) == 0 {
-		log.Fatalln("Error parsing values of date columns")
-		return nil, err
+		return nil, fmt.Errorf("Error parsing values of date columns: %w", err)
 	}
 
 	_, resValue.Values = resValue.Values[0], resValue.Values[1:]
@@ -133,22 +154,44 @@ func (s *MicrosoftExcelService) GetValuesOfExcelColumn(columnIndex int) ([]float
 	return result, nil
 }
 
-func GetValuesOfExcelColumnsConcurrently(service *MicrosoftExcelService, columns []int) (map[int][]float64, error) {
+func GetValuesOfExcelColumnsConcurrently(service *MicrosoftExcelService, columns []int, exErrorFile string) (map[int][]float64, error) {
 	result := make(map[int][]float64)
 	ch := make(chan int)
+	errors := make([]error, 0, len(columns))
+
 	for _, columnIndex := range columns {
 		go func(columnIndex int) {
 			values, err := service.GetValuesOfExcelColumn(columnIndex)
 			if err != nil {
-				log.Fatalln("Error fetching values of date columns")
+				errors = append(errors, err)
+			} else {
+				result[columnIndex] = values
 			}
-			result[columnIndex] = values
 			ch <- columnIndex
 		}(columnIndex)
 	}
 
 	for range columns {
 		<-ch
+	}
+
+	if len(errors) > 0 {
+		var internalErr error
+		for _, err := range errors {
+			if err, ok := err.(*e.ExternalError); ok {
+				unmarshalErr := util.UnmarsalJsonFile(exErrorFile, &excel.DownloadExternalError{
+					Code: err.Code,
+					Msg:  err.Msg,
+				})
+				if unmarshalErr != nil {
+					return nil, fmt.Errorf("Error when unmarsal external err file: %w", unmarshalErr)
+				}
+				return nil, err
+			} else if internalErr == nil {
+				internalErr = err
+			}
+		}
+		return nil, internalErr
 	}
 
 	return result, nil
@@ -168,6 +211,7 @@ func main() {
 	timezone := flag.String("timezone", "UTC", "Timezone of worksheet")
 	replaceEmpty := flag.String("replaceEmpty", defaultReplaceEmpty, "Number of row")
 	replaceError := flag.String("replaceError", defaultReplaceError, "Value to replace date error cell (should be an ISO date to correctly infer schema)")
+	exErrFile := flag.String("exErrFile", "", "The file contained external error")
 	out := flag.String("out", "-", "Output path, - to output to stdin")
 
 	flag.Parse()
@@ -202,7 +246,7 @@ func main() {
 		return index
 	})
 
-	serialNumberDateValues, err := GetValuesOfExcelColumnsConcurrently(&service, columnIndexes)
+	serialNumberDateValues, err := GetValuesOfExcelColumnsConcurrently(&service, columnIndexes, *exErrFile)
 	if err != nil {
 		log.Fatalln("Error getting values of excel columns: ", err)
 	}

@@ -7,6 +7,7 @@ import (
 	"downloader/pkg/e"
 	"downloader/util"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -118,7 +119,7 @@ func (s *MicrosoftExcelService) CreateSessionId(persistChanges bool) error {
 		return fmt.Errorf("Error sending request to create excel session id: %w", err)
 	}
 	defer resp.Body.Close()
-	responseBody, err := ioutil.ReadAll(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("Error reading response body from create excel session id: %w", err)
 	}
@@ -201,7 +202,7 @@ func (s *MicrosoftExcelService) GetWorksheetInfo() error {
 		return err
 	}
 	defer resp.Body.Close()
-	responseBody, err := ioutil.ReadAll(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -247,10 +248,11 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 		debugParam = "on"
 	}
 
-	externalErrorFile, err := util.GenerateTempFileName("ext", "json")
+	externalErrorFile, err := util.CreateTempFileWithContent("ext", "json", "{}")
 	if err != nil {
 		return fmt.Errorf("Cannot generate temp file: %w", err)
 	}
+	defer util.DeleteFile(externalErrorFile)
 	s3Host, _ := util.ConvertS3URLToHost(config.AppConfig.S3Endpoint)
 
 	cmd := exec.CommandContext(
@@ -285,20 +287,19 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 	cmd.Stderr = errorWriter
 
 	if err := cmd.Run(); err != nil {
+		// check external error
+		log.Println("Check external error")
+		var externalError DownloadExternalError
+		marshalErr := util.MarshalJsonFile(externalErrorFile, &externalError)
+		if marshalErr != nil {
+			fmt.Errorf("Cannot read external error file: %w", err)
+		}
+		if externalError.Code != 0 {
+			return e.NewExternalErrorWithDescription(externalError.Code, externalError.Msg, "External error when running download script")
+		}
+
 		return err
 	}
-
-	// check external error
-	var externalError DownloadExternalError
-	err = util.MarshalJsonFile(externalErrorFile, &externalError)
-	if err != nil {
-		fmt.Errorf("Cannot read external error file: %w", err)
-	}
-	if externalError.Code != 0 {
-		return e.NewExternalErrorWithDescription(externalError.Code, externalError.Msg, "External error when running download script")
-	}
-
-	go util.DeleteFile(externalErrorFile)
 
 	return nil
 }

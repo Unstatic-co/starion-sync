@@ -383,7 +383,7 @@ normalized_date_file="$TEMP_DIR/normalized_date.csv"
 if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
     info-log "Normalizing date columns..."
     temp_updated_dates_file=$TEMP_DIR/updated_dates.csv
-    cat <(echo "$joined_date_header_strs") <(
+    normalized_date_data=$(
         "./excel/get-and-normalize-date-column" \
             --driveId "$drive_id" \
             --workbookId "$workbook_id" \
@@ -394,8 +394,11 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
             --rowNumber "$rows_number" \
             --replaceError "$DEFAULT_DATE_ERROR_VALUE" \
             --replaceEmpty "$EMPTY_VALUE_TOKEN" \
-            --timezone "$time_zone"
-    ) >"$temp_updated_dates_file"
+            --timezone "$time_zone" \
+            --exErrFile "$external_error_file"
+    )
+    cat <(echo "$joined_date_header_strs") <(echo "$normalized_date_data") >"$temp_updated_dates_file"
+    unset normalized_date_data
 
     "$QSV" cat columns -p <("$QSV" select "!${date_col_idxs}" "$dedup_header_file") "$temp_updated_dates_file" |
         "$QSV" select "$placeholder_headers" |
@@ -512,6 +515,7 @@ else
         --sessionId "$session_id" \
         --idColIndex "$id_col_colnum" \
         --idsFile "$table_fixed_id_rows" \
+        --exErrFile "$external_error_file" \
         --includeHeader "$missing_id_col"
     info-log "Fixed primary keys"
 

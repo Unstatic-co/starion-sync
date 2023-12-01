@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	google_sheets "downloader/service/google-sheets"
+	"downloader/util"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"strconv"
 
 	"golang.org/x/oauth2"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
 )
@@ -136,6 +139,7 @@ func main() {
 	accessToken := flag.String("accessToken", "", "Microsoft graph api Access Token")
 	idColIndex := flag.Int("idColIndex", 0, "The index of id column, start at 1")
 	idsFile := flag.String("idsFile", "", "The file contained ids for missing rows")
+	exErrFile := flag.String("exErrFile", "", "The file contained external error")
 	includeHeader := flag.Bool("includeHeader", false, "Specify if should add header for id row")
 
 	flag.Parse()
@@ -168,6 +172,18 @@ func main() {
 		}).
 		Do()
 	if err != nil {
-		log.Fatalln("Error when updating id col", err)
+		if googleapiErr, ok := err.(*googleapi.Error); ok {
+			sheetErr := google_sheets.WrapSpreadSheetApiError(googleapiErr)
+			unmarshalErr := util.UnmarsalJsonFile(*exErrFile, &google_sheets.DownloadExternalError{
+				Code: sheetErr.Code,
+				Msg:  sheetErr.Msg,
+			})
+			if unmarshalErr != nil {
+				log.Fatalln("Error when unmarsal external file", err)
+			}
+			log.Fatalln("Error when updating id col", sheetErr)
+		} else {
+			log.Fatalln(fmt.Sprintf("Error when parsing google api error - %v", err))
+		}
 	}
 }

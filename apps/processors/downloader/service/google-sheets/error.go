@@ -7,7 +7,7 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
-func WrapSpreadSheetApiError(err *googleapi.Error) error {
+func WrapSpreadSheetApiError(err *googleapi.Error) *e.ExternalError {
 	switch err.Code {
 	case 401:
 		return e.WrapExternalError(err.Unwrap(), e.SPREADSHEET_UNAUTHORIZED, "Spreadsheet unauthorized")
@@ -20,7 +20,7 @@ func WrapSpreadSheetApiError(err *googleapi.Error) error {
 	}
 }
 
-func WrapGoogleDriveFileError(err *googleapi.Error) error {
+func WrapGoogleDriveFileError(err *googleapi.Error) *e.ExternalError {
 	switch err.Code {
 	case 401:
 		return e.WrapExternalError(err.Unwrap(), e.GOOGLE_DRIVE_FILE_UNAUTHORIZED, "Google drive file unauthorized")

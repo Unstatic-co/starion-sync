@@ -2,9 +2,13 @@ package main
 
 import (
 	"bytes"
+	"downloader/pkg/e"
+	"downloader/service/excel"
+	"downloader/util"
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -153,17 +157,30 @@ func (s *MicrosoftExcelService) UpdateIdColumn(rangeAddress string, data []byte,
 		return
 	}
 
-	// // log response body
-	// body, err := ioutil.ReadAll(resp.Body)
-	// log.Println("Response body: ", string(body))
+	defer resp.Body.Close()
+	responseBody, err := io.ReadAll(resp.Body)
 
-	if resp.StatusCode != http.StatusOK {
-		errors <- fmt.Errorf("Request failed with status code: %d", resp.StatusCode)
+	// // stimulate
+	// resp.StatusCode = 404
+	// responseBody = []byte(`{"error":{"code":"ItemNotFound","message":"Item not found"}}`)
+
+	if err != nil {
+		errors <- fmt.Errorf("Error reading response body from excel update id column: %w", err)
 		return
 	}
-	defer resp.Body.Close()
+
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		var errRes excel.ErrorResponse
+		err := jsoniter.Unmarshal(responseBody, &errRes)
+		if err != nil {
+			errors <- fmt.Errorf("Error unmarshalling: %w", err)
+			return
+		}
+		errors <- excel.WrapWorksheetApiError(resp.StatusCode, errRes.Error.Msg)
+		return
+	}
 }
-func (s *MicrosoftExcelService) UpdateIdColumns(data map[string][]byte) {
+func (s *MicrosoftExcelService) UpdateIdColumns(data map[string][]byte, exErrorFile string) error {
 	var wg sync.WaitGroup
 	errors := make(chan error, len(data))
 	for rangeAddress, json := range data {
@@ -175,12 +192,25 @@ func (s *MicrosoftExcelService) UpdateIdColumns(data map[string][]byte) {
 	close(errors)
 
 	if len(errors) > 0 {
+		var internalErr error
 		for err := range errors {
-			log.Printf("Request failed with error: %s\n", err.Error())
+			if err, ok := err.(*e.ExternalError); ok {
+				unmarshalErr := util.UnmarsalJsonFile(exErrorFile, &excel.DownloadExternalError{
+					Code: err.Code,
+					Msg:  err.Msg,
+				})
+				if unmarshalErr != nil {
+					return fmt.Errorf("Error when unmarsal external err file: %w", unmarshalErr)
+				}
+				return err
+			} else if internalErr == nil {
+				internalErr = err
+			}
 		}
-		os.Exit(1)
-		return
+		return internalErr
 	}
+
+	return nil
 }
 
 // END: SERVICE
@@ -193,9 +223,12 @@ func main() {
 	sessionId := flag.String("sessionId", "", "Workbook session Id")
 	idColIndex := flag.Int("idColIndex", 0, "The index of id column")
 	idsFile := flag.String("idsFile", "", "The file contained ids for missing rows")
+	exErrFile := flag.String("exErrFile", "", "The file contained external error")
 	includeHeader := flag.Bool("includeHeader", false, "Specify if should add header for id row")
 
 	flag.Parse()
+
+	log.Println("Ex err file: ", *exErrFile)
 
 	service := MicrosoftExcelService{
 		DriveId:     *driveId,
@@ -209,5 +242,8 @@ func main() {
 
 	jsonData := generateUpdateDataInJson(data, *idColIndex)
 
-	service.UpdateIdColumns(jsonData)
+	err := service.UpdateIdColumns(jsonData, *exErrFile)
+	if err != nil {
+		log.Fatalln("Error when updating id column: ", err)
+	}
 }
