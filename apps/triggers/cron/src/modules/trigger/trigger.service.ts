@@ -32,6 +32,8 @@ export class TriggerService {
             repeat: {
               cron: (trigger.config as CronTriggerConfig).cron,
             },
+            removeOnComplete: true,
+            removeOnFail: true,
           });
           this.logger.log('added trigger to queue', trigger.id);
           await this.processTrigger(trigger);

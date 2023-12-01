@@ -75,6 +75,8 @@ export class GoogleSheetsWebhookService implements WebhookService {
         repeat: {
           every: refreshInterval,
         },
+        removeOnComplete: true,
+        removeOnFail: true,
       },
     );
     await this.triggerRepository.updateConfig(trigger.id, {

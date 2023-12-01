@@ -57,6 +57,8 @@ export class GoogleSheetsUpdateMetadataProcessor {
             } as GoogleSheetsDelayedFormsyncJobData,
             {
               jobId: delayedFormsync.formsync.id,
+              removeOnComplete: true,
+              removeOnFail: true,
             },
           );
         }),
