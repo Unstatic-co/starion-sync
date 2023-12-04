@@ -23,10 +23,10 @@ internal_port = 8080
 # soft_limit = 500
 
 [[vm]]
-# size = "shared-cpu-2x"
+size = "shared-cpu-1x"
 memory = 1024
 cpus = 1
-cpu_kind = "shared" # performance
+cpu_kind = "shared"    # performance
 # processes = ["app"]
 
 [metrics]
