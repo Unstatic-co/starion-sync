@@ -662,6 +662,7 @@ resource "null_resource" "fly_machine_configurator" {
         -y -t $FLY_API_TOKEN \
         -c fly.toml \
         --strategy canary \
+        --vm-memory 512 \
         -a ${local.configurator_app_name} \
         -r ${self.triggers.region} \
         -i "${local.configurator_image_url}" \
@@ -782,6 +783,7 @@ resource "null_resource" "fly_machine_controller" {
         -y -t $FLY_API_TOKEN \
         -c fly.toml \
         --strategy canary \
+        --vm-memory 1024 \
         -a ${local.controller_app_name} \
         -r ${self.triggers.region} \
         -i "${local.controller_image_url}" \
@@ -905,6 +907,7 @@ resource "null_resource" "fly_machine_worker" {
         -y -t $FLY_API_TOKEN \
         -c fly.toml \
         --strategy canary \
+        --vm-memory 1024 \
         -a ${local.worker_app_name} \
         -r ${self.triggers.region} \
         -i "${local.worker_image_url}" \
