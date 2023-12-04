@@ -11,5 +11,4 @@ export const ErrorCode = {
   ALREADY_EXISTS: 'E4',
 };
 
-// export const GOOGLE_SHEETS_WEBHOOK_EXPIRATION = 86400; // seconds
-export const GOOGLE_SHEETS_WEBHOOK_EXPIRATION = 518400; // seconds (six days)
+export const GOOGLE_SHEETS_WEBHOOK_EXPIRATION = 86400; // seconds (1 days)

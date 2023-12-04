@@ -22,11 +22,13 @@ services:
       - NODE_ENV=${NODE_ENV}
       - PORT=8080
       - API_KEYS=${API_KEYS}
+      - DB_URI=${DB_URI}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
+      - DB_TLS_ENABLED=${DB_TLS_ENABLED}
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}

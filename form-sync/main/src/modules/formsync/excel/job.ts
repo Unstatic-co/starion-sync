@@ -55,6 +55,8 @@ export class ExcelUpdateMetadataProcessor {
             } as ExcelDelayedFormsyncJobData,
             {
               jobId: delayedFormsync.formsync.id,
+              removeOnComplete: true,
+              removeOnFail: true,
             },
           );
         }),

@@ -8,6 +8,11 @@ import { ApiKeyGuard } from 'src/common/guard/apiKey.guard';
 export class FormSyncController {
   constructor(private readonly formSyncService: FormSyncService) {}
 
+  @Post('test')
+  test() {
+    return this.formSyncService.test();
+  }
+
   @Post()
   run(@Body() data: FormSyncDto) {
     return this.formSyncService.run(data);

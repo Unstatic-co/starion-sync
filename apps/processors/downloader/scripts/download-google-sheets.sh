@@ -144,7 +144,7 @@ ID_COL_DUPLICATED_ERROR="1201"
 
 ###### FUNCTIONS #######
 
-function write-external-error() {
+function emit-external-error() {
     local error_code=$1
     local error_message=$2
     info-log "External error: $error_code - $error_message"
@@ -152,13 +152,13 @@ function write-external-error() {
         --arg "code" "$error_code" \
         --arg "msg" "$error_message" \
         '{"code":$code|tonumber,"msg":$msg}' > "$external_error_file"
-    exit 0
+    exit 1
 }
 
 function check-csv-empty() {
     local file=$1
     if [[ -z $(head -n 1 "$file" | awk -F, '{for(i=1;i<=NF;i++) if($i != "") {print $i; exit 0;} exit 0; }') ]]; then
-        write-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
+        emit-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
     fi
 }
 
@@ -179,9 +179,9 @@ function download-google-sheets-file() {
     if test "$status_code" -ne 200; then
         error-log "Failed to download file. Status code: $status_code"
         if test "$status_code" -eq 404; then
-            write-external-error "$SPREADSHEET_NOT_FOUND_ERROR" "Spreadsheet not found"
+            emit-external-error "$SPREADSHEET_NOT_FOUND_ERROR" "Spreadsheet not found"
         elif test "$status_code" -eq 403; then
-            write-external-error "$SPREADSHEET_FORBIDDEN_ERROR" "Missing permission to access spreadsheet"
+            emit-external-error "$SPREADSHEET_FORBIDDEN_ERROR" "Missing permission to access spreadsheet"
         fi
         exit 1
     fi
@@ -241,12 +241,12 @@ download-google-sheets-file "$original_file" "$download_url"
 xlsx_header=$(./get-xlsx-header --file "$original_file" --showHeaders)
 debug-log "Xlsx header: $xlsx_header"
 if [[ -z "$xlsx_header" ]]; then
-    write-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
+    emit-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
 else
     # check id col duplicate
     id_col_count=$(echo "$xlsx_header" | tr ',' '\n' | grep -c "^$ID_COL_NAME$") || true
     if [[ "$id_col_count" -gt 1 ]]; then
-        write-external-error "$ID_COL_DUPLICATED_ERROR" "The id column ($ID_COL_NAME) is duplicated"
+        emit-external-error "$ID_COL_DUPLICATED_ERROR" "The id column ($ID_COL_NAME) is duplicated"
     fi
 fi
 
@@ -318,7 +318,7 @@ normalized_date_file="$TEMP_DIR/normalized_date.csv"
 if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
     info-log "Normalizing date columns..."
     temp_updated_dates_file=$TEMP_DIR/updated_dates.csv
-    cat <(echo "$joined_date_header_strs") <(
+    normalized_date_data=$(
         "./google-sheets/get-and-normalize-date-column" \
             --spreadsheetId "$spreadsheet_id" \
             --sheetId "$sheet_id" \
@@ -328,8 +328,11 @@ if [[ $(("${#date_header_idx[@]}")) -gt 0 ]]; then
             --colIndexes "$date_col_idxs" \
             --rowNumber "$rows_number" \
             --replaceEmpty "$EMPTY_VALUE_TOKEN" \
-            --replaceError "$DEFAULT_DATE_ERROR_VALUE"
-    ) >"$temp_updated_dates_file"
+            --replaceError "$DEFAULT_DATE_ERROR_VALUE" \
+            --exErrFile "$external_error_file"
+    )
+    cat <(echo "$joined_date_header_strs") <(echo "$normalized_date_data") >"$temp_updated_dates_file"
+    unset normalized_date_data
 
     "$QSV" cat columns -p <("$QSV" select "!${date_col_idxs}" "$dedup_header_file") "$temp_updated_dates_file" |
         "$QSV" select "$placeholder_headers" |
@@ -445,7 +448,8 @@ else
         --accessToken "$access_token" \
         --idColIndex "$id_col_colnum" \
         --idsFile "$table_fixed_id_rows" \
-        --includeHeader "$missing_id_col"
+        --exErrFile "$external_error_file" \
+        --missingIdCol "$missing_id_col"
     info-log "Fixed primary keys"
 
     appended_id_file="$TEMP_DIR/appended_id.csv"

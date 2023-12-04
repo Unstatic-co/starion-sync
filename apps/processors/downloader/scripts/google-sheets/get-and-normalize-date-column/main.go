@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	google_sheets "downloader/service/google-sheets"
+	"downloader/util"
 	"flag"
 	"fmt"
 	"log"
@@ -14,6 +16,7 @@ import (
 	"github.com/samber/lo"
 
 	"golang.org/x/oauth2"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
 )
@@ -97,7 +100,13 @@ type GetValueOfExcelColumnResponse struct {
 	Values []interface{} `json:"values"`
 }
 
-func GetValuesOfGoogleSheetsColumns(ctx context.Context, s *GoogleSheetsService, columns []int, rowNumber int) ([]*sheets.ValueRange, error) {
+func GetValuesOfGoogleSheetsColumns(
+	ctx context.Context,
+	s *GoogleSheetsService,
+	columns []int,
+	rowNumber int,
+	exErrFile string,
+) ([]*sheets.ValueRange, error) {
 	token := oauth2.Token{
 		AccessToken: s.AccessToken,
 	}
@@ -120,8 +129,22 @@ func GetValuesOfGoogleSheetsColumns(ctx context.Context, s *GoogleSheetsService,
 		DateTimeRenderOption("SERIAL_NUMBER").
 		ValueRenderOption("UNFORMATTED_VALUE").
 		Do()
+	// // simulate
+	// err = &e.InternalError{}
 	if err != nil {
-		log.Fatalf("Cannot get column data: %+v", err)
+		if googleapiErr, ok := err.(*googleapi.Error); ok {
+			sheetErr := google_sheets.WrapSpreadSheetApiError(googleapiErr)
+			unmarshalErr := util.UnmarsalJsonFile(exErrFile, &google_sheets.DownloadExternalError{
+				Code: sheetErr.Code,
+				Msg:  sheetErr.Msg,
+			})
+			if unmarshalErr != nil {
+				return nil, fmt.Errorf("Error when unmarsal external file: %w", err)
+			}
+			return nil, sheetErr
+		} else {
+			return nil, fmt.Errorf("Error when parsing google api error - %w", err)
+		}
 	}
 
 	return resp.ValueRanges, nil
@@ -140,6 +163,7 @@ func main() {
 	timezone := flag.String("timezone", "UTC", "Timezone of worksheet")
 	replaceEmpty := flag.String("replaceEmpty", defaultReplaceEmpty, "Value to replace empty cell")
 	replaceError := flag.String("replaceError", defaultReplaceError, "Value to replace date error cell (should be an ISO date to correctly infer schema)")
+	exErrFile := flag.String("exErrFile", "", "The file contained external error")
 	out := flag.String("out", "-", "Output path, - to output to stdin")
 
 	flag.Parse()
@@ -175,7 +199,7 @@ func main() {
 		return index
 	})
 
-	serialNumberDateColumnValues, err := GetValuesOfGoogleSheetsColumns(ctx, &service, columnIndexes, *numberOfRows)
+	serialNumberDateColumnValues, err := GetValuesOfGoogleSheetsColumns(ctx, &service, columnIndexes, *numberOfRows, *exErrFile)
 	if err != nil {
 		log.Fatalln("Error getting values of date columns: ", err)
 	}
