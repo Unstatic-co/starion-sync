@@ -551,7 +551,7 @@ resource "null_resource" "fly_machine_cron_trigger" {
   ]
 }
 
-// // **************************** Configurator New ****************************
+// **************************** Configurator New ****************************
 locals {
   configurator_path            = abspath("${path.root}/../apps/configurator")
   configurator_dockerfile_path = abspath("${local.configurator_path}/Dockerfile")
@@ -594,91 +594,91 @@ locals {
     TRIGGER_REDEPLOY               = "true"
   }
 }
-// resource "null_resource" "fly_app_configurator" {
-// count = local.configurator_count
-// triggers = {
-// name = local.configurator_app_name
-// org  = var.organization
-// }
-// provisioner "local-exec" {
-// when    = create
-// command = "flyctl apps create ${local.configurator_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
-// }
-// provisioner "local-exec" {
-// when    = destroy
-// command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
-// }
-// }
+resource "null_resource" "fly_app_configurator" {
+  count = local.configurator_count
+  triggers = {
+    name = local.configurator_app_name
+    org  = var.organization
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl apps create ${local.configurator_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
+  }
+}
 
-// resource "null_resource" "fly_ipv6_configurator" {
-// count = local.configurator_count
-// triggers = {
-// app = local.configurator_app_name
-// }
-// provisioner "local-exec" {
-// command = "flyctl ips allocate-v6 -a ${local.configurator_app_name} -t $FLY_API_TOKEN"
-// }
-// depends_on = [
-// null_resource.fly_app_configurator
-// ]
-// }
+resource "null_resource" "fly_ipv6_configurator" {
+  count = local.configurator_count
+  triggers = {
+    app = local.configurator_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v6 -a ${local.configurator_app_name} -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_configurator
+  ]
+}
 
-// resource "null_resource" "configurator_builder" {
-// count = local.configurator_count
-// triggers = {
-// hash = local.configurator_hash
-// }
+resource "null_resource" "configurator_builder" {
+  count = local.configurator_count
+  triggers = {
+    hash = local.configurator_hash
+  }
 
-// provisioner "local-exec" {
-// command = abspath("${path.module}/build-image.sh")
-// interpreter = [
-// "/bin/bash"
-// ]
-// environment = {
-// FLY_ACCESS_TOKEN    = var.fly_api_token
-// DOCKER_FILE         = local.configurator_dockerfile_path
-// DOCKER_IMAGE_NAME   = local.configurator_app_name
-// DOCKER_IMAGE_DIGEST = self.triggers.hash
-// }
-// working_dir = abspath("${path.root}/../")
-// }
+  provisioner "local-exec" {
+    command = abspath("${path.module}/build-image.sh")
+    interpreter = [
+      "/bin/bash"
+    ]
+    environment = {
+      FLY_ACCESS_TOKEN    = var.fly_api_token
+      DOCKER_FILE         = local.configurator_dockerfile_path
+      DOCKER_IMAGE_NAME   = local.configurator_app_name
+      DOCKER_IMAGE_DIGEST = self.triggers.hash
+    }
+    working_dir = abspath("${path.root}/../")
+  }
 
-// depends_on = [
-// null_resource.fly_app_configurator
-// ]
-// }
+  depends_on = [
+    null_resource.fly_app_configurator
+  ]
+}
 
-// resource "null_resource" "fly_machine_configurator" {
-// count = local.configurator_count
-// triggers = {
-// hash   = local.configurator_hash
-// region = var.region
-// env    = jsonencode(local.configurator_env)
-// }
+resource "null_resource" "fly_machine_configurator" {
+  count = local.configurator_count
+  triggers = {
+    hash   = local.configurator_hash
+    region = var.region
+    env    = jsonencode(local.configurator_env)
+  }
 
-// provisioner "local-exec" {
-// command     = <<EOT
-// flyctl deploy . \
-// -y -t $FLY_API_TOKEN \
-// -c fly.toml \
-// --strategy canary \
-// --vm-memory 512 \
-// -a ${local.configurator_app_name} \
-// -r ${self.triggers.region} \
-// -i "${local.configurator_image_url}" \
-// ${join(" ", [for key, value in local.configurator_env : "-e ${key}=\"${value}\""])}
-// EOT
-// working_dir = abspath("${path.module}/build/configurator")
-// }
+  provisioner "local-exec" {
+    command     = <<EOT
+      flyctl deploy . \
+      -y -t $FLY_API_TOKEN \
+      -c fly.toml \
+      --strategy canary \
+      --vm-memory 512 \
+      -a ${local.configurator_app_name} \
+      -r ${self.triggers.region} \
+      -i "${local.configurator_image_url}" \
+      ${join(" ", [for key, value in local.configurator_env : "-e ${key}=\"${value}\""])}
+    EOT
+    working_dir = abspath("${path.module}/build/configurator")
+  }
 
-// depends_on = [
-// null_resource.fly_app_configurator,
-// null_resource.configurator_builder,
-// null_resource.fly_machine_mongodb,
-// ]
-// }
+  depends_on = [
+    null_resource.fly_app_configurator,
+    null_resource.configurator_builder,
+    null_resource.fly_machine_mongodb,
+  ]
+}
 
-// // **************************** Controller New ****************************
+// **************************** Controller New ****************************
 locals {
   controller_path            = abspath("${path.root}/../apps/controller")
   controller_dockerfile_path = abspath("${local.controller_path}/Dockerfile")
@@ -715,91 +715,91 @@ locals {
     TRIGGER_REBUILD                = "true"
   }
 }
-// resource "null_resource" "fly_app_controller" {
-// count = local.controller_count
-// triggers = {
-// name = local.controller_app_name
-// org  = var.organization
-// }
-// provisioner "local-exec" {
-// when    = create
-// command = "flyctl apps create ${local.controller_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
-// }
-// provisioner "local-exec" {
-// when    = destroy
-// command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
-// }
-// }
+resource "null_resource" "fly_app_controller" {
+  count = local.controller_count
+  triggers = {
+    name = local.controller_app_name
+    org  = var.organization
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl apps create ${local.controller_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
+  }
+}
 
-// resource "null_resource" "fly_ipv6_controller" {
-// count = local.controller_count
-// triggers = {
-// app = local.controller_app_name
-// }
-// provisioner "local-exec" {
-// command = "flyctl ips allocate-v6 -a ${local.controller_app_name} -t $FLY_API_TOKEN"
-// }
-// depends_on = [
-// null_resource.fly_app_controller
-// ]
-// }
+resource "null_resource" "fly_ipv6_controller" {
+  count = local.controller_count
+  triggers = {
+    app = local.controller_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v6 -a ${local.controller_app_name} -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_controller
+  ]
+}
 
-// resource "null_resource" "controller_builder" {
-// count = local.controller_count
-// triggers = {
-// hash = local.controller_hash
-// }
+resource "null_resource" "controller_builder" {
+  count = local.controller_count
+  triggers = {
+    hash = local.controller_hash
+  }
 
-// provisioner "local-exec" {
-// command = abspath("${path.module}/build-image.sh")
-// interpreter = [
-// "/bin/bash"
-// ]
-// environment = {
-// FLY_ACCESS_TOKEN    = var.fly_api_token
-// DOCKER_FILE         = local.controller_dockerfile_path
-// DOCKER_IMAGE_NAME   = local.controller_app_name
-// DOCKER_IMAGE_DIGEST = self.triggers.hash
-// }
-// working_dir = abspath("${path.root}/../")
-// }
+  provisioner "local-exec" {
+    command = abspath("${path.module}/build-image.sh")
+    interpreter = [
+      "/bin/bash"
+    ]
+    environment = {
+      FLY_ACCESS_TOKEN    = var.fly_api_token
+      DOCKER_FILE         = local.controller_dockerfile_path
+      DOCKER_IMAGE_NAME   = local.controller_app_name
+      DOCKER_IMAGE_DIGEST = self.triggers.hash
+    }
+    working_dir = abspath("${path.root}/../")
+  }
 
-// depends_on = [
-// null_resource.fly_app_controller
-// ]
-// }
+  depends_on = [
+    null_resource.fly_app_controller
+  ]
+}
 
-// resource "null_resource" "fly_machine_controller" {
-// count = local.controller_count
-// triggers = {
-// hash   = local.controller_hash
-// region = var.region
-// env    = jsonencode(local.controller_env)
-// }
+resource "null_resource" "fly_machine_controller" {
+  count = local.controller_count
+  triggers = {
+    hash   = local.controller_hash
+    region = var.region
+    env    = jsonencode(local.controller_env)
+  }
 
-// provisioner "local-exec" {
-// command     = <<EOT
-// flyctl deploy . \
-// -y -t $FLY_API_TOKEN \
-// -c fly.toml \
-// --strategy canary \
-// --vm-memory 1024 \
-// -a ${local.controller_app_name} \
-// -r ${self.triggers.region} \
-// -i "${local.controller_image_url}" \
-// ${join(" ", [for key, value in local.controller_env : "-e ${key}=\"${value}\""])}
-// EOT
-// working_dir = abspath("${path.module}/build/controller")
-// }
+  provisioner "local-exec" {
+    command     = <<EOT
+      flyctl deploy . \
+      -y -t $FLY_API_TOKEN \
+      -c fly.toml \
+      --strategy canary \
+      --vm-memory 1024 \
+      -a ${local.controller_app_name} \
+      -r ${self.triggers.region} \
+      -i "${local.controller_image_url}" \
+      ${join(" ", [for key, value in local.controller_env : "-e ${key}=\"${value}\""])}
+    EOT
+    working_dir = abspath("${path.module}/build/controller")
+  }
 
-// depends_on = [
-// null_resource.fly_app_controller,
-// null_resource.controller_builder,
-// null_resource.fly_machine_mongodb,
-// ]
-// }
+  depends_on = [
+    null_resource.fly_app_controller,
+    null_resource.controller_builder,
+    null_resource.fly_machine_mongodb,
+  ]
+}
 
-// // **************************** Worker New ****************************
+// **************************** Worker New ****************************
 locals {
   worker_path            = abspath("${path.root}/../apps/worker")
   worker_dockerfile_path = abspath("${local.worker_path}/Dockerfile")
@@ -839,89 +839,89 @@ locals {
     TRIGGER_REDEPLOY               = "true"
   }
 }
-// resource "null_resource" "fly_app_worker" {
-// count = local.worker_count
-// triggers = {
-// name = local.worker_app_name
-// org  = var.organization
-// }
-// provisioner "local-exec" {
-// when    = create
-// command = "flyctl apps create ${local.worker_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
-// }
-// provisioner "local-exec" {
-// when    = destroy
-// command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
-// }
-// }
+resource "null_resource" "fly_app_worker" {
+  count = local.worker_count
+  triggers = {
+    name = local.worker_app_name
+    org  = var.organization
+  }
+  provisioner "local-exec" {
+    when    = create
+    command = "flyctl apps create ${local.worker_app_name} --org ${var.organization} -t $FLY_API_TOKEN"
+  }
+  provisioner "local-exec" {
+    when    = destroy
+    command = "flyctl apps destroy ${self.triggers.name} --yes -t $FLY_API_TOKEN"
+  }
+}
 
-// resource "null_resource" "fly_ipv6_worker" {
-// count = local.worker_count
-// triggers = {
-// app = local.worker_app_name
-// }
-// provisioner "local-exec" {
-// command = "flyctl ips allocate-v6 -a ${local.worker_app_name} -t $FLY_API_TOKEN"
-// }
-// depends_on = [
-// null_resource.fly_app_worker
-// ]
-// }
+resource "null_resource" "fly_ipv6_worker" {
+  count = local.worker_count
+  triggers = {
+    app = local.worker_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v6 -a ${local.worker_app_name} -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_worker
+  ]
+}
 
-// resource "null_resource" "worker_builder" {
-// count = local.worker_count
-// triggers = {
-// hash = local.worker_hash
-// }
+resource "null_resource" "worker_builder" {
+  count = local.worker_count
+  triggers = {
+    hash = local.worker_hash
+  }
 
-// provisioner "local-exec" {
-// command = abspath("${path.module}/build-image.sh")
-// interpreter = [
-// "/bin/bash"
-// ]
-// environment = {
-// FLY_ACCESS_TOKEN    = var.fly_api_token
-// DOCKER_FILE         = local.worker_dockerfile_path
-// DOCKER_IMAGE_NAME   = local.worker_app_name
-// DOCKER_IMAGE_DIGEST = self.triggers.hash
-// }
-// working_dir = abspath("${path.root}/../")
-// }
+  provisioner "local-exec" {
+    command = abspath("${path.module}/build-image.sh")
+    interpreter = [
+      "/bin/bash"
+    ]
+    environment = {
+      FLY_ACCESS_TOKEN    = var.fly_api_token
+      DOCKER_FILE         = local.worker_dockerfile_path
+      DOCKER_IMAGE_NAME   = local.worker_app_name
+      DOCKER_IMAGE_DIGEST = self.triggers.hash
+    }
+    working_dir = abspath("${path.root}/../")
+  }
 
-// depends_on = [
-// null_resource.fly_app_worker
-// ]
-// }
+  depends_on = [
+    null_resource.fly_app_worker
+  ]
+}
 
-// resource "null_resource" "fly_machine_worker" {
-// count = local.worker_count
-// triggers = {
-// hash   = local.worker_hash
-// region = var.region
-// env    = jsonencode(local.worker_env)
-// }
+resource "null_resource" "fly_machine_worker" {
+  count = local.worker_count
+  triggers = {
+    hash   = local.worker_hash
+    region = var.region
+    env    = jsonencode(local.worker_env)
+  }
 
-// provisioner "local-exec" {
-// command     = <<EOT
-// flyctl deploy . \
-// -y -t $FLY_API_TOKEN \
-// -c fly.toml \
-// --strategy canary \
-// --vm-memory 1024 \
-// -a ${local.worker_app_name} \
-// -r ${self.triggers.region} \
-// -i "${local.worker_image_url}" \
-// ${join(" ", [for key, value in local.worker_env : "-e ${key}=\"${value}\""])}
-// EOT
-// working_dir = abspath("${path.module}/build/worker")
-// }
+  provisioner "local-exec" {
+    command     = <<EOT
+      flyctl deploy . \
+      -y -t $FLY_API_TOKEN \
+      -c fly.toml \
+      --strategy canary \
+      --vm-memory 1024 \
+      -a ${local.worker_app_name} \
+      -r ${self.triggers.region} \
+      -i "${local.worker_image_url}" \
+      ${join(" ", [for key, value in local.worker_env : "-e ${key}=\"${value}\""])}
+    EOT
+    working_dir = abspath("${path.module}/build/worker")
+  }
 
-// depends_on = [
-// null_resource.fly_app_worker,
-// null_resource.worker_builder,
-// null_resource.fly_machine_mongodb,
-// ]
-// }
+  depends_on = [
+    null_resource.fly_app_worker,
+    null_resource.worker_builder,
+    null_resource.fly_machine_mongodb,
+  ]
+}
 
 // **************************** Post Processor New ****************************
 locals {
