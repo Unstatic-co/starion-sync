@@ -610,6 +610,19 @@ resource "null_resource" "fly_app_configurator" {
   }
 }
 
+resource "null_resource" "fly_ipv4_configurator" {
+  count = local.configurator_count
+  triggers = {
+    app = local.configurator_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v4 -a ${local.configurator_app_name} -y -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_configurator
+  ]
+}
+
 resource "null_resource" "fly_ipv6_configurator" {
   count = local.configurator_count
   triggers = {
