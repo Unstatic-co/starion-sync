@@ -449,7 +449,7 @@ else
         --idColIndex "$id_col_colnum" \
         --idsFile "$table_fixed_id_rows" \
         --exErrFile "$external_error_file" \
-        --includeHeader "$missing_id_col"
+        --missingIdCol "$missing_id_col"
     info-log "Fixed primary keys"
 
     appended_id_file="$TEMP_DIR/appended_id.csv"

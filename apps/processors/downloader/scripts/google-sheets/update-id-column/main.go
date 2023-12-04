@@ -36,6 +36,23 @@ func convertToA1Notation(row, column int) string {
 	return result
 }
 
+func handleGoogleApiError(err error, exErrFile string) {
+	log.Println("Google api error: ", err)
+	if googleapiErr, ok := err.(*googleapi.Error); ok {
+		sheetErr := google_sheets.WrapSpreadSheetApiError(googleapiErr)
+		unmarshalErr := util.UnmarsalJsonFile(exErrFile, &google_sheets.DownloadExternalError{
+			Code: sheetErr.Code,
+			Msg:  sheetErr.Msg,
+		})
+		if unmarshalErr != nil {
+			log.Fatalln("Error when unmarsal external file", err)
+		}
+		log.Fatalln("Error when updating id col", sheetErr)
+	} else {
+		log.Fatalln(fmt.Sprintf("Error when parsing google api error - %v", err))
+	}
+}
+
 func generateUpdateIdData(idsFile string, includeHeader bool) UpdateIdData {
 	// open file CSV
 	file, err := os.Open(idsFile)
@@ -140,7 +157,7 @@ func main() {
 	idColIndex := flag.Int("idColIndex", 0, "The index of id column, start at 1")
 	idsFile := flag.String("idsFile", "", "The file contained ids for missing rows")
 	exErrFile := flag.String("exErrFile", "", "The file contained external error")
-	includeHeader := flag.Bool("includeHeader", false, "Specify if should add header for id row")
+	missingIdCol := flag.Bool("missingIdCol", false, "Specify if the sheet didn't have id col, should add header for id row")
 
 	flag.Parse()
 
@@ -151,7 +168,7 @@ func main() {
 		AccessToken:   *accessToken,
 	}
 
-	data := generateUpdateIdData(*idsFile, *includeHeader)
+	data := generateUpdateIdData(*idsFile, *missingIdCol)
 	updateData := generateUpdateIdGoogleSheetsData(data, *sheetName, *idColIndex)
 
 	ctx := context.Background()
@@ -164,6 +181,35 @@ func main() {
 		log.Fatalln("Error when creating client to update id col", err)
 	}
 
+	sheetIdInt, _ := strconv.Atoi(service.SheetId)
+
+	if *missingIdCol {
+		res, err := sheetClient.Spreadsheets.Get(service.SpreadsheetId).Ranges(service.SheetName).IncludeGridData(false).Fields(googleapi.Field("sheets.properties.gridProperties.columnCount")).Do()
+		if err != nil {
+			handleGoogleApiError(err, *exErrFile)
+		}
+		columnCount := res.Sheets[0].Properties.GridProperties.ColumnCount
+		if columnCount < int64(*idColIndex) {
+			_, err = sheetClient.Spreadsheets.BatchUpdate(service.SpreadsheetId, &sheets.BatchUpdateSpreadsheetRequest{
+				Requests: []*sheets.Request{
+					{
+						InsertDimension: &sheets.InsertDimensionRequest{
+							InheritFromBefore: true,
+							Range: &sheets.DimensionRange{
+								SheetId:    int64(sheetIdInt),
+								Dimension:  "COLUMNS",
+								StartIndex: int64(*idColIndex - 1),
+								EndIndex:   int64(*idColIndex),
+							},
+						},
+					},
+				},
+			}).Do()
+			if err != nil {
+				handleGoogleApiError(err, *exErrFile)
+			}
+		}
+	}
 	_, err = sheetClient.Spreadsheets.Values.
 		BatchUpdate(service.SpreadsheetId, &sheets.BatchUpdateValuesRequest{
 			ValueInputOption:        "RAW",
@@ -172,18 +218,6 @@ func main() {
 		}).
 		Do()
 	if err != nil {
-		if googleapiErr, ok := err.(*googleapi.Error); ok {
-			sheetErr := google_sheets.WrapSpreadSheetApiError(googleapiErr)
-			unmarshalErr := util.UnmarsalJsonFile(*exErrFile, &google_sheets.DownloadExternalError{
-				Code: sheetErr.Code,
-				Msg:  sheetErr.Msg,
-			})
-			if unmarshalErr != nil {
-				log.Fatalln("Error when unmarsal external file", err)
-			}
-			log.Fatalln("Error when updating id col", sheetErr)
-		} else {
-			log.Fatalln(fmt.Sprintf("Error when parsing google api error - %v", err))
-		}
+		handleGoogleApiError(err, *exErrFile)
 	}
 }
