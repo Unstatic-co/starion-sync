@@ -100,6 +100,8 @@ export class DataSourceService {
         repeat: {
           cron: metadataJob.cron,
         },
+        removeOnComplete: true,
+        removeOnFail: true,
       },
     );
   }
@@ -154,6 +156,8 @@ export class DataSourceService {
         repeat: {
           cron: metadataJob.cron,
         },
+        removeOnComplete: true,
+        removeOnFail: true,
       },
     );
   }

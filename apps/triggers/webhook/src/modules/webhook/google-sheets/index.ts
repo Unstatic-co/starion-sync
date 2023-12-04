@@ -52,13 +52,14 @@ export class GoogleSheetsWebhookService implements WebhookService {
     await this.create(data);
 
     this.logger.debug(`add refreshment job, triggerId = ${trigger.id}`);
-    let refreshInterval = (GOOGLE_SHEETS_WEBHOOK_EXPIRATION - 1800) * 1000;
-    if (
-      this.configService.get<string>(`${ConfigName.APP}.environment`) !==
-      'production'
-    ) {
-      refreshInterval = 1600 * 1000;
-    }
+    const refreshInterval = (GOOGLE_SHEETS_WEBHOOK_EXPIRATION - 3600) * 1000;
+    // if (
+    // this.configService.get<string>(`${ConfigName.APP}.environment`) !==
+    // 'production'
+    // ) {
+    // refreshInterval = 1600 * 1000;
+    // }
+
     await this.refreshmentQueue.add(
       {
         triggerId: trigger.id,
@@ -74,6 +75,8 @@ export class GoogleSheetsWebhookService implements WebhookService {
         repeat: {
           every: refreshInterval,
         },
+        removeOnComplete: true,
+        removeOnFail: true,
       },
     );
     await this.triggerRepository.updateConfig(trigger.id, {
@@ -112,13 +115,13 @@ export class GoogleSheetsWebhookService implements WebhookService {
     const webhookBaseUrl = this.configService.get<string>('webhook.baseUrl');
 
     const webhookId = uuidv4();
-    let expiration = Date.now() + GOOGLE_SHEETS_WEBHOOK_EXPIRATION * 1000;
-    if (
-      this.configService.get<string>(`${ConfigName.APP}.environment`) ==
-      'development'
-    ) {
-      expiration = Date.now() + 1800 * 1000;
-    }
+    const expiration = Date.now() + GOOGLE_SHEETS_WEBHOOK_EXPIRATION * 1000;
+    // if (
+    // this.configService.get<string>(`${ConfigName.APP}.environment`) ==
+    // 'development'
+    // ) {
+    // expiration = Date.now() + 1800 * 1000;
+    // }
     const client = await this.googleService.createAuthClient(refreshToken);
     const { channelId, resourceId } =
       await this.googleSheetsService.registerFileChangeWebhook({
