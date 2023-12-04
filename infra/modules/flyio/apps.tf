@@ -533,7 +533,7 @@ resource "null_resource" "fly_machine_cron_trigger" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
-        -c "fly.toml" \
+        -c fly.toml \
         --strategy canary \
         -a ${local.cron_trigger_app_name} \
         -r ${self.triggers.region} \
@@ -660,7 +660,7 @@ resource "null_resource" "fly_machine_configurator" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
-        -c "fly.toml" \
+        -c fly.toml \
         --strategy canary \
         -a ${local.configurator_app_name} \
         -r ${self.triggers.region} \
@@ -780,7 +780,7 @@ resource "null_resource" "fly_machine_controller" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
-        -c "fly.toml" \
+        -c fly.toml \
         --strategy canary \
         -a ${local.controller_app_name} \
         -r ${self.triggers.region} \
@@ -903,7 +903,7 @@ resource "null_resource" "fly_machine_worker" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
-        -c "fly.toml" \
+        -c fly.toml \
         --strategy canary \
         -a ${local.worker_app_name} \
         -r ${self.triggers.region} \
@@ -1023,7 +1023,7 @@ resource "null_resource" "fly_machine_post_processor" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
-        -c "fly.toml" \
+        -c fly.toml \
         --strategy canary \
         -a ${local.post_processor_app_name} \
         -r ${self.triggers.region} \
@@ -1140,7 +1140,7 @@ resource "null_resource" "fly_machine_webhook" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
-        -c "fly.toml" \
+        -c fly.toml \
         --strategy canary \
         -a ${local.webhook_app_name} \
         -r ${self.triggers.region} \
@@ -1241,7 +1241,7 @@ resource "null_resource" "fly_machine_test_app" {
     command     = <<EOT
       flyctl deploy . \
         -y -t $FLY_API_TOKEN \
-        -c "fly.toml" \
+        -c fly.toml \
         --strategy canary \
         -a ${local.test_app_name} \
         -r ${self.triggers.region} \
