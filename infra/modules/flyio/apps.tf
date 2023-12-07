@@ -610,6 +610,19 @@ resource "null_resource" "fly_app_configurator" {
   }
 }
 
+resource "null_resource" "fly_ipv4_configurator" {
+  count = local.configurator_count
+  triggers = {
+    app = local.configurator_app_name
+  }
+  provisioner "local-exec" {
+    command = "flyctl ips allocate-v4 -a ${local.configurator_app_name} -y -t $FLY_API_TOKEN"
+  }
+  depends_on = [
+    null_resource.fly_app_configurator
+  ]
+}
+
 resource "null_resource" "fly_ipv6_configurator" {
   count = local.configurator_count
   triggers = {
@@ -659,14 +672,14 @@ resource "null_resource" "fly_machine_configurator" {
   provisioner "local-exec" {
     command     = <<EOT
       flyctl deploy . \
-        -y -t $FLY_API_TOKEN \
-        -c fly.toml \
-        --strategy canary \
-        --vm-memory 512 \
-        -a ${local.configurator_app_name} \
-        -r ${self.triggers.region} \
-        -i "${local.configurator_image_url}" \
-        ${join(" ", [for key, value in local.configurator_env : "-e ${key}=\"${value}\""])}
+      -y -t $FLY_API_TOKEN \
+      -c fly.toml \
+      --strategy canary \
+      --vm-memory 512 \
+      -a ${local.configurator_app_name} \
+      -r ${self.triggers.region} \
+      -i "${local.configurator_image_url}" \
+      ${join(" ", [for key, value in local.configurator_env : "-e ${key}=\"${value}\""])}
     EOT
     working_dir = abspath("${path.module}/build/configurator")
   }
@@ -780,14 +793,14 @@ resource "null_resource" "fly_machine_controller" {
   provisioner "local-exec" {
     command     = <<EOT
       flyctl deploy . \
-        -y -t $FLY_API_TOKEN \
-        -c fly.toml \
-        --strategy canary \
-        --vm-memory 1024 \
-        -a ${local.controller_app_name} \
-        -r ${self.triggers.region} \
-        -i "${local.controller_image_url}" \
-        ${join(" ", [for key, value in local.controller_env : "-e ${key}=\"${value}\""])}
+      -y -t $FLY_API_TOKEN \
+      -c fly.toml \
+      --strategy canary \
+      --vm-memory 1024 \
+      -a ${local.controller_app_name} \
+      -r ${self.triggers.region} \
+      -i "${local.controller_image_url}" \
+      ${join(" ", [for key, value in local.controller_env : "-e ${key}=\"${value}\""])}
     EOT
     working_dir = abspath("${path.module}/build/controller")
   }
@@ -904,14 +917,14 @@ resource "null_resource" "fly_machine_worker" {
   provisioner "local-exec" {
     command     = <<EOT
       flyctl deploy . \
-        -y -t $FLY_API_TOKEN \
-        -c fly.toml \
-        --strategy canary \
-        --vm-memory 1024 \
-        -a ${local.worker_app_name} \
-        -r ${self.triggers.region} \
-        -i "${local.worker_image_url}" \
-        ${join(" ", [for key, value in local.worker_env : "-e ${key}=\"${value}\""])}
+      -y -t $FLY_API_TOKEN \
+      -c fly.toml \
+      --strategy canary \
+      --vm-memory 1024 \
+      -a ${local.worker_app_name} \
+      -r ${self.triggers.region} \
+      -i "${local.worker_image_url}" \
+      ${join(" ", [for key, value in local.worker_env : "-e ${key}=\"${value}\""])}
     EOT
     working_dir = abspath("${path.module}/build/worker")
   }
