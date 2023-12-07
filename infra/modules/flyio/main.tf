@@ -1,6 +1,6 @@
 locals {
   test_app_count        = var.is_production ? 0 : 0
-  redis_count           = var.is_production ? 0 : 1 ##
+  redis_count           = var.is_production ? 0 : 0 ##
   mongodb_count         = var.is_production ? 0 : 1 ##
   postgres_count        = var.is_production ? 0 : 0
   apps_count            = var.is_production ? 0 : 1 #
