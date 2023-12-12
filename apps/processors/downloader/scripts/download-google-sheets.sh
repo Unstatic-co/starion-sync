@@ -165,26 +165,34 @@ function check-csv-empty() {
 function download-google-sheets-file() {
     local outfile=$1
     local download_url=$2
+    local retry_delay=10 # seconds
     info-log "Downloading file..."
-    status_code=$(
-        curl \
-            -sL \
-            -H "Authorization: Bearer $access_token" \
-            -H "Accept: text/csv" \
-            -o "$outfile" \
-            --write-out "%{http_code}" \
-            --retry 2 \
-            "$download_url"
-    )
-    if test "$status_code" -ne 200; then
-        error-log "Failed to download file. Status code: $status_code"
-        if test "$status_code" -eq 404; then
-            emit-external-error "$SPREADSHEET_NOT_FOUND_ERROR" "Spreadsheet not found"
-        elif test "$status_code" -eq 403; then
-            emit-external-error "$SPREADSHEET_FORBIDDEN_ERROR" "Missing permission to access spreadsheet"
+    while true; do
+        status_code=$(
+            curl \
+                -sL \
+                -H "Authorization: Bearer $access_token" \
+                -H "Accept: text/csv" \
+                -o "$outfile" \
+                --write-out "%{http_code}" \
+                "$download_url"
+                # --retry 2 \
+        )
+        if test "$status_code" -ne 200; then
+            info-log "Failed to download file. Status code: $status_code"
+            if test "$status_code" -eq 429; then
+                sleep "$retry_delay"
+            elif test "$status_code" -eq 404; then
+                emit-external-error "$SPREADSHEET_NOT_FOUND_ERROR" "Spreadsheet not found"
+                exit 1
+            elif test "$status_code" -eq 403; then
+                emit-external-error "$SPREADSHEET_FORBIDDEN_ERROR" "Missing permission to access spreadsheet"
+                exit 1
+            fi
+        else
+            break
         fi
-        exit 1
-    fi
+    done
 }
 
 ######### MAIN #########
