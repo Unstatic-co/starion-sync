@@ -1,10 +1,15 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import { AppConfig } from './config';
 import { GoogleSheetPerUserHandler } from './middlewares/rateLimitHandlers';
+import { apiKeyMiddleware } from './middlewares/auth';
 
 const fastify: FastifyInstance = Fastify({
-  logger: true,
+  logger: {
+    level: AppConfig.logLevel,
+  },
 });
+
+fastify.addHook('preHandler', apiKeyMiddleware);
 
 // ping route
 fastify.get('/ping', async () => {

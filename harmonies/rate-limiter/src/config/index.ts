@@ -3,7 +3,8 @@ require('dotenv').config();
 export const AppConfig = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT) || 8080,
-  apiKeys: process.env.API_KEYS || 'api-key',
+  apiKeys: process.env.API_KEYS?.split(',') || ['api-key'],
+  logLevel: process.env.LOG_LEVEL || 'info',
 };
 
 export const RedisConfig = {

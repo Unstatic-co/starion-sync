@@ -15,7 +15,7 @@ export const GoogleSheetLimiter = new RateLimiterRedis({
 export const GoogleSheetPerUserLimiter = new RateLimiterRedis({
   // Basic options
   storeClient: redisClient,
-  points: 60, // Number of points
+  points: 30, // Number of points
   duration: 60, // Per second(s)
 
   // Custom
