@@ -1,10 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataDiscoverer } from '../data-discoverer.factory';
 import {
   MicrosoftGraphService,
   MicrosoftService,
 } from '@lib/modules/third-party';
-import { DiscoveredExcelDataSource } from '../discoverer.interface';
+import {
+  DataDiscoverer,
+  DiscoveredExcelDataSource,
+} from '../discoverer.interface';
 import {
   ERROR_CODE,
   ExcelDataSourceConfig,
@@ -139,5 +141,9 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
         "Worksheet doesn't have any data",
       );
     }
+  }
+
+  async discoverConfig(dataSourceConfig: Partial<ExcelDataSourceConfig>) {
+    return dataSourceConfig as ExcelDataSourceConfig;
   }
 }

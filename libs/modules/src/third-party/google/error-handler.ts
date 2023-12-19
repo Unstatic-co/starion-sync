@@ -1,14 +1,22 @@
 import { ERROR_CODE, ExternalError } from '@lib/core/error';
 import { GaxiosError } from './google.type';
 
-export function handleGoogleApiError(error: any) {
+export function handleGoogleAuthError(error: any) {
   console.log('handleGoogleApiError', JSON.stringify(error));
   const err = error as GaxiosError;
   if (
     err.response.status === 400 &&
     err.response.data.error === 'invalid_grant'
   ) {
-    throw new ExternalError(ERROR_CODE.TOKEN_INVALID, 'Token is invalid');
+    throw new ExternalError(
+      ERROR_CODE.TOKEN_INVALID,
+      'Auth credential is invalid',
+    );
+  } else if (err.response.status === 403) {
+    throw new ExternalError(
+      ERROR_CODE.TOKEN_MISSING_PERMISSIONS,
+      'Missing required permissions',
+    );
   } else {
     throw error;
   }
