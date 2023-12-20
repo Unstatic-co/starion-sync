@@ -16,6 +16,8 @@ availableSecrets:
       env: 'API_KEYS'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_PROCESSOR_API_KEYS/versions/latest
       env: 'PROCESSOR_API_KEYS'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_HARMONIES_API_KEYS/versions/latest
+      env: 'HARMONIES_API_KEYS'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_WEBHOOK_PRIVATE_KEY/versions/latest
       env: 'WEBHOOK_PRIVATE_KEY'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_GOOGLE_CLIENT_SECRET/versions/latest
@@ -50,6 +52,7 @@ steps:
         'S3_SECRET_KEY',
         'API_KEYS',
         'PROCESSOR_API_KEYS',
+        'HARMONIES_API_KEYS',
         'WEBHOOK_PRIVATE_KEY',
         'GOOGLE_CLIENT_SECRET',
         'MICROSOFT_CLIENT_SECRET',
@@ -66,6 +69,7 @@ steps:
         export TF_VAR_s3_secret_key=$$S3_SECRET_KEY
         export TF_VAR_api_keys=$$API_KEYS
         export TF_VAR_processor_api_keys=$$PROCESSOR_API_KEYS
+        export TF_VAR_harmonies_api_keys=$$HARMONIES_API_KEYS
         export TF_VAR_webhook_private_key=$$WEBHOOK_PRIVATE_KEY
         export TF_VAR_google_client_secret=$$GOOGLE_CLIENT_SECRET
         export TF_VAR_microsoft_client_secret=$$MICROSOFT_CLIENT_SECRET
@@ -87,6 +91,7 @@ steps:
         'S3_SECRET_KEY',
         'API_KEYS',
         'PROCESSOR_API_KEYS',
+        'HARMONIES_API_KEYS',
         'WEBHOOK_PRIVATE_KEY',
         'GOOGLE_CLIENT_SECRET',
         'MICROSOFT_CLIENT_SECRET',
@@ -103,6 +108,7 @@ steps:
         export TF_VAR_s3_secret_key=$$S3_SECRET_KEY
         export TF_VAR_api_keys=$$API_KEYS
         export TF_VAR_processor_api_keys=$$PROCESSOR_API_KEYS
+        export TF_VAR_harmonies_api_keys=$$HARMONIES_API_KEYS
         export TF_VAR_webhook_private_key=$$WEBHOOK_PRIVATE_KEY
         export TF_VAR_google_client_secret=$$GOOGLE_CLIENT_SECRET
         export TF_VAR_microsoft_client_secret=$$MICROSOFT_CLIENT_SECRET
