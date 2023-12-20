@@ -11,6 +11,10 @@ resource "digitalocean_database_cluster" "redis" {
   eviction_policy = "noeviction"
   node_count      = 1
 
+  lifecycle {
+    prevent_destroy = true
+  }
+
   depends_on = [
     digitalocean_project.starion_sync
   ]
@@ -27,6 +31,9 @@ resource "digitalocean_database_cluster" "mongodb" {
   version    = "6"
   size       = "db-s-1vcpu-1gb"
   node_count = 1
+  lifecycle {
+    prevent_destroy = true
+  }
 
   depends_on = [
     digitalocean_project.starion_sync
@@ -44,6 +51,10 @@ resource "digitalocean_database_cluster" "postgres" {
   version    = "15"
   size       = "db-s-1vcpu-2gb"
   node_count = 1
+
+  lifecycle {
+    prevent_destroy = true
+  }
 
   depends_on = [
     digitalocean_project.starion_sync

@@ -1,3 +1,5 @@
+import { DataSourceConfig, ProviderConfig } from '@lib/core';
+
 export interface DiscoveredDataSource {
   id: string;
   name?: string;
@@ -21,4 +23,14 @@ export interface DiscoveredGoogleSheetsDataSource extends DiscoveredDataSource {
     rowCount: number;
     columnCount: number;
   };
+}
+
+export interface DataDiscoverer {
+  checkDataSource(dataSourceConfig: DataSourceConfig): Promise<any>;
+  discoverConfig(
+    dataSourceConfig: Partial<DataSourceConfig>,
+  ): Promise<DataSourceConfig>;
+  discoverProvider(
+    providerConfig: ProviderConfig,
+  ): Promise<DiscoveredDataSource[]>;
 }

@@ -11,7 +11,6 @@ import {
   ProviderId,
   ProviderType,
   SyncConnection,
-  TriggerId,
 } from '@lib/core';
 import {
   CreateDataSourceDto,
@@ -116,12 +115,19 @@ export class DataSourceService {
         ).data;
       }
 
-      await this.discovererService.checkDataSource(dataProvider.type, config);
+      const fullConfig = await this.discovererService.discoverConfig(
+        dataProvider.type,
+        config,
+      );
+      await this.discovererService.checkDataSource(
+        dataProvider.type,
+        fullConfig,
+      );
 
       const dataSource = await this.dataSourceRepository.create({
         externalId,
         externalLocalId,
-        config,
+        config: fullConfig,
         providerId: dataProvider.id,
         providerType: type,
         metadata,
