@@ -74,6 +74,7 @@ export async function googleSheetsFullSync(data: SyncflowScheduledPayload) {
         syncVersion,
         prevVersion: prevSyncVersion,
         tableName: syncData.destTableName,
+        metadata: syncData.metadata,
       });
 
       await emitEvent(EventNames.SYNCFLOW_SUCCEED, {

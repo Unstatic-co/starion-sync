@@ -31,6 +31,8 @@ type LoaderData struct {
 	AddedFields   AddedFieldsData
 	UpdatedFields UpdatedFieldsData
 	DeletedFields DeletedFieldsData
+
+	Metadata interface{}
 }
 
 type LoadedResult struct {

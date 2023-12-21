@@ -17,10 +17,11 @@ import (
 )
 
 type SheetServiceInitParams struct {
-	DataSourceId string `json:"dataSourceId"`
-	SyncVersion  uint   `json:"syncVersion"`
-	PrevVersion  uint   `json:"prevVersion"`
-	TableName    string `json:"tableName"`
+	DataSourceId string      `json:"dataSourceId"`
+	SyncVersion  uint        `json:"syncVersion"`
+	PrevVersion  uint        `json:"prevVersion"`
+	TableName    string      `json:"tableName"`
+	Metadata     interface{} `json:"metadata"`
 }
 
 type SheetService struct {
@@ -30,6 +31,7 @@ type SheetService struct {
 	syncVersion  uint
 	prevVersion  uint
 	tableName    string
+	metadata     interface{}
 
 	// loger
 	logger *log.Entry
@@ -44,6 +46,7 @@ func NewService(params SheetServiceInitParams) (*SheetService, error) {
 	s.syncVersion = params.SyncVersion
 	s.prevVersion = params.PrevVersion
 	s.tableName = params.TableName
+	s.metadata = params.Metadata
 
 	// logger
 	logger := log.New()
@@ -109,7 +112,7 @@ func (s *SheetService) GetSchema() (sch.TableSchema, error) {
 	return schema, nil
 }
 
-func (s *SheetService) GetDiffData() (loader.LoaderData, error) {
+func (s *SheetService) GetLoadData() (loader.LoaderData, error) {
 	s.logger.Info("Start getting diff data")
 
 	var data loader.LoaderData
@@ -290,6 +293,10 @@ func (s *SheetService) GetDiffData() (loader.LoaderData, error) {
 		})
 	}
 
+	if s.prevVersion == 0 && s.metadata != nil {
+		data.Metadata = s.metadata
+	}
+
 	if err := group.Wait(); err != nil {
 		return data, err
 	}
@@ -304,7 +311,7 @@ func (s *SheetService) Load(ctx context.Context) (*loader.LoadedResult, error) {
 
 	// get diff data
 	s.logger.Debug("Getting diff data")
-	data, err := s.GetDiffData()
+	data, err := s.GetLoadData()
 	if err != nil {
 		s.logger.Error("Error when getting diff data: ", err)
 		return nil, err
