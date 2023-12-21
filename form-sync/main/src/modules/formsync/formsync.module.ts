@@ -41,10 +41,10 @@ import { FormSyncCommonService } from './common.service';
       GoogleSheetsDataSource,
     ]),
     BullModule.registerQueue(
-      { name: EXCEL_JOB_QUEUES.UPDATE_METADATA },
-      { name: EXCEL_JOB_QUEUES.FORM_SYNC_RESPECT_METADATA },
-      { name: GOOGLE_SHEETS_JOB_QUEUES.UPDATE_METADATA },
-      { name: GOOGLE_SHEETS_JOB_QUEUES.FORM_SYNC_RESPECT_METADATA },
+      { name: EXCEL_JOB_QUEUES.UPDATE_METADATA, defaultJobOptions: { removeOnComplete: true, removeOnFail: true } },
+      { name: EXCEL_JOB_QUEUES.FORM_SYNC_RESPECT_METADATA, defaultJobOptions: { removeOnComplete: true, removeOnFail: true } },
+      { name: GOOGLE_SHEETS_JOB_QUEUES.UPDATE_METADATA, defaultJobOptions: { removeOnComplete: true, removeOnFail: true } },
+      { name: GOOGLE_SHEETS_JOB_QUEUES.FORM_SYNC_RESPECT_METADATA, defaultJobOptions: { removeOnComplete: true, removeOnFail: true } },
     ),
     // forwardRef(() => DataSourceModule),
     MetadataModule,
@@ -65,4 +65,4 @@ import { FormSyncCommonService } from './common.service';
   ],
   exports: [FormSyncService, ExcelFormSyncService, GoogleSheetsFormSyncService],
 })
-export class FormSyncModule {}
+export class FormSyncModule { }
