@@ -35,7 +35,7 @@ export class GoogleSheetsActivities {
       );
     }
     const config = dataSource.config as GoogleSheetsDataSourceConfig;
-    return {
+    const result = {
       dataSourceId: syncflow.sourceId,
       syncVersion: syncflow.state.version,
       prevVersion: syncflow.state.prevVersion,
@@ -43,7 +43,12 @@ export class GoogleSheetsActivities {
       sheetId: config.sheetId,
       refreshToken: config.auth.refreshToken,
       destTableName: config.dest?.tableName || `_${dataSource.id}`,
+      metadata: null,
     };
+    if (syncflow.state.prevVersion === 0) {
+      result.metadata = dataSource.metadata;
+    }
+    return result;
   }
 
   async downloadGoogleSheets(data: {
@@ -112,6 +117,7 @@ export class GoogleSheetsActivities {
     syncVersion: number;
     prevVersion: number;
     tableName?: string;
+    metadata?: Record<string, any>;
   }) {
     return await activityWrapper(async () => {
       this.logger.debug(`Loading for ds: ${data.dataSourceId}`);

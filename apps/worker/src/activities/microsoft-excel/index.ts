@@ -35,7 +35,7 @@ export class MicrosoftExcelActivities {
       );
     }
     const config = dataSource.config as ExcelDataSourceConfig;
-    return {
+    const result = {
       dataSourceId: syncflow.sourceId,
       syncVersion: syncflow.state.version,
       prevVersion: syncflow.state.prevVersion,
@@ -44,7 +44,12 @@ export class MicrosoftExcelActivities {
       timezone: config.timezone,
       refreshToken: config.auth.refreshToken,
       destTableName: config.dest?.tableName || `_${dataSource.id}`,
+      metadata: null,
     };
+    if (syncflow.state.prevVersion === 0) {
+      result.metadata = dataSource.metadata;
+    }
+    return result;
   }
 
   async downloadExcel(data: {
@@ -114,6 +119,7 @@ export class MicrosoftExcelActivities {
     syncVersion: number;
     prevVersion: number;
     tableName?: string;
+    metadata?: Record<string, any>;
   }) {
     return await activityWrapper(async () => {
       this.logger.debug(`Loading for ds: ${data.dataSourceId}`);

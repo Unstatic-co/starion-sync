@@ -320,6 +320,24 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
 			if err != nil {
 				return err
 			}
+			if data.Metadata != nil {
+				// insert metadata
+				metadata, err := jsoniter.MarshalToString(data.Metadata)
+				if err != nil {
+					return err
+				}
+				query = fmt.Sprintf(
+					"UPDATE %s SET %s = '%s'::jsonb WHERE %s = %d",
+					name.SchemaTable,
+					name.MetadataColumn, metadata,
+					name.IdColumn, schemaId,
+				)
+				log.Debug("Query: ", query)
+				_, err = txn.Exec(query)
+				if err != nil {
+					return err
+				}
+			}
 		} else {
 			return err
 		}
