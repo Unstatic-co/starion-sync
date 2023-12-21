@@ -134,6 +134,11 @@ variable "processor_api_keys" {
   sensitive = true
 }
 
+variable "harmonies_api_keys" {
+  type      = list(string)
+  sensitive = true
+}
+
 variable "webhook_public_key" {
   type = string
 }

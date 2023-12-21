@@ -58,6 +58,7 @@ module "flyio" {
   metadata_url            = module.googlecloud.metadata_url
   api_keys                = split(",", var.api_keys)
   processor_api_keys      = split(",", var.processor_api_keys)
+  harmonies_api_keys      = split(",", var.harmonies_api_keys)
   webhook_public_key      = var.webhook_public_key
   webhook_private_key     = var.webhook_private_key
   microsoft_client_id     = var.microsoft_client_id

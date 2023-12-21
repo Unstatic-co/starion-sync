@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataDiscoverer } from '../data-discoverer.factory';
 import { GoogleService, GoogleSheetsService } from '@lib/modules/third-party';
-import { DiscoveredGoogleSheetsDataSource } from '../discoverer.interface';
+import {
+  DataDiscoverer,
+  DiscoveredGoogleSheetsDataSource,
+} from '../discoverer.interface';
 import {
   ERROR_CODE,
   ExternalError,
@@ -107,5 +109,15 @@ export class GoogleSheetsDiscoverer implements DataDiscoverer {
         "Sheet doesn't have any data",
       );
     }
+  }
+
+  async discoverConfig(
+    dataSourceConfig: Partial<GoogleSheetsDataSourceConfig>,
+  ): Promise<GoogleSheetsDataSourceConfig> {
+    const userInfo = await this.googleService.getUserInfo(
+      dataSourceConfig.auth.refreshToken,
+    );
+    const userId = userInfo.id;
+    return { ...dataSourceConfig, userId } as GoogleSheetsDataSourceConfig;
   }
 }

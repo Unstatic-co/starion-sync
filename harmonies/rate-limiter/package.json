@@ -1,0 +1,22 @@
+{
+    "name": "@harmonies/rate-limiter",
+    "version": "0.0.1",
+    "description": "",
+    "author": "",
+    "private": true,
+    "license": "UNLICENSED",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/index.js"
+    },
+    "dependencies": {
+        "dotenv": "^16.3.1",
+        "fastify": "^4.25.0",
+        "ioredis": "^5.3.2",
+        "rate-limiter-flexible": "^3.0.6"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.4",
+        "typescript": "^5.3.3"
+    }
+}

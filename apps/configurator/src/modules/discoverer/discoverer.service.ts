@@ -51,18 +51,26 @@ export class DataDiscovererService {
     providerType: ProviderType,
     config: ProviderConfig,
   ): Promise<DiscoveredDataSource[]> {
-    this.logger.debug(`discoverByConfig(): Config = ${JSON.stringify(config)}`);
     const dataDiscoverer = this.dataDiscovererFactory.get(providerType);
     const discoveredDataSources: DiscoveredDataSource[] =
       await dataDiscoverer.discoverProvider(config);
     return discoveredDataSources;
   }
 
+  public async discoverConfig(
+    providerType: ProviderType,
+    config: DataSourceConfig,
+  ): Promise<DataSourceConfig> {
+    this.logger.debug(`Discovering config for ${providerType}`);
+    const dataDiscoverer = this.dataDiscovererFactory.get(providerType);
+    const discoveredConfig = await dataDiscoverer.discoverConfig(config);
+    return discoveredConfig;
+  }
+
   public async checkDataSource(
     providerType: ProviderType,
     config: DataSourceConfig,
   ): Promise<void> {
-    this.logger.debug(`Config = ${JSON.stringify(config)}`);
     const dataDiscoverer = this.dataDiscovererFactory.get(providerType);
     await dataDiscoverer.checkDataSource(config);
   }

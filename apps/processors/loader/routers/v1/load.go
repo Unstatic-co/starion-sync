@@ -11,10 +11,11 @@ import (
 )
 
 type LoadRequest struct {
-	DataSourceId string `form:"dataSourceId" valid:"Required"`
-	SyncVersion  *uint  `form:"syncVersion" binding:"required,number"`
-	PrevVersion  *uint  `form:"prevVersion" binding:"required,number"`
-	TableName    string `form:"tableName" valid:""`
+	DataSourceId string      `form:"dataSourceId" valid:"Required"`
+	SyncVersion  *uint       `form:"syncVersion" binding:"required,number"`
+	PrevVersion  *uint       `form:"prevVersion" binding:"required,number"`
+	TableName    string      `form:"tableName" valid:""`
+	Metadata     interface{} `form:"metadata"`
 }
 type LoadResponse struct {
 	IsSchemaChanged bool   `json:"isSchemaChanged"`
@@ -38,6 +39,7 @@ func LoadSheet(c *gin.Context) {
 		SyncVersion:  *body.SyncVersion,
 		PrevVersion:  *body.PrevVersion,
 		TableName:    body.TableName,
+		Metadata:     body.Metadata,
 	})
 	if err != nil {
 		appG.Error(fmt.Errorf("Error when initializing excel service for ds %s: %w", body.DataSourceId, err))

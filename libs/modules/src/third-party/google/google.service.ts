@@ -1,4 +1,4 @@
-import { GaxiosError } from './google.type';
+import { GaxiosError, GetUserInfoResponse } from './google.type';
 import { ConfigName } from '@lib/core/config';
 import { ERROR_CODE, ExternalError } from '@lib/core/error';
 import { InjectTokens } from '@lib/modules/inject-tokens';
@@ -6,8 +6,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UserRefreshClient } from 'google-auth-library';
 import { intersection } from 'lodash';
-import { handleGoogleApiError } from './error-handler';
 import { GetAccessTokenResponse } from 'google-auth-library/build/src/auth/oauth2client';
+import { handleGoogleAuthError } from './error-handler';
 
 @Injectable()
 export class GoogleService {
@@ -45,7 +45,7 @@ export class GoogleService {
       }
       return token.token;
     } catch (error) {
-      handleGoogleApiError(error);
+      handleGoogleAuthError(error);
     }
   }
 
@@ -55,7 +55,7 @@ export class GoogleService {
     try {
       token = await client.getAccessToken();
     } catch (error) {
-      handleGoogleApiError(error);
+      handleGoogleAuthError(error);
     }
     const requiredScopes = this.configService.get<string[]>(
       `${ConfigName.GOOGLE}.scopes`,
@@ -66,6 +66,18 @@ export class GoogleService {
         ERROR_CODE.TOKEN_MISSING_PERMISSIONS,
         "Token doesn't have enough required permissions",
       );
+    }
+  }
+
+  async getUserInfo(refreshToken: string) {
+    try {
+      const client = this.createAuthClient(refreshToken);
+      const res = await client.request({
+        url: 'https://www.googleapis.com/oauth2/v2/userinfo',
+      });
+      return res.data as GetUserInfoResponse;
+    } catch (error) {
+      handleGoogleAuthError(error);
     }
   }
 }

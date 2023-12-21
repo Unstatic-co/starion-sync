@@ -11,6 +11,7 @@ export interface GoogleSheetsProviderConfig extends ProviderConfig {
 export interface GoogleSheetsDataSourceConfig extends DataSourceConfig {
   spreadsheetId: string;
   sheetId: string;
+  userId: string;
   auth: GoogleSheetsDataSourceAuthConfig;
 }
 
