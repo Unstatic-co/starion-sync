@@ -587,7 +587,16 @@ func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	for _, id := range data.DeletedRows {
-		query := fmt.Sprintf("DELETE FROM \"%s\" WHERE %s = '%s'", l.tableName, name.IdColumn, id)
+		// query := fmt.Sprintf("DELETE FROM \"%s\" WHERE %s = '%s'", l.tableName, name.IdColumn, id)
+
+		// update deleted_at = true
+		query := fmt.Sprintf(
+			"UPDATE \"%s\" SET %s = true, %s = %s WHERE %s = '%s'",
+			l.tableName,
+			name.IsDeletedColumn,
+			name.UpdatedAtColumn, "NOW()",
+			name.IdColumn, id,
+		)
 		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
