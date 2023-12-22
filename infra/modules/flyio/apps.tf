@@ -75,7 +75,7 @@ locals {
     MICROSOFT_CLIENT_SECRET = var.microsoft_client_secret
     GOOGLE_CLIENT_ID        = var.google_client_id
     GOOGLE_CLIENT_SECRET    = var.google_client_secret
-    TRIGGER_RESTART         = "false"
+    TRIGGER_RESTART         = "true"
   }
 }
 resource "null_resource" "fly_app_apps" {

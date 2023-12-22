@@ -15,8 +15,8 @@ import {
   imports: [
     TypeOrmModule.forFeature([ExcelDataSource, DataSource]),
     BullModule.registerQueue(
-      { name: EXCEL_JOB_QUEUES.UPDATE_METADATA },
-      { name: GOOGLE_SHEETS_JOB_QUEUES.UPDATE_METADATA },
+      { name: EXCEL_JOB_QUEUES.UPDATE_METADATA, defaultJobOptions: { removeOnComplete: true, removeOnFail: true } },
+      { name: GOOGLE_SHEETS_JOB_QUEUES.UPDATE_METADATA, defaultJobOptions: { removeOnComplete: true, removeOnFail: true } },
     ),
     forwardRef(() => FormSyncModule),
     CleanerModule,
@@ -25,4 +25,4 @@ import {
   providers: [DataSourceService],
   exports: [DataSourceService],
 })
-export class DataSourceModule {}
+export class DataSourceModule { }
