@@ -25,7 +25,7 @@ const attributesBuilder = new SyncflowAttributesBuilder();
 
 // Define syncflows
 
-const GoogleSheetsSyncflowDefinitions: Array<{
+const AirTableSyncflowDefinitions: Array<{
   name: SyncflowName;
   attributes: SyncflowAttributes;
   trigger: {
@@ -33,20 +33,37 @@ const GoogleSheetsSyncflowDefinitions: Array<{
     type: TriggerType;
   };
 }> = [
-  // SYNCFLOW: FULL REFRESH
+  // SYNCFLOW: INITIAL FULL
   {
-    name: SyncflowNames.GOOGLE_SHEETS_FULL,
+    name: SyncflowNames.AIR_TABLE_INITIAL,
     attributes: attributesBuilder
       .reset()
       .setDirection(SyncflowDirection.FORWARD)
       .setSyncMode(SyncflowMode.REFRESH)
-      .setProviderType(ProviderType.GOOGLE_SHEETS)
+      .setProviderType(ProviderType.AIR_TABLE)
       .setSyncMethod(SyncflowSyncMethod.FULL)
       .setSyncTarget(SyncflowSyncTarget.FULL)
       .setSyncType(SyncflowSyncType.FULL)
       .build(),
     trigger: {
-      name: TriggerNames.GOOGLE_SHEETS_WEBHOOK,
+      name: TriggerNames.MANUAL,
+      type: TriggerType.MANUAL,
+    },
+  },
+  // SYNCFLOW: INCREMENTAL
+  {
+    name: SyncflowNames.AIR_TABLE_INCREMENTAL,
+    attributes: attributesBuilder
+      .reset()
+      .setDirection(SyncflowDirection.FORWARD)
+      .setSyncMode(SyncflowMode.INCREMENTAL)
+      .setProviderType(ProviderType.AIR_TABLE)
+      .setSyncMethod(SyncflowSyncMethod.PARTIAL)
+      .setSyncTarget(SyncflowSyncTarget.FULL)
+      .setSyncType(SyncflowSyncType.FULL_PARTIAL)
+      .build(),
+    trigger: {
+      name: TriggerNames.AIR_TABLE_WEBHOOK,
       type: TriggerType.EVENT_WEBHOOK,
     },
   },
@@ -54,11 +71,11 @@ const GoogleSheetsSyncflowDefinitions: Array<{
 
 // Define cursor types
 
-export type GoogleSheetsFullSyncCursor = SyncflowCursor;
+export type AirTableFullSyncCursor = SyncflowCursor;
 
 // Register syncflows
 
-GoogleSheetsSyncflowDefinitions.forEach((definition) => {
+AirTableSyncflowDefinitions.forEach((definition) => {
   TriggerRegistry.set(definition.trigger.name, {
     name: definition.trigger.name,
     type: definition.trigger.type,
@@ -71,6 +88,6 @@ GoogleSheetsSyncflowDefinitions.forEach((definition) => {
 });
 
 ProviderSyncflowsRegistry.set(
-  ProviderType.GOOGLE_SHEETS,
-  GoogleSheetsSyncflowDefinitions.map((definition) => definition.name),
+  ProviderType.AIR_TABLE,
+  AirTableSyncflowDefinitions.map((definition) => definition.name),
 );
