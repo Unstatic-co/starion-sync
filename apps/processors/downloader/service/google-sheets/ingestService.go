@@ -5,20 +5,13 @@ import (
 	"downloader/pkg/config"
 	"downloader/pkg/e"
 	"downloader/util"
+	"downloader/util/s3"
 	"fmt"
-	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
-	"time"
 
-	"golang.org/x/sync/errgroup"
-
-	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
-	"google.golang.org/api/googleapi"
-	"google.golang.org/api/option"
-	"google.golang.org/api/sheets/v4"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -33,10 +26,13 @@ var defaultScopes []string = []string{
 	drive.DriveFileScope,
 }
 
-type GoogleSheetsServiceInitParams struct {
+type GoogleSheetsIngestServiceInitParams struct {
 	// info
 	SpreadsheetId string `json:"spreadsheetId"`
 	SheetId       string `json:"sheetId"`
+	TimeZone      string `json:"timeZone"`
+	SheetName     string `json:"sheetName"`
+	SheetIndex    int    `json:"sheetIndex"`
 
 	// auth
 	AccessToken string `json:"accessToken"`
@@ -45,12 +41,13 @@ type GoogleSheetsServiceInitParams struct {
 	SyncVersion  int    `json:"syncVersion"`
 }
 
-type GoogleSheetsService struct {
+type GoogleSheetsIngestService struct {
 	// info
 	spreadsheetId string
 	sheetId       string
 	sheetName     string
-	timezone      string
+	sheetIndex    int
+	timeZone      string
 
 	// auth
 	accessToken string
@@ -59,22 +56,14 @@ type GoogleSheetsService struct {
 	dataSourceId string
 	syncVersion  int
 
-	// service
-	sheetService *sheets.Service
-	driveService *drive.Service
-
-	// entity
-	spreadsheet *sheets.Spreadsheet
-	sheet       *sheets.Sheet
-
 	// resource
-	downloadUrl string
+	spreadsheetFilePath string
 
 	// loger
 	logger *log.Entry
 }
 
-func New(params GoogleSheetsServiceInitParams) *GoogleSheetsService {
+func NewIngestService(params GoogleSheetsIngestServiceInitParams) *GoogleSheetsIngestService {
 	// logger
 	logger := log.New()
 	logger.SetOutput(os.Stdout)
@@ -87,9 +76,12 @@ func New(params GoogleSheetsServiceInitParams) *GoogleSheetsService {
 
 	// client
 
-	return &GoogleSheetsService{
+	return &GoogleSheetsIngestService{
 		spreadsheetId: params.SpreadsheetId,
 		sheetId:       params.SheetId,
+		sheetName:     params.SheetName,
+		sheetIndex:    params.SheetIndex,
+		timeZone:      params.TimeZone,
 		accessToken:   params.AccessToken,
 		dataSourceId:  params.DataSourceId,
 		syncVersion:   params.SyncVersion,
@@ -97,78 +89,35 @@ func New(params GoogleSheetsServiceInitParams) *GoogleSheetsService {
 	}
 }
 
-func (s *GoogleSheetsService) Setup(ctx context.Context) error {
-	s.logger.Info("Setup google sheets service")
+func (s *GoogleSheetsIngestService) Setup(ctx context.Context) error {
+	s.logger.Info("Setup google sheets ingest service")
 
-	token := oauth2.Token{
-		AccessToken: s.accessToken,
-		// Expiry:      time.Now().Add(-30 * time.Minute),
-	}
-	tokenSource := oauth2.StaticTokenSource(&token)
-
-	newCtx, cancel := context.WithTimeout(ctx, time.Second*10)
-	defer cancel()
-	group, newCtx := errgroup.WithContext(newCtx)
-
-	group.Go(func() error {
-		// get sheet info
-		s.logger.Info("Get sheet info")
-		var err error
-		s.sheetService, err = sheets.NewService(newCtx, option.WithTokenSource(tokenSource))
-		if err != nil {
-			return e.WrapInternalError(err, e.INIT_GOOGLE_SHEETS_SERVICE, "Init sheets service error")
-		}
-		s.spreadsheet, err = s.sheetService.Spreadsheets.Get(s.spreadsheetId).Fields("properties", "sheets.properties").Do()
-		if err != nil {
-			return WrapSpreadSheetApiError(err.(*googleapi.Error))
-		}
-		s.timezone = s.spreadsheet.Properties.TimeZone
-		sheets := s.spreadsheet.Sheets
-		for id := range sheets {
-			if fmt.Sprint(sheets[id].Properties.SheetId) == s.sheetId {
-				s.sheet = sheets[id]
-				s.sheetName = s.sheet.Properties.Title
-				break
-			}
-		}
-
-		s.logger.Debug("Sheet timezone: ", s.timezone)
-
-		return nil
+	handler, err := s3.NewHandlerWithConfig(&s3.S3HandlerConfig{
+		Endpoint:  config.AppConfig.S3Endpoint,
+		Region:    config.AppConfig.S3Region,
+		AccessKey: config.AppConfig.S3AccessKey,
+		SecretKey: config.AppConfig.S3SecretKey,
+		Bucket:    config.AppConfig.S3DiffDataBucket,
 	})
-
-	group.Go(func() error {
-		// get drive info
-		s.logger.Info("Get drive info")
-		var err error
-		s.driveService, err = drive.NewService(newCtx, option.WithTokenSource(tokenSource))
-		if err != nil {
-			return e.WrapInternalError(err, e.INIT_GOOGLE_DRIVE_SERVICE, "Init google drive service error")
-		}
-		driveFile, err := s.driveService.Files.Get(s.spreadsheetId).Fields("version", "exportLinks").Do()
-		if err != nil {
-			return WrapGoogleDriveFileError(err.(*googleapi.Error))
-		}
-		link, err := url.Parse(driveFile.ExportLinks["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"])
-		query := link.Query()
-		query.Set("gid", s.sheetId)
-		link.RawQuery = query.Encode()
-		s.downloadUrl = link.String()
-
-		s.logger.Debug("Download url: ", s.downloadUrl)
-
-		return nil
-	})
-
-	err := group.Wait()
 	if err != nil {
 		return err
 	}
+	filePath, err := util.GenerateTempFileName(s.spreadsheetId, "xlsx", false)
+	if err != nil {
+		return err
+	}
+	s.logger.Info("Downloading spreadsheet")
+	err = handler.DownloadFile(GetSpreadSheetFileS3Key(s.spreadsheetId), filePath)
+	if err != nil {
+		return err
+	}
+	s.spreadsheetFilePath = filePath
 
 	return nil
 }
 
-func (s *GoogleSheetsService) Download(ctx context.Context) error {
+func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
+
 	var debugParam string
 	if config.AppConfig.IsProduction {
 		debugParam = "off"
@@ -187,13 +136,13 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 	cmd := exec.CommandContext(
 		ctx,
 		"bash",
-		"./download-google-sheets.sh",
+		"./ingest-google-sheets.sh",
 		"--externalErrorFile", externalErrorFile,
 		"--spreadsheetId", s.spreadsheetId,
 		"--sheetId", s.sheetId,
 		"--sheetName", s.sheetName,
-		"--downloadUrl", s.downloadUrl,
-		"--timezone", s.timezone,
+		"--spreadsheetFile", s.spreadsheetFilePath,
+		"--timezone", s.timeZone,
 		"--accessToken", s.accessToken,
 		"--dataSourceId", s.dataSourceId,
 		"--syncVersion", fmt.Sprintf("%d", s.syncVersion),
@@ -215,7 +164,7 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 	cmd.Stderr = errorWriter
 
 	if err := cmd.Run(); err != nil {
-		log.Debug("Error when running download script: ", err)
+		log.Debug("Error when running ingest script: ", err)
 		// check external error
 		var externalError DownloadExternalError
 		marshalErr := util.MarshalJsonFile(externalErrorFile, &externalError)
@@ -223,7 +172,7 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 			return fmt.Errorf("Cannot read external error file: %w", err)
 		}
 		if externalError.Code != 0 {
-			return e.NewExternalErrorWithDescription(externalError.Code, externalError.Msg, "External error when running download script")
+			return e.NewExternalErrorWithDescription(externalError.Code, externalError.Msg, "External error when running ingest script")
 		}
 
 		return err
@@ -232,6 +181,7 @@ func (s *GoogleSheetsService) Download(ctx context.Context) error {
 	return nil
 }
 
-func (source *GoogleSheetsService) Close(ctx context.Context) error {
+func (source *GoogleSheetsIngestService) Close(ctx context.Context) error {
+	util.DeleteFile(source.spreadsheetFilePath)
 	return nil
 }

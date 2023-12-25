@@ -21,6 +21,8 @@ import {
 } from '../../trigger';
 import { SyncflowCursor, SyncflowName } from '../syncflow.entity';
 
+export * from './state';
+
 const attributesBuilder = new SyncflowAttributesBuilder();
 
 // Define syncflows

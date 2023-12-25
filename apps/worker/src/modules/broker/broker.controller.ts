@@ -4,6 +4,11 @@ import { BrokerService } from './broker.service';
 import { EventNames, SyncflowScheduledPayload, WorkflowType } from '@lib/core';
 import { OrchestratorService } from '@lib/modules';
 import { WorkflowIdReusePolicy } from '@temporalio/common';
+import {
+  GoogleSheetsDownloadPayload,
+  GoogleSheetsProceedSyncPayload,
+  WorkflowEvents,
+} from '../../workflows/events';
 
 @Controller('broker')
 export class BrokerController {
@@ -21,7 +26,40 @@ export class BrokerController {
     return this.orchestratorService.executeWorkflow(payload.syncflow.name, {
       workflowId: `${payload.syncflow.id}-${payload.version}`,
       args: [payload],
-      // workflowExecutionTimeout: 60000,
+      workflowIdReusePolicy:
+        WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY,
+      searchAttributes: {
+        DataSourceId: [payload.syncflow.sourceId],
+      },
+    });
+  }
+
+  @EventPattern(WorkflowEvents.GoogleSheetsDownload)
+  async handleGoogleSheetsDownloadEvent(payload: GoogleSheetsDownloadPayload) {
+    this.logger.log(
+      `handleGoogleSheetsDownloadEvent: syncflowId = ${payload.syncflow.id}`,
+    );
+    return this.orchestratorService.executeWorkflow('googleSheetsDownload', {
+      workflowId: `${payload.syncflow.id}-${payload.version}-download`,
+      args: [payload],
+      workflowIdReusePolicy:
+        WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY,
+      searchAttributes: {
+        DataSourceId: [payload.syncflow.sourceId],
+      },
+    });
+  }
+
+  @EventPattern(WorkflowEvents.GoogleSheetsProceedSync)
+  async handleGoogleSheetsProceedSyncEvent(
+    payload: GoogleSheetsProceedSyncPayload,
+  ) {
+    this.logger.log(
+      `handleGoogleSheetsProceedSyncEvent: syncflowId = ${payload.syncflow.id}`,
+    );
+    return this.orchestratorService.executeWorkflow('googleSheetsProceedSync', {
+      workflowId: `${payload.syncflow.id}-${payload.version}-proceed`,
+      args: [payload],
       workflowIdReusePolicy:
         WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY,
       searchAttributes: {

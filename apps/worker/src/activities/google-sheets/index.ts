@@ -3,9 +3,20 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { UnacceptableActivityError } from '../../common/exception';
-import { GoogleSheetsDataSourceConfig, Syncflow } from '@lib/core';
-import { IDataSourceRepository, InjectTokens } from '@lib/modules';
-import { GoogleService } from '@lib/modules/third-party';
+import {
+  DataSourceId,
+  GoogleSheetsDataSourceConfig,
+  GoogleSheetsFullSyncState,
+  GoogleSheetsProviderState,
+  ProviderId,
+  Syncflow,
+} from '@lib/core';
+import {
+  IDataProviderRepository,
+  IDataSourceRepository,
+  InjectTokens,
+} from '@lib/modules';
+import { GoogleService, GoogleSheetsService } from '@lib/modules/third-party';
 import {
   activityWrapper,
   processorApiWrapper,
@@ -20,8 +31,131 @@ export class GoogleSheetsActivities {
     private readonly configService: ConfigService,
     @Inject(InjectTokens.DATA_SOURCE_REPOSITORY)
     private readonly dataSourceRepository: IDataSourceRepository,
+    @Inject(InjectTokens.DATA_PROVIDER_REPOSITORY)
+    private readonly dataProviderRepository: IDataProviderRepository,
     private readonly googleService: GoogleService,
+    private readonly googleSheetsService: GoogleSheetsService,
   ) {}
+
+  async getDataStateGoogleSheets(syncflow: Syncflow) {
+    const dataSource = await this.dataSourceRepository.getById(
+      syncflow.sourceId,
+    );
+    if (!dataSource) {
+      throw new UnacceptableActivityError(
+        `DataSource not found: ${syncflow.sourceId}`,
+        { shouldWorkflowFail: false },
+      );
+    }
+    const dataProvider = await this.dataProviderRepository.getById(
+      dataSource.provider.id,
+    );
+    if (!dataProvider) {
+      throw new UnacceptableActivityError(
+        `DataProvider not found: ${dataSource.provider.id}`,
+        { shouldWorkflowFail: false },
+      );
+    }
+    const syncflowState = syncflow.state as GoogleSheetsFullSyncState;
+
+    const result = {
+      providerDownloadedAt: dataProvider.state.downloadedAt,
+      downloadedAt: syncflowState.downloadedAt,
+    };
+    return result;
+  }
+
+  async getDownloadDataGoogleSheets(syncflow: Syncflow) {
+    this.logger.debug(`Getting download data for syncflow: ${syncflow.id}`);
+    const dataSource = await this.dataSourceRepository.getById(
+      syncflow.sourceId,
+    );
+    if (!dataSource) {
+      throw new UnacceptableActivityError(
+        `DataSource not found: ${syncflow.sourceId}`,
+        { shouldWorkflowFail: false },
+      );
+    }
+    const provider = await this.dataProviderRepository.getById(
+      dataSource.provider.id,
+    );
+    if (!provider) {
+      throw new UnacceptableActivityError(
+        `DataProvider not found: ${dataSource.provider.id}`,
+        { shouldWorkflowFail: false },
+      );
+    }
+    const config = dataSource.config as GoogleSheetsDataSourceConfig;
+    const syncflowState = syncflow.state as GoogleSheetsFullSyncState;
+
+    const result = {
+      dataSourceId: syncflow.sourceId,
+      dataProviderId: dataSource.provider.id,
+      providerDownloadedAt: provider.state?.downloadedAt,
+      downloadedAt: syncflowState.downloadedAt,
+      spreadsheetId: config.spreadsheetId,
+      sheetId: config.sheetId,
+      refreshToken: config.auth.refreshToken,
+    };
+    return result;
+  }
+
+  async getDataSourceProviderGoogleSheets(dataSourceId: DataSourceId) {
+    this.logger.debug(`Getting data provider for datasource: ${dataSourceId}`);
+    const dataSource = await this.dataSourceRepository.getById(dataSourceId, {
+      select: ['provider'],
+    });
+    return dataSource.provider;
+  }
+
+  async getSpreadSheetDataGoogleSheets(data: {
+    spreadsheetId: string;
+    refreshToken: string;
+  }) {
+    const client = await this.googleService.createAuthClient(data.refreshToken);
+    const res = await this.googleSheetsService.getSpreadSheets({
+      client,
+      spreadsheetId: data.spreadsheetId,
+      fields: [
+        'sheets.properties.sheetId',
+        'sheets.properties.index',
+        'sheets.properties.title',
+        'properties.timeZone',
+      ],
+    });
+    const timeZone = res.properties.timeZone;
+    const sheets: {
+      [sheetId: string]: {
+        name: string;
+        index: number;
+      };
+    } = {};
+    if (res.sheets) {
+      res.sheets.forEach((sheet) => {
+        sheets[sheet.properties.sheetId.toString()] = {
+          name: sheet.properties.title,
+          index: sheet.properties.index,
+        };
+      });
+    }
+    return {
+      timeZone,
+      sheets,
+    };
+  }
+
+  async updateProviderStateGoogleSheets(
+    id: ProviderId,
+    data: GoogleSheetsProviderState,
+  ) {
+    const dataProvider = await this.dataProviderRepository.getById(id);
+    if (!dataProvider) {
+      throw new UnacceptableActivityError(`DataProvider not found: ${id}`, {
+        shouldWorkflowFail: false,
+      });
+    }
+    await this.dataProviderRepository.updateState(id, data);
+  }
 
   async getSyncDataGoogleSheets(syncflow: Syncflow) {
     this.logger.debug(`Getting sync data for syncflow: ${syncflow.id}`);
@@ -34,11 +168,24 @@ export class GoogleSheetsActivities {
         { shouldWorkflowFail: false },
       );
     }
+    const dataProvider = await this.dataProviderRepository.getById(
+      dataSource.provider.id,
+    );
+    if (!dataProvider) {
+      throw new UnacceptableActivityError(
+        `DataProvider not found: ${dataSource.provider.id}`,
+        { shouldWorkflowFail: false },
+      );
+    }
     const config = dataSource.config as GoogleSheetsDataSourceConfig;
+    const syncflowState = syncflow.state as GoogleSheetsFullSyncState;
+
     const result = {
+      dataProviderState: dataProvider.state as GoogleSheetsProviderState,
       dataSourceId: syncflow.sourceId,
-      syncVersion: syncflow.state.version,
-      prevVersion: syncflow.state.prevVersion,
+      syncVersion: syncflowState.version,
+      prevVersion: syncflowState.prevVersion,
+      downloadedAt: syncflowState.downloadedAt,
       spreadsheetId: config.spreadsheetId,
       sheetId: config.sheetId,
       refreshToken: config.auth.refreshToken,
@@ -52,14 +199,11 @@ export class GoogleSheetsActivities {
   }
 
   async downloadGoogleSheets(data: {
-    dataSourceId: string;
-    syncVersion: number;
     spreadsheetId: string;
-    sheetId: string;
     refreshToken: string;
   }) {
     await activityWrapper(async () => {
-      this.logger.debug(`Downloading for ds: ${data.dataSourceId}`);
+      this.logger.debug(`Downloading for spreadsheet: ${data.spreadsheetId}`);
       return processorWrapper('downloader', async () => {
         const accessToken = await this.googleService.getAccessToken(
           data.refreshToken,
@@ -71,6 +215,46 @@ export class GoogleSheetsActivities {
         return processorApiWrapper(async () =>
           axios.post(
             `${downloaderUrl}/api/v1/google-sheets/download`,
+            {
+              ...data,
+              accessToken,
+            },
+            {
+              headers: {
+                'X-API-Key': this.configService.get(
+                  `${ConfigName.PROCESSOR}.apiKey`,
+                ),
+              },
+            },
+          ),
+        );
+      });
+    });
+  }
+
+  async ingestGoogleSheets(data: {
+    dataSourceId: string;
+    syncVersion: number;
+    spreadsheetId: string;
+    sheetId: string;
+    sheetName: string;
+    sheetIndex: number;
+    timeZone: string;
+    refreshToken: string;
+  }) {
+    await activityWrapper(async () => {
+      this.logger.debug(`Ingesting for ds: ${data.dataSourceId}`);
+      return processorWrapper('downloader', async () => {
+        const accessToken = await this.googleService.getAccessToken(
+          data.refreshToken,
+        );
+        delete data['refreshToken'];
+        const downloaderUrl = this.configService.get(
+          `${ConfigName.PROCESSOR}.downloaderUrl`,
+        );
+        return processorApiWrapper(async () =>
+          axios.post(
+            `${downloaderUrl}/api/v1/google-sheets/ingest`,
             {
               ...data,
               accessToken,

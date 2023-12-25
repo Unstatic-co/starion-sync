@@ -6,7 +6,7 @@ import {
 } from '../../classes/repositories';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { DataProvider } from '@lib/core';
+import { DataProvider, ProviderId, ProviderState } from '@lib/core';
 import {
   DataProviderDocument,
   DataProviderModel,
@@ -107,6 +107,56 @@ export class DataProviderRepository implements IDataProviderRepository {
           await this.dataProviderModel
             .findOne({
               _id: Utils.toObjectId(data.id),
+            })
+            .session(session)
+        ).toJSON();
+      }
+    };
+
+    if (options?.session) {
+      await processFunc();
+    } else {
+      await session.withTransaction(processFunc);
+    }
+    if (options?.new) {
+      return result;
+    }
+  }
+
+  public async updateState(
+    id: ProviderId,
+    state: Partial<ProviderState>,
+    options?: QueryOptions,
+  ) {
+    let result;
+    const session = options?.session
+      ? options.session
+      : await this.connection.startSession();
+
+    const processFunc = async () => {
+      const dataProvider = await this.dataProviderModel
+        .findOne({
+          _id: Utils.toObjectId(id),
+        })
+        .session(session);
+      if (!dataProvider) {
+        throw new Error('DataProvider not found');
+      }
+      const updates = {};
+      Object.assign(
+        updates,
+        mapKeys(state, (_, key) => `state.${key}`),
+      );
+      await dataProvider
+        .updateOne({
+          $set: updates,
+        })
+        .session(session);
+      if (options?.new) {
+        result = (
+          await this.dataProviderModel
+            .findOne({
+              _id: Utils.toObjectId(id),
             })
             .session(session)
         ).toJSON();

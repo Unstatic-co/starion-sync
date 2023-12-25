@@ -1,8 +1,8 @@
 import {
   SyncConnectionId,
   Syncflow,
-  SyncflowCursor,
   SyncflowId,
+  SyncflowState,
   TriggerId,
   WorkflowStatus,
 } from '@lib/core';
@@ -44,9 +44,4 @@ export type CreateSyncflowData = any;
 
 export type UpdateSyncflowData = any;
 
-export type UpdateSyncflowStateData = {
-  status?: WorkflowStatus;
-  version?: number;
-  prevVersion?: number;
-  cursor?: SyncflowCursor;
-};
+export type UpdateSyncflowStateData = Partial<SyncflowState>;

@@ -57,8 +57,8 @@ function parse-arguments() {
                 sheet_name="$2"
                 shift
                 ;;
-            --downloadUrl)
-                download_url="$2"
+            --spreadsheetFile)
+                spreadsheet_file="$2"
                 shift
                 ;;
             --timezone)
@@ -243,8 +243,8 @@ fi
 
 ### Download
 
-original_file=$TEMP_DIR/original.xlsx
-download-google-sheets-file "$original_file" "$download_url"
+original_file="$spreadsheet_file"
+# download-google-sheets-file "$original_file" "$download_url"
 
 xlsx_header=$(./get-xlsx-header --file "$original_file" --showHeaders)
 debug-log "Xlsx header: $xlsx_header"

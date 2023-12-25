@@ -3,7 +3,6 @@ import { CommonActivities } from './common.activities';
 import { TestActivities } from './test.activities';
 import { DatabaseModule } from '@lib/modules';
 import { RepositoryModule } from '@lib/modules/repository';
-import { DestinationDatabaseModule } from '@lib/modules/dest-database';
 import { MicrosoftExcelActivities } from './microsoft-excel';
 import { WorkflowModule } from '../modules/workflow/worflow.module';
 import { WorkflowActivities } from './workflow.activities';
@@ -38,4 +37,4 @@ import { GoogleSheetsActivities } from './google-sheets';
     MicrosoftExcelActivities,
   ],
 })
-export class ActivitiesModule { }
+export class ActivitiesModule {}

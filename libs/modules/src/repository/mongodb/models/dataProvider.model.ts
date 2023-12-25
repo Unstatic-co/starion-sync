@@ -2,6 +2,7 @@ import {
   DataProvider,
   Metadata,
   ProviderConfig,
+  ProviderState,
   ProviderType,
 } from '@lib/core';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
@@ -30,6 +31,11 @@ export class DataProviderModel extends DataProvider {
 
   @Prop({ type: Object })
   config: ProviderConfig;
+
+  @Prop({
+    type: Object,
+  })
+  state: ProviderState;
 
   @Prop({
     type: Object,
