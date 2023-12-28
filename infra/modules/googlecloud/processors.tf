@@ -51,7 +51,7 @@ resource "google_cloud_run_service" "downloader" {
         resources {
           limits = {
             cpu    = 1
-            memory = "512Mi"
+            memory = var.is_production ? "1024Mi" : "1024Mi"
           }
         }
         env {
