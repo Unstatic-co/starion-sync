@@ -54,7 +54,7 @@ const GoogleSheetsSyncflowDefinitions: Array<{
 
 // Define cursor types
 
-export type GoogleSheetsFullSyncCursor = SyncflowCursor & { ctag: string };
+export type GoogleSheetsFullSyncCursor = SyncflowCursor;
 
 // Register syncflows
 

@@ -362,6 +362,28 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - WEBHOOK_TRIGGER_BASE_URL=${WEBHOOK_TRIGGER_BASE_URL}
+  #-------------------------------------- HARMONIES ---------------------------------#
+  rate-limiter:
+    depends_on:
+      - redis
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 3s
+        max_attempts: 5
+        window: 60s
+    build:
+      context: ./harmonies/rate-limiter
+      dockerfile: Dockerfile 
+    expose:
+      - 8080
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS_ENABLED=${REDIS_TLS_ENABLED}
   #--------------------------------- DATABASE ---------------------------------------#
   mongodb:
     restart: on-failure

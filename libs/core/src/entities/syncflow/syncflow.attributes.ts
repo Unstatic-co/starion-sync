@@ -27,6 +27,7 @@ export enum SyncflowSyncTarget {
 export enum SyncflowSyncType {
   FULL = 'full',
   SCHEMA = 'schema',
+  FULL_PARTIAL = 'full-partial',
   DATA_FULL = 'data-full',
   DATA_PARTIAL = 'data-partial',
   DATA_MICRO = 'data-micro',

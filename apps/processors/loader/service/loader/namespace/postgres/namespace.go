@@ -12,6 +12,7 @@ const (
 	IdColumn        TableColumn = "id"
 	CreatedAtColumn TableColumn = "created_at"
 	UpdatedAtColumn TableColumn = "updated_at"
+	IsDeletedColumn TableColumn = "is_deleted"
 	MetadataColumn  TableColumn = "metadata"
 	HasErrorColumn  TableColumn = "has_error"
 

@@ -34,7 +34,7 @@ const { compareGoogleSheets } = proxyActivities<GoogleSheetsActivities>({
 });
 
 const { loadGoogleSheets } = proxyActivities<GoogleSheetsActivities>({
-  startToCloseTimeout: '4m',
+  startToCloseTimeout: '7m',
   retry: ProcessorRetryPolicy,
   // scheduleToCloseTimeout: '10y',
 });
@@ -74,6 +74,7 @@ export async function googleSheetsFullSync(data: SyncflowScheduledPayload) {
         syncVersion,
         prevVersion: prevSyncVersion,
         tableName: syncData.destTableName,
+        metadata: syncData.metadata,
       });
 
       await emitEvent(EventNames.SYNCFLOW_SUCCEED, {

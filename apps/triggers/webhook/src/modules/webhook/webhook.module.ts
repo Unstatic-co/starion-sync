@@ -18,6 +18,7 @@ export const WebhookProviders = [
   imports: [
     BullModule.registerQueue({
       name: QUEUES.GOOGLE_SHEETS_WEBHOOK_REFRESH,
+      defaultJobOptions: { removeOnComplete: true, removeOnFail: true }
     }),
     ConfigModule,
     RepositoryModule.registerAsync(),
@@ -27,4 +28,4 @@ export const WebhookProviders = [
   providers: [...WebhookProviders, WebhookServiceFactory],
   exports: [...WebhookProviders, WebhookServiceFactory],
 })
-export class WebhookModule {}
+export class WebhookModule { }

@@ -11,6 +11,7 @@ import { BullModule } from '@nestjs/bull';
   imports: [
     BullModule.registerQueue({
       name: QUEUES.WEBHOOK_EXECUTION,
+      defaultJobOptions: { removeOnComplete: true, removeOnFail: true }
     }),
     RepositoryModule.registerAsync(),
     forwardRef(() => BrokerModule),
@@ -19,4 +20,4 @@ import { BullModule } from '@nestjs/bull';
   providers: [WebhookProcessor, WebhookService],
   exports: [WebhookService],
 })
-export class WebhookModule {}
+export class WebhookModule { }

@@ -18,7 +18,7 @@ soft_limit = 500
 
 [[vm]]
 size = "shared-cpu-1x"
-memory = "512mb"
+memory = "256mb"
 cpus = 1
 cpu_kind = "shared"    # performance
 # processes = ["app"]
