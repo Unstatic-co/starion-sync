@@ -13,11 +13,16 @@ export interface ProviderConfig {
   auth: ProviderAuthConfig;
 }
 
+export interface ProviderState {
+  [key: string]: any;
+}
+
 export class DataProvider {
   id: ProviderId;
   externalId: string;
   type: ProviderType;
   config: ProviderConfig;
+  state?: ProviderState;
   metadata: Metadata;
 
   createdAt: Date;

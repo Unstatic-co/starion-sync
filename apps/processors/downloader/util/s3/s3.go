@@ -36,10 +36,11 @@ type S3Handler struct {
 
 func NewHandler(bucket string) (*S3Handler, error) {
 	sess, err := session.NewSession(&aws.Config{
-		Endpoint:    aws.String(config.AppConfig.S3Endpoint),
-		Region:      aws.String(config.AppConfig.S3Region),
-		DisableSSL:  aws.Bool(config.AppConfig.S3Ssl),
-		Credentials: credentials.NewStaticCredentials(config.AppConfig.S3AccessKey, config.AppConfig.S3SecretKey, ""),
+		Endpoint:         aws.String(config.AppConfig.S3Endpoint),
+		Region:           aws.String(config.AppConfig.S3Region),
+		DisableSSL:       aws.Bool(config.AppConfig.S3Ssl),
+		S3ForcePathStyle: aws.Bool(true),
+		Credentials:      credentials.NewStaticCredentials(config.AppConfig.S3AccessKey, config.AppConfig.S3SecretKey, ""),
 	})
 	if err != nil {
 		return nil, err
@@ -117,4 +118,26 @@ func (h S3Handler) ReadFile(key string) (string, error) {
 		return "", err
 	}
 	return string(buf.Bytes()), nil
+}
+
+func (h S3Handler) DownloadFile(key string, filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	results, err := s3.New(h.Session).GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(h.Bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return err
+	}
+	defer results.Body.Close()
+
+	if _, err := io.Copy(file, results.Body); err != nil {
+		return err
+	}
+	return nil
 }

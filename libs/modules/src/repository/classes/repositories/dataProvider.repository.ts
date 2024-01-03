@@ -3,6 +3,7 @@ import {
   ProviderAuthConfig,
   ProviderConfig,
   ProviderId,
+  ProviderState,
   ProviderType,
 } from '@lib/core';
 import { IRepository } from '../baseRepository';
@@ -22,6 +23,11 @@ export interface IDataProviderRepository extends IRepository {
     data: UpdateDataProviderData,
     options?: QueryOptions,
   ): Promise<DataProvider | void>;
+  updateState(
+    id: ProviderId,
+    state: Partial<ProviderState>,
+    options?: QueryOptions,
+  ): Promise<void>;
   delete(id: ProviderId, options?: QueryOptions): Promise<void>;
 }
 

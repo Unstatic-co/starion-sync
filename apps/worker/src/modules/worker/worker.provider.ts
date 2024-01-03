@@ -65,11 +65,34 @@ export const WorkerProvider = {
         microsoftExcelActivities,
       ),
       // google sheets
+      getDataStateGoogleSheets:
+        googleSheetsActivities.getDataStateGoogleSheets.bind(
+          googleSheetsActivities,
+        ),
+      getDownloadDataGoogleSheets:
+        googleSheetsActivities.getDownloadDataGoogleSheets.bind(
+          googleSheetsActivities,
+        ),
+      getSpreadSheetDataGoogleSheets:
+        googleSheetsActivities.getSpreadSheetDataGoogleSheets.bind(
+          googleSheetsActivities,
+        ),
+      getDataSourceProviderGoogleSheets:
+        googleSheetsActivities.getDataSourceProviderGoogleSheets.bind(
+          googleSheetsActivities,
+        ),
       getSyncDataGoogleSheets:
         googleSheetsActivities.getSyncDataGoogleSheets.bind(
           googleSheetsActivities,
         ),
+      updateProviderStateGoogleSheets:
+        googleSheetsActivities.updateProviderStateGoogleSheets.bind(
+          googleSheetsActivities,
+        ),
       downloadGoogleSheets: googleSheetsActivities.downloadGoogleSheets.bind(
+        googleSheetsActivities,
+      ),
+      ingestGoogleSheets: googleSheetsActivities.ingestGoogleSheets.bind(
         googleSheetsActivities,
       ),
       compareGoogleSheets: googleSheetsActivities.compareGoogleSheets.bind(
