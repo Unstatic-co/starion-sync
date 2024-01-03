@@ -122,3 +122,25 @@ resource "upstash_kafka_topic" "notify_table" {
 
   cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
 }
+
+resource "upstash_kafka_topic" "google_sheet_full_sync_download" {
+  topic_name       = "workflow.googleSheetsFullSync.download"
+  partitions       = var.is_production ? 10 : 5
+  retention_time   = 625135
+  retention_size   = 725124
+  max_message_size = 829213
+  cleanup_policy   = "delete"
+
+  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+}
+
+resource "upstash_kafka_topic" "google_sheet_full_sync_proceed" {
+  topic_name       = "workflow.googleSheetsFullSync.proceed"
+  partitions       = var.is_production ? 10 : 5
+  retention_time   = 625135
+  retention_size   = 725124
+  max_message_size = 829213
+  cleanup_policy   = "delete"
+
+  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+}
