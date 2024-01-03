@@ -32,7 +32,7 @@ type GoogleSheetsIngestServiceInitParams struct {
 	SheetId       string `json:"sheetId"`
 	TimeZone      string `json:"timeZone"`
 	SheetName     string `json:"sheetName"`
-	SheetIndex    int    `json:"sheetIndex"`
+	SheetIndex    int    `json:"sheetIndex"` // from 0
 
 	// auth
 	AccessToken string `json:"accessToken"`
@@ -141,6 +141,7 @@ func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
 		"--spreadsheetId", s.spreadsheetId,
 		"--sheetId", s.sheetId,
 		"--sheetName", s.sheetName,
+		"--sheetIndex", fmt.Sprintf("%d", s.sheetIndex+1),
 		"--spreadsheetFile", s.spreadsheetFilePath,
 		"--timezone", s.timeZone,
 		"--accessToken", s.accessToken,

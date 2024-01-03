@@ -53,6 +53,10 @@ function parse-arguments() {
                 sheet_id="$2"
                 shift
                 ;;
+            --sheetIndex)
+                sheet_index="$2" # from 1
+                shift
+                ;;
             --sheetName)
                 sheet_name="$2"
                 shift
@@ -246,7 +250,7 @@ fi
 original_file="$spreadsheet_file"
 # download-google-sheets-file "$original_file" "$download_url"
 
-xlsx_header=$(./get-xlsx-header --file "$original_file" --showHeaders)
+xlsx_header=$(./get-xlsx-header --file "$original_file" --sheetName "$sheet_name" --showHeaders)
 debug-log "Xlsx header: $xlsx_header"
 if [[ -z "$xlsx_header" ]]; then
     emit-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
@@ -262,11 +266,13 @@ fi
 info-log "Converting file to csv..."
 original_csv_file=$TEMP_DIR/original.csv
 converted_csv_file=$TEMP_DIR/converted_csv.csv
+debug-log "original_file: $original_file"
+debug-log "sheet name: $sheet_name"
 OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=AUTO duckdb :memory: \
     "install spatial; load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$sheet_name')) TO '$converted_csv_file' (HEADER FALSE, DELIMITER ',');"
 
 trimmed_ghost_cells="$TEMP_DIR/ghost-cells.csv"
-maxColIndex=$(./get-xlsx-header --file "$original_file" --showMaxIndex)
+maxColIndex=$(./get-xlsx-header --file "$original_file" --sheetName "$sheet_name" --showMaxIndex)
 "$QSV" select "1-$((maxColIndex+1))" <(tac "$converted_csv_file" | awk '/[^,]/ {found=1} found' | tac) -o "$trimmed_ghost_cells"
 "$QSV" cat rows -n <(echo "$xlsx_header") "$trimmed_ghost_cells" -o "$original_csv_file"
 
