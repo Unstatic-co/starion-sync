@@ -12,7 +12,7 @@ locals {
   webhook_count         = var.is_production ? 1 : 0
   webhook_trigger_count = var.is_production ? 1 : 1
   formsync_count        = var.is_production ? 1 : 1
-  rate_limiter_count    = var.is_production ? 1 : 1
+  rate_limiter_count    = var.is_production ? 0 : 0
 }
 
 locals {

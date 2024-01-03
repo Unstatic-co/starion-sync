@@ -37,7 +37,7 @@ const { compareGoogleSheets } = proxyActivities<GoogleSheetsActivities>({
 });
 
 const { loadGoogleSheets } = proxyActivities<GoogleSheetsActivities>({
-  startToCloseTimeout: '4m',
+  startToCloseTimeout: '7m',
   retry: ProcessorRetryPolicy,
   // scheduleToCloseTimeout: '10y',
 });
