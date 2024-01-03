@@ -15,13 +15,10 @@ import { GoogleSheetsActivities } from '../../activities';
 import { ProcessorRetryPolicy } from '../retryPolicy';
 import { GoogleSheetsDownloadPayload, WorkflowEvents } from '../events';
 
-const {
-  checkAndUpdateStatusBeforeStartSyncflow,
-  updateSyncflowStatus,
-  updateSyncflowState,
-} = proxyActivities<WorkflowActivities>({
-  startToCloseTimeout: '10 second',
-});
+const { checkAndUpdateStatusBeforeStartSyncflow, updateSyncflowState } =
+  proxyActivities<WorkflowActivities>({
+    startToCloseTimeout: '10 second',
+  });
 
 const { downloadGoogleSheets, ingestGoogleSheets } =
   proxyActivities<GoogleSheetsActivities>({
@@ -106,56 +103,7 @@ export async function googleSheetsDownload(data: GoogleSheetsDownloadPayload) {
         },
       });
     } catch (error) {
-      const errorDetail = getActivityErrorDetail(error);
-      // detect processor external error
-      if (errorDetail.errorData?.type === ErrorType.EXTERNAL) {
-        await updateSyncflowState(data.syncflow.id, {
-          version: data.version + 1, // increment version to correctly run retry
-          status: WorkflowStatus.IDLING,
-        });
-        await Promise.all([
-          emitEvent(EventNames.DATA_SOURCE_ERROR, {
-            payload: {
-              dataSourceId: data.syncflow.sourceId,
-              code: errorDetail.errorData.code,
-              message: errorDetail.errorData.message,
-            } as DataSourceErrorPayload,
-          }),
-          emitEvent(EventNames.SYNCFLOW_FAILED, {
-            payload: {
-              dataSourceId: data.syncflow.sourceId,
-              syncflowId: data.syncflow.id,
-              syncVersion: data.version,
-              error: {
-                type: ErrorType.EXTERNAL,
-                code: errorDetail.errorData.code,
-                message: errorDetail.errorData.message,
-              },
-            },
-          }),
-        ]);
-        throw error;
-      } else if (errorDetail.errorData?.type === ErrorType.INTERNAL) {
-        await updateSyncflowState(data.syncflow.id, {
-          version: data.version + 1, // increment version to correctly run retry
-          status: WorkflowStatus.IDLING,
-        });
-        await emitEvent(EventNames.SYNCFLOW_FAILED, {
-          payload: {
-            dataSourceId: data.syncflow.sourceId,
-            syncflowId: data.syncflow.id,
-            syncVersion: data.version,
-            error: {
-              type: ErrorType.INTERNAL,
-              code: errorDetail.errorData.code,
-              message: errorDetail.errorData.message,
-            },
-          },
-        });
-        throw error;
-      } else {
-        throw error;
-      }
+      await GoogleSheetsFullSyncErrorHandler(error, data);
     }
   });
 }
@@ -210,56 +158,7 @@ export async function googleSheetsProceedSync(data: SyncflowScheduledPayload) {
         status: WorkflowStatus.IDLING,
       });
     } catch (error) {
-      const errorDetail = getActivityErrorDetail(error);
-      // detect processor external error
-      if (errorDetail.errorData?.type === ErrorType.EXTERNAL) {
-        await updateSyncflowState(data.syncflow.id, {
-          version: data.version + 1, // increment version to correctly run retry
-          status: WorkflowStatus.IDLING,
-        });
-        await Promise.all([
-          emitEvent(EventNames.DATA_SOURCE_ERROR, {
-            payload: {
-              dataSourceId: data.syncflow.sourceId,
-              code: errorDetail.errorData.code,
-              message: errorDetail.errorData.message,
-            } as DataSourceErrorPayload,
-          }),
-          emitEvent(EventNames.SYNCFLOW_FAILED, {
-            payload: {
-              dataSourceId: data.syncflow.sourceId,
-              syncflowId: data.syncflow.id,
-              syncVersion: data.version,
-              error: {
-                type: ErrorType.EXTERNAL,
-                code: errorDetail.errorData.code,
-                message: errorDetail.errorData.message,
-              },
-            },
-          }),
-        ]);
-        throw error;
-      } else if (errorDetail.errorData?.type === ErrorType.INTERNAL) {
-        await updateSyncflowState(data.syncflow.id, {
-          version: data.version + 1, // increment version to correctly run retry
-          status: WorkflowStatus.IDLING,
-        });
-        await emitEvent(EventNames.SYNCFLOW_FAILED, {
-          payload: {
-            dataSourceId: data.syncflow.sourceId,
-            syncflowId: data.syncflow.id,
-            syncVersion: data.version,
-            error: {
-              type: ErrorType.INTERNAL,
-              code: errorDetail.errorData.code,
-              message: errorDetail.errorData.message,
-            },
-          },
-        });
-        throw error;
-      } else {
-        throw error;
-      }
+      await GoogleSheetsFullSyncErrorHandler(error, data);
     }
   });
 }
@@ -282,53 +181,63 @@ export async function googleSheetsFullSync(data: SyncflowScheduledPayload) {
       });
       return;
     } catch (error) {
-      const errorDetail = getActivityErrorDetail(error);
-      // detect processor external error
-      if (errorDetail.errorData?.type === ErrorType.EXTERNAL) {
-        await updateSyncflowStatus(data.syncflow.id, WorkflowStatus.IDLING);
-        await Promise.all([
-          emitEvent(EventNames.DATA_SOURCE_ERROR, {
-            payload: {
-              dataSourceId: data.syncflow.sourceId,
-              code: errorDetail.errorData.code,
-              message: errorDetail.errorData.message,
-            } as DataSourceErrorPayload,
-          }),
-          emitEvent(EventNames.SYNCFLOW_FAILED, {
-            payload: {
-              dataSourceId: data.syncflow.sourceId,
-              syncflowId: data.syncflow.id,
-              syncVersion: data.version,
-              error: {
-                type: ErrorType.EXTERNAL,
-                code: errorDetail.errorData.code,
-                message: errorDetail.errorData.message,
-              },
-            },
-          }),
-        ]);
-        throw error;
-      } else if (errorDetail.errorData?.type === ErrorType.INTERNAL) {
-        await updateSyncflowState(data.syncflow.id, {
-          version: data.version + 1, // increment version to correctly run retry
-          status: WorkflowStatus.IDLING,
-        });
-        await emitEvent(EventNames.SYNCFLOW_FAILED, {
-          payload: {
-            dataSourceId: data.syncflow.sourceId,
-            syncflowId: data.syncflow.id,
-            syncVersion: data.version,
-            error: {
-              type: ErrorType.INTERNAL,
-              code: errorDetail.errorData.code,
-              message: errorDetail.errorData.message,
-            },
-          },
-        });
-        throw error;
-      } else {
-        throw error;
-      }
+      await GoogleSheetsFullSyncErrorHandler(error, data);
     }
   });
+}
+
+async function GoogleSheetsFullSyncErrorHandler(
+  error: Error,
+  data: SyncflowScheduledPayload,
+) {
+  const errorDetail = getActivityErrorDetail(error);
+  // detect processor external error
+  if (errorDetail.errorData?.type === ErrorType.EXTERNAL) {
+    await updateSyncflowState(data.syncflow.id, {
+      version: data.version + 1, // increment version to correctly run retry
+      status: WorkflowStatus.IDLING,
+    });
+    await Promise.all([
+      emitEvent(EventNames.DATA_SOURCE_ERROR, {
+        payload: {
+          dataSourceId: data.syncflow.sourceId,
+          code: errorDetail.errorData.code,
+          message: errorDetail.errorData.message,
+        } as DataSourceErrorPayload,
+      }),
+      emitEvent(EventNames.SYNCFLOW_FAILED, {
+        payload: {
+          dataSourceId: data.syncflow.sourceId,
+          syncflowId: data.syncflow.id,
+          syncVersion: data.version,
+          error: {
+            type: ErrorType.EXTERNAL,
+            code: errorDetail.errorData.code,
+            message: errorDetail.errorData.message,
+          },
+        },
+      }),
+    ]);
+    throw error;
+  } else if (errorDetail.errorData?.type === ErrorType.INTERNAL) {
+    await updateSyncflowState(data.syncflow.id, {
+      version: data.version + 1, // increment version to correctly run retry
+      status: WorkflowStatus.IDLING,
+    });
+    await emitEvent(EventNames.SYNCFLOW_FAILED, {
+      payload: {
+        dataSourceId: data.syncflow.sourceId,
+        syncflowId: data.syncflow.id,
+        syncVersion: data.version,
+        error: {
+          type: ErrorType.INTERNAL,
+          code: errorDetail.errorData.code,
+          message: errorDetail.errorData.message,
+        },
+      },
+    });
+    throw error;
+  } else {
+    throw error;
+  }
 }
