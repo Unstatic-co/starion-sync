@@ -128,6 +128,9 @@ func (s *GoogleSheetsIngestService) Setup(ctx context.Context) error {
 			return err
 		}
 		s.logger.Debug("Spreadsheet file metadata", fileMetadata)
+		if len(fileMetadata) == 0 {
+			return fmt.Errorf("Spreadsheet file metadata not found")
+		}
 		spreadsheetMetadata, err := DeserializeSpreadsheetFileMetadata(fileMetadata)
 		if err != nil {
 			return err
