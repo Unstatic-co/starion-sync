@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strconv"
 
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/drive/v3"
 
 	log "github.com/sirupsen/logrus"
@@ -30,9 +31,9 @@ type GoogleSheetsIngestServiceInitParams struct {
 	// info
 	SpreadsheetId string `json:"spreadsheetId"`
 	SheetId       string `json:"sheetId"`
-	TimeZone      string `json:"timeZone"`
-	SheetName     string `json:"sheetName"`
-	SheetIndex    int    `json:"sheetIndex"`
+	// TimeZone      string `json:"timeZone"`
+	// SheetName     string `json:"sheetName"`
+	// SheetIndex    int64  `json:"sheetIndex"` // from 0
 
 	// auth
 	AccessToken string `json:"accessToken"`
@@ -46,7 +47,7 @@ type GoogleSheetsIngestService struct {
 	spreadsheetId string
 	sheetId       string
 	sheetName     string
-	sheetIndex    int
+	sheetIndex    int64
 	timeZone      string
 
 	// auth
@@ -79,13 +80,13 @@ func NewIngestService(params GoogleSheetsIngestServiceInitParams) *GoogleSheetsI
 	return &GoogleSheetsIngestService{
 		spreadsheetId: params.SpreadsheetId,
 		sheetId:       params.SheetId,
-		sheetName:     params.SheetName,
-		sheetIndex:    params.SheetIndex,
-		timeZone:      params.TimeZone,
-		accessToken:   params.AccessToken,
-		dataSourceId:  params.DataSourceId,
-		syncVersion:   params.SyncVersion,
-		logger:        loggerEntry,
+		// sheetName:     params.SheetName,
+		// sheetIndex:    params.SheetIndex,
+		// timeZone:      params.TimeZone,
+		accessToken:  params.AccessToken,
+		dataSourceId: params.DataSourceId,
+		syncVersion:  params.SyncVersion,
+		logger:       loggerEntry,
 	}
 }
 
@@ -102,16 +103,45 @@ func (s *GoogleSheetsIngestService) Setup(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	filePath, err := util.GenerateTempFileName(s.spreadsheetId, "xlsx", false)
+	group, _ := errgroup.WithContext(ctx)
+
+	group.Go(func() error {
+		// TODO: download spreadsheet file
+		s.logger.Info("Downloading saved spreadsheet")
+		filePath, err := util.GenerateTempFileName(s.spreadsheetId, "xlsx", false)
+		if err != nil {
+			return err
+		}
+		err = handler.DownloadFile(GetSpreadSheetFileS3Key(s.spreadsheetId), filePath)
+		if err != nil {
+			return err
+		}
+		s.spreadsheetFilePath = filePath
+		return nil
+	})
+
+	group.Go(func() error {
+		// TODO: get spreadsheet & sheets info
+		s.logger.Info("Get spreadsheet & sheets info")
+		fileMetadata, err := handler.GetObjectMetadata(GetSpreadSheetFileS3Key(s.spreadsheetId))
+		if err != nil {
+			return err
+		}
+		s.logger.Debug("Spreadsheet file metadata", fileMetadata)
+		spreadsheetMetadata, err := DeserializeSpreadsheetFileMetadata(fileMetadata)
+		if err != nil {
+			return err
+		}
+		s.logger.Info("Spreadsheet metadata", spreadsheetMetadata)
+		s.sheetName = spreadsheetMetadata.Sheets[s.sheetId].SheetName
+		s.sheetIndex = spreadsheetMetadata.Sheets[s.sheetId].SheetIndex
+		return nil
+	})
+
+	err = group.Wait()
 	if err != nil {
 		return err
 	}
-	s.logger.Info("Downloading spreadsheet")
-	err = handler.DownloadFile(GetSpreadSheetFileS3Key(s.spreadsheetId), filePath)
-	if err != nil {
-		return err
-	}
-	s.spreadsheetFilePath = filePath
 
 	return nil
 }
@@ -129,7 +159,6 @@ func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("Cannot generate temp file: %w", err)
 	}
-	log.Println("External error file: ", externalErrorFile)
 	s3Host, _ := util.ConvertS3URLToHost(config.AppConfig.S3Endpoint)
 	defer util.DeleteFile(externalErrorFile)
 
@@ -141,6 +170,7 @@ func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
 		"--spreadsheetId", s.spreadsheetId,
 		"--sheetId", s.sheetId,
 		"--sheetName", s.sheetName,
+		"--sheetIndex", fmt.Sprintf("%d", s.sheetIndex+1),
 		"--spreadsheetFile", s.spreadsheetFilePath,
 		"--timezone", s.timeZone,
 		"--accessToken", s.accessToken,

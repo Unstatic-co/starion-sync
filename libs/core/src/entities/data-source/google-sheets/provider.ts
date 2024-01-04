@@ -6,7 +6,7 @@ export interface GoogleSheetsProviderState extends ProviderState {
   sheets: {
     [sheetId: string]: {
       name: string;
-      index: number;
+      index: number; // from 0
     };
   };
 }
