@@ -237,9 +237,9 @@ export class GoogleSheetsActivities {
     syncVersion: number;
     spreadsheetId: string;
     sheetId: string;
-    sheetName: string;
-    sheetIndex: number;
-    timeZone: string;
+    // sheetName: string;
+    // sheetIndex: number;
+    // timeZone: string;
     refreshToken: string;
   }) {
     await activityWrapper(async () => {

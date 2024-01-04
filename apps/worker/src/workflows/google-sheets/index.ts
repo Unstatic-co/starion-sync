@@ -115,18 +115,18 @@ export async function googleSheetsProceedSync(data: SyncflowScheduledPayload) {
 
       const syncVersion = data.version;
       const prevSyncVersion = data.syncflow.state.prevVersion;
-      const sheet = syncData.dataProviderState.sheets[syncData.sheetId];
+      // const sheet = syncData.dataProviderState.sheets[syncData.sheetId];
 
-      const timeZone = syncData.dataProviderState.timeZone;
+      // const timeZone = syncData.dataProviderState.timeZone;
 
       await ingestGoogleSheets({
         dataSourceId: syncData.dataSourceId,
         syncVersion,
         spreadsheetId: syncData.spreadsheetId,
         sheetId: syncData.sheetId,
-        sheetName: sheet.name,
-        sheetIndex: sheet.index,
-        timeZone,
+        // sheetName: sheet.name,
+        // sheetIndex: sheet.index,
+        // timeZone,
         refreshToken: syncData.refreshToken,
       });
       await compareGoogleSheets({

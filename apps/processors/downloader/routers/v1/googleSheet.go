@@ -12,12 +12,12 @@ import (
 type IngestGoogleSheetsRequest struct {
 	SpreadsheetId string `form:"spreadsheetId" valid:"Required"`
 	SheetId       string `form:"sheetId" valid:"Required"`
-	SheetName     string `form:"sheetName" valid:"Required"`
-	SheetIndex    *int   `form:"sheetIndex" binding:"required,number"`
-	TimeZone      string `form:"timeZone" valid:"Required"`
-	AccessToken   string `form:"accessToken" valid:"Required"`
-	DataSourceId  string `form:"dataSourceId" valid:"Required"`
-	SyncVersion   *int   `form:"syncVersion" binding:"required,number"`
+	// SheetName     string `form:"sheetName" valid:"Required"`
+	// SheetIndex    *int64 `form:"sheetIndex" binding:"required,number"`
+	// TimeZone      string `form:"timeZone" valid:"Required"`
+	AccessToken  string `form:"accessToken" valid:"Required"`
+	DataSourceId string `form:"dataSourceId" valid:"Required"`
+	SyncVersion  *int   `form:"syncVersion" binding:"required,number"`
 }
 
 // type IngestGoogleSheetsResponse struct {
@@ -39,12 +39,12 @@ func IngestGoogleSheets(c *gin.Context) {
 	service := google_sheets.NewIngestService(google_sheets.GoogleSheetsIngestServiceInitParams{
 		SpreadsheetId: body.SpreadsheetId,
 		SheetId:       body.SheetId,
-		SheetName:     body.SheetName,
-		SheetIndex:    *body.SheetIndex,
-		TimeZone:      body.TimeZone,
-		AccessToken:   body.AccessToken,
-		DataSourceId:  body.DataSourceId,
-		SyncVersion:   *body.SyncVersion,
+		// SheetName:     body.SheetName,
+		// SheetIndex:    *body.SheetIndex,
+		// TimeZone:      body.TimeZone,
+		AccessToken:  body.AccessToken,
+		DataSourceId: body.DataSourceId,
+		SyncVersion:  *body.SyncVersion,
 	})
 
 	requestContext := c.Request.Context()
