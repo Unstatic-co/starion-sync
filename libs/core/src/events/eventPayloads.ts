@@ -1,5 +1,7 @@
 import {
   DataSourceId,
+  ProviderId,
+  ProviderType,
   SyncConnection,
   SyncConnectionId,
   Syncflow,
@@ -7,6 +9,11 @@ import {
 import { Trigger } from '../entities/trigger';
 import { ErrorCode, ErrorType } from '../error';
 import { EventPayload } from './baseEvent';
+
+export type DataProviderDeletedPayload = EventPayload & {
+  providerId: ProviderId;
+  providerType: ProviderType
+}
 
 export type DataSourceDeletedPayload = EventPayload & {
   dataSourceId: DataSourceId;

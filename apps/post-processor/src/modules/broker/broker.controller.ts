@@ -2,6 +2,7 @@ import { Controller, Logger, Post } from '@nestjs/common';
 import { EventPattern } from '@nestjs/microservices';
 import { BrokerService } from './broker.service';
 import {
+  DataProviderDeletedPayload,
   DataSourceErrorPayload,
   EventNames,
   SyncflowFailedPayload,
@@ -18,7 +19,7 @@ export class BrokerController {
     private readonly brokerService: BrokerService,
     private readonly syncflowService: SyncflowService,
     private readonly dataSourceService: DataSourceService,
-  ) {}
+  ) { }
 
   @EventPattern(EventNames.SYNCFLOW_SUCCEED)
   async handleSyncflowSucceedEvent(payload: SyncflowSucceedPayload) {
@@ -42,6 +43,17 @@ export class BrokerController {
       `handle data source error event, ds = ${payload.dataSourceId}`,
     );
     return this.dataSourceService.handleDataSourceError(payload.dataSourceId);
+  }
+
+  @EventPattern(EventNames.DATA_PROVIDER_DELETED)
+  async handleDataProviderDeletedEvent(payload: DataProviderDeletedPayload) {
+    this.logger.log(
+      `handle data provider deleted event, provider = ${payload.providerId}`,
+    );
+    return this.dataSourceService.handleProviderDeleted({
+      providerId: payload.providerId,
+      providerType: payload.providerType,
+    });
   }
 
   // @EventPattern('test-event-to-post-processor')

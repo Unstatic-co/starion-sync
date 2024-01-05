@@ -1,5 +1,5 @@
 import { DataSourceId, SyncflowId } from '@lib/core';
-import { IRepository } from '../baseRepository';
+import { IRepository } from '../base';
 import { QueryOptions } from '../common';
 import { Trigger, TriggerConfig, TriggerId } from '@lib/core/entities/trigger';
 

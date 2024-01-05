@@ -29,8 +29,9 @@ var defaultScopes []string = []string{
 
 type GoogleSheetsIngestServiceInitParams struct {
 	// info
-	SpreadsheetId string `json:"spreadsheetId"`
-	SheetId       string `json:"sheetId"`
+	DataProviderId string `json:"dataProviderId"`
+	SpreadsheetId  string `json:"spreadsheetId"`
+	SheetId        string `json:"sheetId"`
 	// TimeZone      string `json:"timeZone"`
 	// SheetName     string `json:"sheetName"`
 	// SheetIndex    int64  `json:"sheetIndex"` // from 0
@@ -54,8 +55,9 @@ type GoogleSheetsIngestService struct {
 	accessToken string
 
 	// data
-	dataSourceId string
-	syncVersion  int
+	dataProviderId string
+	dataSourceId   string
+	syncVersion    int
 
 	// resource
 	spreadsheetFilePath string
@@ -78,15 +80,16 @@ func NewIngestService(params GoogleSheetsIngestServiceInitParams) *GoogleSheetsI
 	// client
 
 	return &GoogleSheetsIngestService{
-		spreadsheetId: params.SpreadsheetId,
-		sheetId:       params.SheetId,
+		dataProviderId: params.DataProviderId,
+		dataSourceId:   params.DataSourceId,
+		spreadsheetId:  params.SpreadsheetId,
+		sheetId:        params.SheetId,
 		// sheetName:     params.SheetName,
 		// sheetIndex:    params.SheetIndex,
 		// timeZone:      params.TimeZone,
-		accessToken:  params.AccessToken,
-		dataSourceId: params.DataSourceId,
-		syncVersion:  params.SyncVersion,
-		logger:       loggerEntry,
+		accessToken: params.AccessToken,
+		syncVersion: params.SyncVersion,
+		logger:      loggerEntry,
 	}
 }
 
@@ -112,7 +115,7 @@ func (s *GoogleSheetsIngestService) Setup(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		err = handler.DownloadFile(GetSpreadSheetFileS3Key(s.spreadsheetId), filePath)
+		err = handler.DownloadFile(GetSpreadSheetFileS3Key(s.dataProviderId), filePath)
 		if err != nil {
 			return err
 		}
@@ -123,7 +126,7 @@ func (s *GoogleSheetsIngestService) Setup(ctx context.Context) error {
 	group.Go(func() error {
 		// TODO: get spreadsheet & sheets info
 		s.logger.Info("Get spreadsheet & sheets info")
-		fileMetadata, err := handler.GetObjectMetadata(GetSpreadSheetFileS3Key(s.spreadsheetId))
+		fileMetadata, err := handler.GetObjectMetadata(GetSpreadSheetFileS3Key(s.dataProviderId))
 		if err != nil {
 			return err
 		}

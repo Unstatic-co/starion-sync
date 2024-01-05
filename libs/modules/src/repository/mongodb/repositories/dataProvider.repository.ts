@@ -26,7 +26,7 @@ export class DataProviderRepository implements IDataProviderRepository {
     private readonly dataProviderModel: Model<DataProviderDocument>,
     @InjectModel(DataSourceModel.name)
     private readonly dataSourceModel: Model<DataSourceDocument>,
-  ) {}
+  ) { }
 
   public async getById(id: string, options?: QueryOptions) {
     const conditions = {
@@ -85,6 +85,7 @@ export class DataProviderRepository implements IDataProviderRepository {
       const dataProvider = await this.dataProviderModel
         .findOne({
           _id: Utils.toObjectId(data.id),
+          isDeleted: false,
         })
         .session(session);
       if (!dataProvider) {
@@ -137,6 +138,7 @@ export class DataProviderRepository implements IDataProviderRepository {
       const dataProvider = await this.dataProviderModel
         .findOne({
           _id: Utils.toObjectId(id),
+          isDeleted: false
         })
         .session(session);
       if (!dataProvider) {

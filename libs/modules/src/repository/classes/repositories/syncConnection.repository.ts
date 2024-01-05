@@ -10,7 +10,7 @@ import {
   SyncflowConfig,
   SyncflowName,
 } from '@lib/core';
-import { IRepository } from '../baseRepository';
+import { IRepository } from '../base';
 import { QueryOptions } from '../common';
 import { TriggerName } from '@lib/core/entities/trigger';
 import { TriggerConfig } from '@lib/core/entities/trigger/trigger.config';

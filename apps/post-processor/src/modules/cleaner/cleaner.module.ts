@@ -1,10 +1,10 @@
 import { RepositoryModule } from '@lib/modules';
 import { Module } from '@nestjs/common';
 import { CleanerService } from './cleaner.service';
-import { MicrosoftExcelCleanerService } from './excel';
 import { CleanerFactory } from './cleaner.factory';
 import { StorageModule } from '../storage/storage.module';
-import { GoogleSheetsCleanerService } from './google-sheets';
+import { MicrosoftExcelDataProviderCleaner, MicrosoftExcelWorkflowCleaner } from './excel';
+import { GoogleSheetsDataProviderCleaner, GoogleSheetsWorkflowCleaner } from './google-sheets';
 
 @Module({
   imports: [RepositoryModule.registerAsync(), StorageModule],
@@ -12,9 +12,11 @@ import { GoogleSheetsCleanerService } from './google-sheets';
   providers: [
     CleanerService,
     CleanerFactory,
-    MicrosoftExcelCleanerService,
-    GoogleSheetsCleanerService,
+    MicrosoftExcelWorkflowCleaner,
+    GoogleSheetsWorkflowCleaner,
+    MicrosoftExcelDataProviderCleaner,
+    GoogleSheetsDataProviderCleaner,
   ],
   exports: [CleanerService, CleanerFactory],
 })
-export class CleanerModule {}
+export class CleanerModule { }

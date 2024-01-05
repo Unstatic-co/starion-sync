@@ -3,6 +3,7 @@ import { DatabaseModule } from '../database';
 import * as MongoRepositories from './mongodb/repositories';
 import { DatabaseType } from '@lib/core/config';
 import { InjectTokens } from '../inject-tokens';
+import { TransactionManager as MongodbTransactionManager } from './mongodb';
 
 export interface RepositoryModuleOptions {
   databaseType: DatabaseType;
@@ -43,6 +44,10 @@ export class RepositoryModule {
             provide: InjectTokens.WEBHOOK_REPOSITORY,
             useClass: MongoRepositories.WebhookRepository,
           },
+          {
+            provide: InjectTokens.TRANSACTION_MANAGER,
+            useClass: MongodbTransactionManager,
+          }
         );
         break;
       default:

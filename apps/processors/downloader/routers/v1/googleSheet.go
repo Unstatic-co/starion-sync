@@ -10,8 +10,9 @@ import (
 )
 
 type IngestGoogleSheetsRequest struct {
-	SpreadsheetId string `form:"spreadsheetId" valid:"Required"`
-	SheetId       string `form:"sheetId" valid:"Required"`
+	DataProviderId string `form:"dataProviderId" valid:"Required"`
+	SpreadsheetId  string `form:"spreadsheetId" valid:"Required"`
+	SheetId        string `form:"sheetId" valid:"Required"`
 	// SheetName     string `form:"sheetName" valid:"Required"`
 	// SheetIndex    *int64 `form:"sheetIndex" binding:"required,number"`
 	// TimeZone      string `form:"timeZone" valid:"Required"`
@@ -37,8 +38,9 @@ func IngestGoogleSheets(c *gin.Context) {
 	}
 
 	service := google_sheets.NewIngestService(google_sheets.GoogleSheetsIngestServiceInitParams{
-		SpreadsheetId: body.SpreadsheetId,
-		SheetId:       body.SheetId,
+		DataProviderId: body.DataProviderId,
+		SpreadsheetId:  body.SpreadsheetId,
+		SheetId:        body.SheetId,
 		// SheetName:     body.SheetName,
 		// SheetIndex:    *body.SheetIndex,
 		// TimeZone:      body.TimeZone,
@@ -71,8 +73,9 @@ func IngestGoogleSheets(c *gin.Context) {
 // #########################################################################################################
 
 type DownloadGoogleSheetsRequest struct {
-	SpreadsheetId string `form:"spreadsheetId" valid:"Required"`
-	AccessToken   string `form:"accessToken" valid:"Required"`
+	DataProviderId string `form:"dataProviderId" valid:"Required"`
+	SpreadsheetId  string `form:"spreadsheetId" valid:"Required"`
+	AccessToken    string `form:"accessToken" valid:"Required"`
 }
 type DownloadGoogleSheetsResponse struct {
 	SpreadsheetVersion string `json:"spreadsheetVersion"`
@@ -91,8 +94,9 @@ func DownloadGoogleSheets(c *gin.Context) {
 	}
 
 	service := google_sheets.NewDownloadService(google_sheets.GoogleSheetsDownloadServiceInitParams{
-		SpreadsheetId: body.SpreadsheetId,
-		AccessToken:   body.AccessToken,
+		DataProviderId: body.DataProviderId,
+		SpreadsheetId:  body.SpreadsheetId,
+		AccessToken:    body.AccessToken,
 	})
 
 	requestContext := c.Request.Context()
