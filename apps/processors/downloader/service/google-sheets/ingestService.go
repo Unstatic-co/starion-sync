@@ -141,6 +141,7 @@ func (s *GoogleSheetsIngestService) Setup(ctx context.Context) error {
 		s.logger.Info("Spreadsheet metadata", spreadsheetMetadata)
 		s.sheetName = spreadsheetMetadata.Sheets[s.sheetId].SheetName
 		s.sheetIndex = spreadsheetMetadata.Sheets[s.sheetId].SheetIndex
+		s.timeZone = spreadsheetMetadata.TimeZone
 		return nil
 	})
 
