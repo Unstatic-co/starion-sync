@@ -12,8 +12,8 @@ import { EventPayload } from './baseEvent';
 
 export type DataProviderDeletedPayload = EventPayload & {
   providerId: ProviderId;
-  providerType: ProviderType
-}
+  providerType: ProviderType;
+};
 
 export type DataSourceDeletedPayload = EventPayload & {
   dataSourceId: DataSourceId;

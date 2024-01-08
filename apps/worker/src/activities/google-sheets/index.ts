@@ -35,7 +35,7 @@ export class GoogleSheetsActivities {
     private readonly dataProviderRepository: IDataProviderRepository,
     private readonly googleService: GoogleService,
     private readonly googleSheetsService: GoogleSheetsService,
-  ) { }
+  ) {}
 
   async getDataStateGoogleSheets(syncflow: Syncflow) {
     const dataSource = await this.dataSourceRepository.getById(
