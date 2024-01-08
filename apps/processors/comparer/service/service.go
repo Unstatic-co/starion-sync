@@ -247,7 +247,7 @@ func (s *CompareService) GetSchema(ctx context.Context) error {
 		return err
 	}
 	// get previous schema
-	if s.syncVersion > 1 {
+	if s.prevVersion != 0 {
 		prevSchemaFileKey := fmt.Sprintf("schema/%s-%d.json", s.dataSourceId, s.prevVersion)
 		schemaFile, err := handler.ReadFileByte(prevSchemaFileKey)
 		if err != nil {
@@ -269,7 +269,7 @@ func (s *CompareService) Run(ctx context.Context) error {
 		return err
 	}
 
-	if s.syncVersion != 1 {
+	if s.prevVersion != 0 {
 		err = s.CompareSchema(ctx)
 		if err != nil {
 			return err

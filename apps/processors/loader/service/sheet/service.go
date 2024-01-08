@@ -159,7 +159,7 @@ func (s *SheetService) GetLoadData() (loader.LoaderData, error) {
 		return nil
 	})
 
-	if s.syncVersion > 1 {
+	if s.prevVersion != 0 {
 		// get schema diff
 		group.Go(func() error {
 			var schemaDiff service.SchemaDiffResult
