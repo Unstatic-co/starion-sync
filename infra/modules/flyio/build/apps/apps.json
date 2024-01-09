@@ -21,7 +21,8 @@
         "KAFKA_CLIENT_ID": "controller",
         "KAFKA_CONSUMER_GROUP_ID": "controller-consumer",
         "ORCHESTRATOR_WORKER_TASKQUEUE": "controller",
-        "ORCHESTRATOR_DEFAULT_TASKQUEUE": "controller"
+        "ORCHESTRATOR_DEFAULT_TASKQUEUE": "controller",
+        "IGNORE_WORKFLOW_TRIGGERED": "false"
       }
     },
     {
