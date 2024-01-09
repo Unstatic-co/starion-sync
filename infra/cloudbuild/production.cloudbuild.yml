@@ -26,6 +26,10 @@ availableSecrets:
       env: 'MICROSOFT_CLIENT_SECRET'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_ORCHESTRATOR_ADDRESS/versions/latest
       env: 'ORCHESTRATOR_ADDRESS'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_ORCHESTRATOR_CLIENT_CERT/versions/latest
+      env: 'ORCHESTRATOR_CLIENT_CERT'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_ORCHESTRATOR_CLIENT_KEY/versions/latest
+      env: 'ORCHESTRATOR_CLIENT_KEY'
 
 steps:
   - id: 'TF INIT'
@@ -57,6 +61,8 @@ steps:
         'GOOGLE_CLIENT_SECRET',
         'MICROSOFT_CLIENT_SECRET',
         'ORCHESTRATOR_ADDRESS',
+        'ORCHESTRATOR_CLIENT_CERT',
+        'ORCHESTRATOR_CLIENT_KEY',
       ]
     args:
       - '-c'
@@ -74,6 +80,8 @@ steps:
         export TF_VAR_google_client_secret=$$GOOGLE_CLIENT_SECRET
         export TF_VAR_microsoft_client_secret=$$MICROSOFT_CLIENT_SECRET
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
+        export TF_VAR_orchestrator_client_cert=$$ORCHESTRATOR_CLIENT_CERT
+        export TF_VAR_orchestrator_client_key=$$ORCHESTRATOR_CLIENT_KEY
 
         terraform plan -var-file="environments/production.tfvars" -out=tfplan
 
@@ -96,6 +104,8 @@ steps:
         'GOOGLE_CLIENT_SECRET',
         'MICROSOFT_CLIENT_SECRET',
         'ORCHESTRATOR_ADDRESS',
+        'ORCHESTRATOR_CLIENT_CERT',
+        'ORCHESTRATOR_CLIENT_KEY',
       ]
     args:
       - '-c'
@@ -113,6 +123,8 @@ steps:
         export TF_VAR_google_client_secret=$$GOOGLE_CLIENT_SECRET
         export TF_VAR_microsoft_client_secret=$$MICROSOFT_CLIENT_SECRET
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
+        export TF_VAR_orchestrator_client_cert=$$ORCHESTRATOR_CLIENT_CERT
+        export TF_VAR_orchestrator_client_key=$$ORCHESTRATOR_CLIENT_KEY
 
         terraform apply -no-color -auto-approve tfplan
 

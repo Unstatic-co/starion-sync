@@ -62,7 +62,6 @@ export class WorkflowService {
       this.logger.debug(`Terminate workflows: ${query}`);
       const listResult =
         await this.orchestratorClient.workflowService.listWorkflowExecutions({
-          namespace: 'default',
           query,
         });
       this.logger.debug(`Found workflows: ${listResult.executions.length}`);
@@ -71,9 +70,12 @@ export class WorkflowService {
           this.logger.debug(
             `Terminate workflow execution: ${execution.execution.workflowId} - ${execution.execution.runId}`,
           );
+          const namespace = this.configService.get<string>(
+            `${ConfigName.ORCHESTRATOR}.namespace`,
+          );
           await this.orchestratorClient.workflowService.terminateWorkflowExecution(
             {
-              namespace: 'default',
+              namespace,
               reason: reason || 'Terminated by system',
               workflowExecution: {
                 workflowId: execution.execution.workflowId,
@@ -92,9 +94,12 @@ export class WorkflowService {
   async terminateWorkflowsByQuery(query: string, reason?: string) {
     try {
       this.logger.debug(`Terminate workflows with query: ${query}`);
+      const namespace = this.configService.get<string>(
+        `${ConfigName.ORCHESTRATOR}.namespace`,
+      );
       const listResult =
         await this.orchestratorClient.workflowService.listWorkflowExecutions({
-          namespace: 'default',
+          namespace,
           query,
         });
       this.logger.debug(`Found workflows: ${listResult.executions.length}`);
@@ -103,9 +108,12 @@ export class WorkflowService {
           this.logger.debug(
             `Terminate workflow: ${execution.execution.workflowId} - ${execution.execution.runId}`,
           );
+          const namespace = this.configService.get<string>(
+            `${ConfigName.ORCHESTRATOR}.namespace`,
+          );
           await this.orchestratorClient.workflowService.terminateWorkflowExecution(
             {
-              namespace: 'default',
+              namespace,
               reason: reason || 'Terminated by system',
               workflowExecution: {
                 workflowId: execution.execution.workflowId,
