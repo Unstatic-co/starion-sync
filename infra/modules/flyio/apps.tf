@@ -31,7 +31,8 @@ locals {
   apps_files = sort(setunion(
     [
       local.apps_dockerfile_path,
-      abspath("${path.module}/build/apps/fly.toml")
+      abspath("${path.module}/build/apps/fly.toml"),
+      abspath("${path.module}/build/apps/apps.json")
     ],
     [for f in fileset("${local.configurator_path}", "**") : "${local.configurator_path}/${f}"],
     [for f in fileset("${local.controller_path}", "**") : "${local.controller_path}/${f}"],
@@ -724,8 +725,8 @@ locals {
     MICROSOFT_CLIENT_SECRET        = var.microsoft_client_secret
     GOOGLE_CLIENT_ID               = var.google_client_id
     GOOGLE_CLIENT_SECRET           = var.google_client_secret
-    TRIGGER_RESTART                = "true"
-    TRIGGER_REBUILD                = "true"
+    TRIGGER_RESTART                = "true",
+    IGNORE_WORKFLOW_TRIGGERED      = "false"
   }
 }
 resource "null_resource" "fly_app_controller" {
