@@ -6,6 +6,7 @@ import { OrchestratorService } from '@lib/modules';
 export class BrokerController {
   private readonly logger = new Logger(BrokerController.name);
   constructor(
+    private readonly configService: ConfigService,
     private readonly brokerService: BrokerService,
     private readonly orchestratorService: OrchestratorService,
   ) {}

@@ -1,5 +1,6 @@
 export enum ConfigName {
   APP = 'app',
+  CONTROLLER = 'controller',
   DATABASE = 'database',
   DESTINATION_DATABASE = 'destination-database',
   BROKER = 'broker',
