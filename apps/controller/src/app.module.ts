@@ -16,6 +16,7 @@ import { BrokerModule } from './modules/broker/broker.module';
 import { WorkflowModule } from './modules/workflow/workflow.module';
 import { ActivityModule } from './modules/activities/activity.module';
 import { OrchestratorWorkerModule } from './modules/orchestrator-worker/orchestratorWorker.module';
+import { controllerConfigRegister } from './modules/config';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -27,6 +28,7 @@ import { OrchestratorWorkerModule } from './modules/orchestrator-worker/orchestr
         orchestratorConfigRegister,
         microsoftConfigRegister,
         googleConfigRegister,
+        controllerConfigRegister,
       ],
     }),
     LoggerModule,

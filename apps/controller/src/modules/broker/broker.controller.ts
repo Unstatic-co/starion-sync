@@ -5,11 +5,14 @@ import { EventNames, WorkflowTriggeredPayload } from '@lib/core';
 import { OrchestratorService } from '@lib/modules';
 import { handleWorkflowTriggeredWf } from '../../workflows';
 import { WorkflowIdReusePolicy } from '@temporalio/common';
+import { ConfigService } from '@nestjs/config';
+import { ConfigName } from '@lib/core/config';
 
 @Controller('broker')
 export class BrokerController {
   private readonly logger = new Logger(BrokerController.name);
   constructor(
+    private readonly configService: ConfigService,
     private readonly brokerService: BrokerService,
     private readonly orchestratorService: OrchestratorService,
   ) {}
@@ -17,6 +20,12 @@ export class BrokerController {
   @EventPattern(EventNames.WORKFLOW_TRIGGERED)
   async handleWorkflowTriggeredEvent(payload: WorkflowTriggeredPayload) {
     this.logger.log(`handleWorkflowTriggeredEvent: triggerId = ${payload.id}`);
+    const ignoreWorkflowTriggered = this.configService.get<boolean>(
+      `${ConfigName.CONTROLLER}.ignoreWorkflowTriggered`,
+    );
+    if (ignoreWorkflowTriggered) {
+      return;
+    }
     await this.orchestratorService.executeWorkflow(handleWorkflowTriggeredWf, {
       workflowId: `${payload.id}`,
       args: [payload],
