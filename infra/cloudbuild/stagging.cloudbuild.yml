@@ -34,6 +34,10 @@ availableSecrets:
       env: 'DEST_DB_URI'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_ORCHESTRATOR_ADDRESS/versions/latest
       env: 'ORCHESTRATOR_ADDRESS'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_ORCHESTRATOR_CLIENT_CERT/versions/latest
+      env: 'ORCHESTRATOR_CLIENT_CERT'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_ORCHESTRATOR_CLIENT_KEY/versions/latest
+      env: 'ORCHESTRATOR_CLIENT_KEY'
 
 steps:
   - id: 'TF INIT'
@@ -69,6 +73,8 @@ steps:
         'MICROSOFT_CLIENT_SECRET',
         'DEST_DB_URI',
         'ORCHESTRATOR_ADDRESS',
+        'ORCHESTRATOR_CLIENT_CERT',
+        'ORCHESTRATOR_CLIENT_KEY',
       ]
     args:
       - '-c'
@@ -90,6 +96,8 @@ steps:
         export TF_VAR_microsoft_client_secret=$$MICROSOFT_CLIENT_SECRET
         export TF_VAR_dest_db_uri=$$DEST_DB_URI
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
+        export TF_VAR_orchestrator_client_cert=$$ORCHESTRATOR_CLIENT_CERT
+        export TF_VAR_orchestrator_client_key=$$ORCHESTRATOR_CLIENT_KEY
 
         terraform plan -var-file="environments/stagging.tfvars" -out=tfplan
 
@@ -116,6 +124,8 @@ steps:
         'MICROSOFT_CLIENT_SECRET',
         'DEST_DB_URI',
         'ORCHESTRATOR_ADDRESS',
+        'ORCHESTRATOR_CLIENT_CERT',
+        'ORCHESTRATOR_CLIENT_KEY',
       ]
     args:
       - '-c'
@@ -137,6 +147,8 @@ steps:
         export TF_VAR_microsoft_client_secret=$$MICROSOFT_CLIENT_SECRET
         export TF_VAR_dest_db_uri=$$DEST_DB_URI
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
+        export TF_VAR_orchestrator_client_cert=$$ORCHESTRATOR_CLIENT_CERT
+        export TF_VAR_orchestrator_client_key=$$ORCHESTRATOR_CLIENT_KEY
 
         flyctl version
         terraform apply -no-color -auto-approve tfplan

@@ -3,12 +3,28 @@ import { ConfigService } from '@nestjs/config';
 import { Client, Connection, ConnectionOptions } from '@temporalio/client';
 import { NativeConnection, NativeConnectionOptions } from '@temporalio/worker';
 import { InjectTokens } from '../inject-tokens';
+import * as fs from 'fs';
 
 export const OrchestratorConnectionConfigProvider = {
   provide: InjectTokens.ORCHESTRATOR_CONNECTION_CONFIG,
   useFactory: (config: ConfigService) => {
+    const cert = Buffer.from(
+      config.get<string>(`${ConfigName.ORCHESTRATOR}.clientCert`),
+      'base64',
+    );
+    const key = Buffer.from(
+      config.get<string>(`${ConfigName.ORCHESTRATOR}.clientKey`),
+      'base64',
+    );
     return {
       address: config.get(`${ConfigName.ORCHESTRATOR}.address`),
+      tls: {
+        clientCertPair: {
+          crt: cert,
+          key,
+        },
+      },
+      connectTimeout: 10000,
     } as ConnectionOptions;
   },
   inject: [ConfigService],
@@ -17,8 +33,23 @@ export const OrchestratorConnectionConfigProvider = {
 export const OrchestratorNativeConnectionConfigProvider = {
   provide: InjectTokens.ORCHESTRATOR_NATIVE_CONNECTION_CONFIG,
   useFactory: (config: ConfigService) => {
+    const cert = Buffer.from(
+      config.get<string>(`${ConfigName.ORCHESTRATOR}.clientCert`),
+      'base64',
+    );
+    const key = Buffer.from(
+      config.get<string>(`${ConfigName.ORCHESTRATOR}.clientKey`),
+      'base64',
+    );
     return {
       address: config.get(`${ConfigName.ORCHESTRATOR}.address`),
+      tls: {
+        clientCertPair: {
+          crt: cert,
+          key,
+        },
+      },
+      connectTimeout: 10000,
     } as ConnectionOptions;
   },
   inject: [ConfigService],
@@ -44,10 +75,13 @@ export const OrchestratorNativeConnectionProvider = {
 
 export const OrchestratorClientProvider = {
   provide: InjectTokens.ORCHESTRATOR_CLIENT,
-  useFactory: (connection: Connection) => {
-    return new Client({ connection });
+  useFactory: (connection: Connection, config: ConfigService) => {
+    const namespace = config.get<string>(
+      `${ConfigName.ORCHESTRATOR}.namespace`,
+    );
+    return new Client({ connection, namespace });
   },
-  inject: [InjectTokens.ORCHESTRATOR_CONNECTION],
+  inject: [InjectTokens.ORCHESTRATOR_CONNECTION, ConfigService],
 };
 
 export default [

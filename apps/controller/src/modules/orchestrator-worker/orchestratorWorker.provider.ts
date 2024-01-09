@@ -38,12 +38,17 @@ export const OrchestratorWorkerProvider = {
         ),
     };
 
+    const namespace = configService.get<string>(
+      `${ConfigName.ORCHESTRATOR}.namespace`,
+    );
+
     const taskQueue = configService.get<string>(
       `${ConfigName.ORCHESTRATOR}.workerTaskQueue`,
     );
 
     const worker = await Worker.create({
       connection: orchestratorConnection,
+      namespace,
       workflowsPath: require.resolve('../../workflows'),
       taskQueue,
       activities,
