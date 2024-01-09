@@ -182,6 +182,7 @@ export class GoogleSheetsActivities {
 
     const result = {
       dataProviderState: dataProvider.state as GoogleSheetsProviderState,
+      dataProviderId: dataSource.provider.id,
       dataSourceId: syncflow.sourceId,
       syncVersion: syncflowState.version,
       prevVersion: syncflowState.prevVersion,
@@ -200,6 +201,7 @@ export class GoogleSheetsActivities {
 
   async downloadGoogleSheets(data: {
     spreadsheetId: string;
+    dataProviderId: string;
     refreshToken: string;
   }) {
     await activityWrapper(async () => {
@@ -234,6 +236,7 @@ export class GoogleSheetsActivities {
 
   async ingestGoogleSheets(data: {
     dataSourceId: string;
+    dataProviderId: string;
     syncVersion: number;
     spreadsheetId: string;
     sheetId: string;

@@ -6,8 +6,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-func GetSpreadSheetFileS3Key(spreadsheetId string) string {
-	return fmt.Sprintf("data/%s.xlsx", spreadsheetId)
+func GetSpreadSheetFileS3Key(dataProviderId string) string {
+	return fmt.Sprintf("data/%s.xlsx", dataProviderId)
 }
 
 func SerializeSpreadsheetFileMetadata(metadata SpreadsheetMetadata) (map[string]*string, error) {

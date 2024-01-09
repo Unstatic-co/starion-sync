@@ -6,7 +6,7 @@ import {
   TriggerId,
   WorkflowStatus,
 } from '@lib/core';
-import { IRepository } from '../baseRepository';
+import { IRepository } from '../base';
 import { QueryOptions } from '../common';
 
 export interface ISyncflowRepository extends IRepository {

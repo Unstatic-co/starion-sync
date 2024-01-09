@@ -1,15 +1,15 @@
 import { ISyncflowRepository, InjectTokens } from '@lib/modules';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { WorkflowCleaner } from '../cleaner.factory';
-import { Syncflow } from '@lib/core';
+import { DataProviderCleaner, WorkflowCleaner } from '../cleaner.factory';
+import { ProviderId, Syncflow } from '@lib/core';
 import { InjectTokens as AppInjectTokens } from '../../../common/inject-tokens';
 import { DeleteObjectsCommand, S3Client } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { ConfigName } from '@lib/core/config';
 
 @Injectable()
-export class MicrosoftExcelCleanerService implements WorkflowCleaner {
-  private readonly logger = new Logger(MicrosoftExcelCleanerService.name);
+export class MicrosoftExcelWorkflowCleaner implements WorkflowCleaner {
+  private readonly logger = new Logger(MicrosoftExcelWorkflowCleaner.name);
 
   constructor(
     @Inject(InjectTokens.SYNCFLOW_REPOSITORY)
@@ -17,7 +17,7 @@ export class MicrosoftExcelCleanerService implements WorkflowCleaner {
     @Inject(AppInjectTokens.STORAGE_CLIENT)
     private readonly storageClient: S3Client,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async run(
     syncflow: Syncflow,
@@ -82,5 +82,22 @@ export class MicrosoftExcelCleanerService implements WorkflowCleaner {
     }
 
     this.logger.log(`Cleaned ${res.Deleted?.length} objects`);
+  }
+}
+
+@Injectable()
+export class MicrosoftExcelDataProviderCleaner implements DataProviderCleaner {
+  private readonly logger = new Logger(MicrosoftExcelDataProviderCleaner.name);
+
+  constructor(
+    @Inject(AppInjectTokens.STORAGE_CLIENT)
+    private readonly storageClient: S3Client,
+    private readonly configService: ConfigService,
+  ) { }
+
+  async run(
+    providerId: ProviderId
+  ): Promise<void> {
+    this.logger.log(`Cleaning provider ${providerId}`);
   }
 }

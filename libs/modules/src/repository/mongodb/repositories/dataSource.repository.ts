@@ -32,7 +32,7 @@ export class DataSourceRepository implements IDataSourceRepository {
     private dataSourceModel: Model<DataSourceDocument>,
     @Inject(InjectTokens.SYNC_CONNECTION_REPOSITORY)
     private readonly syncConnectionRepository: ISyncConnectionRepository,
-  ) {}
+  ) { }
 
   public async getById(id: string, options?: QueryOptions) {
     const conditions = {
@@ -52,6 +52,26 @@ export class DataSourceRepository implements IDataSourceRepository {
     const result = await query;
     if (!result) return null;
     return result.toJSON();
+  }
+
+  public async getByProviderId(providerId: string, options?: QueryOptions) {
+    const conditions = {
+      'provider.id': Utils.toObjectId(providerId),
+      isDeleted: false,
+    };
+    if (options?.includeDeleted) {
+      delete conditions.isDeleted;
+    }
+    let query = this.dataSourceModel.find(conditions);
+    if (options?.session) {
+      query = query.session(options.session);
+    }
+    if (options?.select?.length) {
+      query = query.select(options.select.join(' '));
+    }
+    const result = await query;
+    if (!result) return null;
+    return result.map((item) => item.toJSON());
   }
 
   public async getByExternalId(externalId: string, options?: QueryOptions) {

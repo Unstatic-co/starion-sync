@@ -75,6 +75,7 @@ export async function googleSheetsDownload(data: GoogleSheetsDownloadPayload) {
 
         const [, spreadSheetData] = await Promise.all([
           downloadGoogleSheets({
+            dataProviderId,
             spreadsheetId,
             refreshToken,
           }),
@@ -121,6 +122,7 @@ export async function googleSheetsProceedSync(data: SyncflowScheduledPayload) {
 
       await ingestGoogleSheets({
         dataSourceId: syncData.dataSourceId,
+        dataProviderId: syncData.dataProviderId,
         syncVersion,
         spreadsheetId: syncData.spreadsheetId,
         sheetId: syncData.sheetId,

@@ -6,7 +6,7 @@ import {
   ProviderState,
   ProviderType,
 } from '@lib/core';
-import { IRepository } from '../baseRepository';
+import { IRepository } from '../base';
 import { QueryOptions } from '../common';
 
 export interface IDataProviderRepository extends IRepository {

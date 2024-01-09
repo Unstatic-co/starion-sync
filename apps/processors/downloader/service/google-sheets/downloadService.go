@@ -25,6 +25,7 @@ import (
 
 type GoogleSheetsDownloadServiceInitParams struct {
 	// info
+	DataProviderId     string `json:"dataProviderId"`
 	SpreadsheetId      string `json:"spreadsheetId"`
 	SpreadsheetVersion int    `json:"syncVersion"`
 
@@ -34,7 +35,8 @@ type GoogleSheetsDownloadServiceInitParams struct {
 
 type GoogleSheetsDownloadService struct {
 	// info
-	spreadsheetId string
+	dataProviderId string
+	spreadsheetId  string
 
 	// auth
 	accessToken string
@@ -74,9 +76,10 @@ func NewDownloadService(params GoogleSheetsDownloadServiceInitParams) *GoogleShe
 	})
 
 	return &GoogleSheetsDownloadService{
-		spreadsheetId: params.SpreadsheetId,
-		accessToken:   params.AccessToken,
-		logger:        loggerEntry,
+		dataProviderId: params.DataProviderId,
+		spreadsheetId:  params.SpreadsheetId,
+		accessToken:    params.AccessToken,
+		logger:         loggerEntry,
 	}
 }
 
@@ -234,7 +237,7 @@ func (s *GoogleSheetsDownloadService) Run(ctx context.Context) (*DownloadResult,
 	if err != nil {
 		return nil, fmt.Errorf("Error when serialize spreadsheet metadata: %w", err)
 	}
-	err = handler.UploadFileWithBytes(GetSpreadSheetFileS3Key(s.spreadsheetId), *s.spreadsheetData, spreadsheetFileMetadata)
+	err = handler.UploadFileWithBytes(GetSpreadSheetFileS3Key(s.dataProviderId), *s.spreadsheetData, spreadsheetFileMetadata)
 	if err != nil {
 		return nil, fmt.Errorf("Error when upload spreadsheet: %w", err)
 	}

@@ -5,7 +5,7 @@ import {
   WebhookScope,
   WebhookType,
 } from '@lib/core';
-import { IRepository } from '../baseRepository';
+import { IRepository } from '../base';
 import { QueryOptions } from '../common';
 
 export interface IWebhookRepository extends IRepository {

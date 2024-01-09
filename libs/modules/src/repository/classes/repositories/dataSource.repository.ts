@@ -8,7 +8,7 @@ import {
   ProviderType,
   SyncConnection,
 } from '@lib/core';
-import { IRepository } from '../baseRepository';
+import { IRepository } from '../base';
 import { QueryOptions } from '../common';
 
 export interface IDataSourceRepository extends IRepository {
@@ -17,6 +17,10 @@ export interface IDataSourceRepository extends IRepository {
     id: string,
     options?: QueryOptions,
   ): Promise<DataSource | null>;
+  getByProviderId(
+    id: ProviderId,
+    options?: QueryOptions,
+  ): Promise<DataSource[] | null>;
   create(
     data: CreateDataSourceData,
     options?: QueryOptions,
