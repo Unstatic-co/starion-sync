@@ -60,6 +60,7 @@ locals {
     REDIS_TLS_ENABLED        = local.redis_tls_enabled
     ORCHESTRATOR_ADDRESS     = var.orchestrator_address
     ORCHESTRATOR_NAMESPACE   = var.orchestrator_namespace
+    ORCHESTRATOR_TLS_ENABLED = var.orchestrator_tls_enabled
     ORCHESTRATOR_CLIENT_CERT = var.orchestrator_client_cert
     ORCHESTRATOR_CLIENT_KEY  = var.orchestrator_client_key
     S3_URL                   = var.s3_endpoint
@@ -590,6 +591,7 @@ locals {
     ORCHESTRATOR_NAMESPACE         = var.orchestrator_namespace
     ORCHESTRATOR_WORKER_TASKQUEUE  = "configurator"
     ORCHESTRATOR_DEFAULT_TASKQUEUE = "configurator"
+    ORCHESTRATOR_TLS_ENABLED       = var.orchestrator_tls_enabled
     ORCHESTRATOR_CLIENT_CERT       = var.orchestrator_client_cert
     ORCHESTRATOR_CLIENT_KEY        = var.orchestrator_client_key
     API_KEYS                       = join(",", var.api_keys)
@@ -727,6 +729,7 @@ locals {
     ORCHESTRATOR_NAMESPACE         = var.orchestrator_namespace
     ORCHESTRATOR_WORKER_TASKQUEUE  = "controller"
     ORCHESTRATOR_DEFAULT_TASKQUEUE = "controller"
+    ORCHESTRATOR_TLS_ENABLED       = var.orchestrator_tls_enabled
     ORCHESTRATOR_CLIENT_CERT       = var.orchestrator_client_cert
     ORCHESTRATOR_CLIENT_KEY        = var.orchestrator_client_key
     MICROSOFT_CLIENT_ID            = var.microsoft_client_id
@@ -851,6 +854,7 @@ locals {
     ORCHESTRATOR_NAMESPACE         = var.orchestrator_namespace
     ORCHESTRATOR_WORKER_TASKQUEUE  = "worker"
     ORCHESTRATOR_DEFAULT_TASKQUEUE = "worker"
+    ORCHESTRATOR_TLS_ENABLED       = var.orchestrator_tls_enabled
     ORCHESTRATOR_CLIENT_CERT       = var.orchestrator_client_cert
     ORCHESTRATOR_CLIENT_KEY        = var.orchestrator_client_key
     DOWNLOADER_URL                 = var.downloader_url
@@ -978,6 +982,7 @@ locals {
     ORCHESTRATOR_NAMESPACE                = var.orchestrator_namespace
     ORCHESTRATOR_post-processor_TASKQUEUE = "post-processor"
     ORCHESTRATOR_DEFAULT_TASKQUEUE        = "post-processor"
+    ORCHESTRATOR_TLS_ENABLED              = var.orchestrator_tls_enabled
     ORCHESTRATOR_CLIENT_CERT              = var.orchestrator_client_cert
     ORCHESTRATOR_CLIENT_KEY               = var.orchestrator_client_key
     S3_URL                                = var.s3_endpoint

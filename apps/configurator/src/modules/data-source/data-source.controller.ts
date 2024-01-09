@@ -132,6 +132,9 @@ export class DataSourceController {
         workflowId: `${id}`,
         args: [id],
         waitResult: true,
+        searchAttributes: {
+          DataSourceId: [id],
+        },
       },
     )) as DeleteResult<DeleteDataSourceResult>;
     if (result.isAlreadyDeleted) {

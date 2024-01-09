@@ -78,6 +78,10 @@ variable "orchestrator_namespace" {
   type = string
 }
 
+variable "orchestrator_tls_enabled" {
+  type = bool
+}
+
 variable "orchestrator_client_cert" {
   type      = string
   sensitive = true

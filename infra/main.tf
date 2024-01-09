@@ -45,6 +45,7 @@ module "flyio" {
   dest_db_uri              = local.is_production ? replace(module.digitalocean.postgres_uri, "sslmode=require", "") : var.dest_db_uri # stagging (temporary) & production
   orchestrator_address     = var.orchestrator_address
   orchestrator_namespace   = var.orchestrator_namespace
+  orchestrator_tls_enabled = var.orchestrator_tls_enabled
   orchestrator_client_cert = var.orchestrator_client_cert
   orchestrator_client_key  = var.orchestrator_client_key
   broker_uris              = local.broker_uri

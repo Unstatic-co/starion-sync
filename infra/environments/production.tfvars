@@ -18,9 +18,10 @@ cf_zone_id                    = ""
 upstash_email                 = "hahoai@unstatic.co"
 upstash_kafka_region          = "us-east-1"
 
-mongodb_user           = "admin"
-postgres_user          = "admin"
-orchestrator_namespace = "starion-sync-production.gin8b"
+mongodb_user             = "admin"
+postgres_user            = "admin"
+orchestrator_namespace   = "starion-sync-production.gin8b"
+orchestrator_tls_enabled = true
 # broker_uris          = ""
 # kafka_sasl_username     = ""
 # kafka_sasl_password     = ""

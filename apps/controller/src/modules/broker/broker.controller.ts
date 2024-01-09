@@ -1,10 +1,6 @@
 import { Controller, Logger, Post } from '@nestjs/common';
-import { EventPattern } from '@nestjs/microservices';
 import { BrokerService } from './broker.service';
-import { EventNames, WorkflowTriggeredPayload } from '@lib/core';
 import { OrchestratorService } from '@lib/modules';
-import { handleWorkflowTriggeredWf } from '../../workflows';
-import { WorkflowIdReusePolicy } from '@temporalio/common';
 
 @Controller('broker')
 export class BrokerController {
@@ -14,20 +10,20 @@ export class BrokerController {
     private readonly orchestratorService: OrchestratorService,
   ) {}
 
-  @EventPattern(EventNames.WORKFLOW_TRIGGERED)
-  async handleWorkflowTriggeredEvent(payload: WorkflowTriggeredPayload) {
-    this.logger.log(`handleWorkflowTriggeredEvent: triggerId = ${payload.id}`);
-    await this.orchestratorService.executeWorkflow(handleWorkflowTriggeredWf, {
-      workflowId: `${payload.id}`,
-      args: [payload],
-      // workflowExecutionTimeout: 5000,
-      workflowIdReusePolicy:
-        WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE,
-      searchAttributes: {
-        DataSourceId: [payload.sourceId],
-      },
-    });
-  }
+  // @EventPattern(EventNames.WORKFLOW_TRIGGERED)
+  // async handleWorkflowTriggeredEvent(payload: WorkflowTriggeredPayload) {
+  // this.logger.log(`handleWorkflowTriggeredEvent: triggerId = ${payload.id}`);
+  // await this.orchestratorService.executeWorkflow(handleWorkflowTriggeredWf, {
+  // workflowId: `${payload.id}`,
+  // args: [payload],
+  // // workflowExecutionTimeout: 5000,
+  // workflowIdReusePolicy:
+  // WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE,
+  // searchAttributes: {
+  // DataSourceId: [payload.sourceId],
+  // },
+  // });
+  // }
 
   // @EventPattern('test-event-to-controller')
   async testEvent(message: any) {

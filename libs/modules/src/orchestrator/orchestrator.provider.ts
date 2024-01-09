@@ -8,6 +8,9 @@ import * as fs from 'fs';
 export const OrchestratorConnectionConfigProvider = {
   provide: InjectTokens.ORCHESTRATOR_CONNECTION_CONFIG,
   useFactory: (config: ConfigService) => {
+    const tlsEnabled = config.get<boolean>(
+      `${ConfigName.ORCHESTRATOR}.tlsEnabled`,
+    );
     const cert = Buffer.from(
       config.get<string>(`${ConfigName.ORCHESTRATOR}.clientCert`),
       'base64',
@@ -18,12 +21,14 @@ export const OrchestratorConnectionConfigProvider = {
     );
     return {
       address: config.get(`${ConfigName.ORCHESTRATOR}.address`),
-      tls: {
-        clientCertPair: {
-          crt: cert,
-          key,
-        },
-      },
+      tls: tlsEnabled
+        ? {
+            clientCertPair: {
+              crt: cert,
+              key,
+            },
+          }
+        : false,
       connectTimeout: 10000,
     } as ConnectionOptions;
   },
@@ -33,6 +38,9 @@ export const OrchestratorConnectionConfigProvider = {
 export const OrchestratorNativeConnectionConfigProvider = {
   provide: InjectTokens.ORCHESTRATOR_NATIVE_CONNECTION_CONFIG,
   useFactory: (config: ConfigService) => {
+    const tlsEnabled = config.get<boolean>(
+      `${ConfigName.ORCHESTRATOR}.tlsEnabled`,
+    );
     const cert = Buffer.from(
       config.get<string>(`${ConfigName.ORCHESTRATOR}.clientCert`),
       'base64',
@@ -43,12 +51,14 @@ export const OrchestratorNativeConnectionConfigProvider = {
     );
     return {
       address: config.get(`${ConfigName.ORCHESTRATOR}.address`),
-      tls: {
-        clientCertPair: {
-          crt: cert,
-          key,
-        },
-      },
+      tls: tlsEnabled
+        ? {
+            clientCertPair: {
+              crt: cert,
+              key,
+            },
+          }
+        : false,
       connectTimeout: 10000,
     } as ConnectionOptions;
   },
