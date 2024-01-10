@@ -1,6 +1,7 @@
 import { Controller, Logger, Post } from '@nestjs/common';
 import { BrokerService } from './broker.service';
 import { OrchestratorService } from '@lib/modules';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('broker')
 export class BrokerController {
