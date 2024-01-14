@@ -13,6 +13,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	pq "github.com/lib/pq"
 	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -52,6 +53,9 @@ var (
 		name.MetadataColumn:     "jsonb",
 		name.CreatedAtColumn:    "timestamptz DEFAULT NOW() NOT NULL",
 		name.UpdatedAtColumn:    "timestamptz DEFAULT NOW() NOT NULL",
+	}
+	idempotencyTableColumns = map[name.TableColumn]string{
+		name.OperationColumn: "varchar(100) NOT NULL",
 	}
 )
 
@@ -132,6 +136,23 @@ func setupPostgresDbLoader() error {
 		return err
 	}
 
+	// create idempotency table
+	columns = make([]string, 0, len(idempotencyTableColumns))
+	for colName, colType := range idempotencyTableColumns {
+		columns = append(columns, fmt.Sprintf("%s %s", colName, colType))
+	}
+	query = fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s (%s)`,
+		name.IdempotencyTable,
+		strings.Join(columns, ","),
+	)
+	log.Debug("Query: ", query)
+	_, err = dbConn.Exec(query)
+	if err != nil {
+		return err
+	}
+
+
 	log.Info("Initialized schema tables")
 
 	log.Info("Initialized postgres")
@@ -211,6 +232,14 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 	}
 	defer txn.Rollback()
 
+	isAlreadyLoaded, err := l.checkIsAlreadyLoaded(txn)
+	if err != nil {
+		return err
+	}
+	if isAlreadyLoaded {
+		return nil
+	}
+
 	l.setTimezone(txn)
 
 	if l.PrevVersion == 0 {
@@ -226,37 +255,45 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 		if err != nil {
 			return err
 		}
+		err = l.loadRowErrorMetadata(txn)
+		if err != nil {
+			return err
+		}
 	} else {
 		err := l.loadSchemaChange(txn, data)
 		if err != nil {
 			return err
 		}
-		err = l.loadRemovedRows(txn, data)
-		if err != nil {
-			return err
-		}
-		err = l.loadAddedRows(txn, data)
-		if err != nil {
-			return err
-		}
-		err = l.loadUpdateFields(txn, data)
-		if err != nil {
-			return err
-		}
-		err = l.loadAddedFields(txn, data)
-		if err != nil {
-			return err
-		}
-		err = l.loadDeletedFields(txn, data)
-		if err != nil {
-			return err
+
+		if IsDataChanged(data) {
+			err = l.loadRemovedRows(txn, data)
+			if err != nil {
+				return err
+			}
+			err = l.loadAddedRows(txn, data)
+			if err != nil {
+				return err
+			}
+			err = l.loadUpdateFields(txn, data)
+			if err != nil {
+				return err
+			}
+			err = l.loadAddedFields(txn, data)
+			if err != nil {
+				return err
+			}
+			err = l.loadDeletedFields(txn, data)
+			if err != nil {
+				return err
+			}
+			err = l.loadRowErrorMetadata(txn)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	err = l.loadRowErrorMetadata(txn)
-	if err != nil {
-		return err
-	}
+	err = l.markAsLoaded(txn)
 
 	err = txn.Commit()
 	if err != nil {
@@ -277,10 +314,72 @@ func (l *PostgreLoader) setTimezone(txn *sql.Tx) error {
 	return nil
 }
 
+func (l *PostgreLoader) getLoaderOperationName(syncVersion uint) string {
+	return fmt.Sprintf("load-%s-%d", l.DatasourceId, syncVersion)
+}
+
 func (l *PostgreLoader) addRowError(rowId string) {
 	if _, ok := l.rowErrorMap[rowId]; !ok {
 		l.rowErrorMap[rowId] = true
 	}
+}
+
+func (l *PostgreLoader) checkIsAlreadyLoaded(txn *sql.Tx) (bool, error) {
+	var count int
+	query := fmt.Sprintf(
+		"SELECT COUNT(*) FROM %s WHERE %s = '%s'",
+		name.IdempotencyTable,
+		name.OperationColumn,
+		l.getLoaderOperationName(l.SyncVersion),
+	)
+	log.Debug("Query: ", query)
+	err := txn.QueryRow(query).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("error when checking already loaded: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (l *PostgreLoader) markAsLoaded(txn *sql.Tx) error {
+	var eg errgroup.Group
+
+	// Mark as loaded
+	eg.Go(func() error {
+		query := fmt.Sprintf(
+			"INSERT INTO %s (%s) VALUES ('%s')",
+			name.IdempotencyTable,
+			name.OperationColumn,
+			l.getLoaderOperationName(l.SyncVersion),
+		)
+		log.Debug("Query: ", query)
+		_, err := txn.Exec(query)
+		if err != nil {
+			return fmt.Errorf("error when marking as loaded: %w", err)
+		}
+		return nil
+	})
+
+	// Remove mark of previous version
+	eg.Go(func() error {
+		query := fmt.Sprintf(
+			"DELETE FROM %s WHERE %s = '%s'",
+			name.IdempotencyTable,
+			name.OperationColumn,
+			l.getLoaderOperationName(l.PrevVersion),
+		)
+		log.Debug("Query: ", query)
+		_, err := txn.Exec(query)
+		if err != nil {
+			return fmt.Errorf("error when removing mark of prev version: %w", err)
+		}
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (l *PostgreLoader) initTable(txn *sql.Tx, data *LoaderData) error {
