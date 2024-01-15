@@ -73,23 +73,18 @@ export async function googleSheetsDownload(data: GoogleSheetsDownloadPayload) {
         // download data
         const { dataProviderId, spreadsheetId, refreshToken } = downloadData;
 
-        const [, spreadSheetData] = await Promise.all([
+        await Promise.all([
           downloadGoogleSheets({
             dataProviderId,
             spreadsheetId,
             refreshToken,
           }),
-          getSpreadSheetDataGoogleSheets({
-            spreadsheetId,
-            refreshToken,
-          }),
         ]);
+
         const downloadedAt = new Date();
         await Promise.all([
           updateProviderStateGoogleSheets(dataProviderId, {
             downloadedAt,
-            timeZone: spreadSheetData.timeZone,
-            sheets: spreadSheetData.sheets,
           }),
           updateSyncflowState(syncflow.id, {
             downloadedAt,
