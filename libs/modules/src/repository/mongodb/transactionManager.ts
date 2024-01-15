@@ -5,23 +5,23 @@ import { ITransactionManager } from '../classes';
 
 @Injectable()
 export class TransactionManager implements ITransactionManager {
-    constructor(
-        @InjectConnection() private readonly connection: mongoose.Connection,
-    ) { }
+  constructor(
+    @InjectConnection() private readonly connection: mongoose.Connection,
+  ) {}
 
-    public async createTransactionObject(): Promise<mongoose.ClientSession> {
-        const session = await this.connection.startSession();
-        return session;
-    }
+  public async createTransactionObject(): Promise<mongoose.ClientSession> {
+    const session = await this.connection.startSession();
+    return session;
+  }
 
-    public async runWithTransaction<T>(
-        fn: (transaction: mongoose.ClientSession) => Promise<T>,
-    ): Promise<T> {
-        const session = await this.connection.startSession();
-        let result;
-        await session.withTransaction(async () => {
-            result = await fn(session);
-        });
-        return result;
-    }
+  public async runWithTransaction<T>(
+    fn: (transaction: mongoose.ClientSession) => Promise<T>,
+  ): Promise<T> {
+    const session = await this.connection.startSession();
+    let result;
+    await session.withTransaction(async () => {
+      result = await fn(session);
+    });
+    return result;
+  }
 }

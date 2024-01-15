@@ -45,9 +45,13 @@ export class RepositoryModule {
             useClass: MongoRepositories.WebhookRepository,
           },
           {
+            provide: InjectTokens.IDEMPOTENCY_REPOSITORY,
+            useClass: MongoRepositories.IdempotencyRepository,
+          },
+          {
             provide: InjectTokens.TRANSACTION_MANAGER,
             useClass: MongodbTransactionManager,
-          }
+          },
         );
         break;
       default:
