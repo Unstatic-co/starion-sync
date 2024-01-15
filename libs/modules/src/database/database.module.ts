@@ -9,6 +9,8 @@ import { DatabaseType, databaseConfig as dbConfig } from '@lib/core/config';
 import {
   DataProviderModel,
   DataProviderSchema,
+  IdempotencyModel,
+  IdempotencySchema,
   SyncConnectionModel,
   SyncConnectionSchema,
   WebhookModel,
@@ -61,6 +63,7 @@ export class DatabaseModule {
     switch (databaseType) {
       case DatabaseType.MONGODB:
         return MongooseModule.forFeature([
+          { name: IdempotencyModel.name, schema: IdempotencySchema },
           { name: DataSourceModel.name, schema: DataSourceSchema },
           { name: DataProviderModel.name, schema: DataProviderSchema },
           { name: SyncConnectionModel.name, schema: SyncConnectionSchema },
@@ -79,6 +82,7 @@ export class DatabaseModule {
     switch (databaseType) {
       case DatabaseType.MONGODB:
         return MongooseModule.forFeature([
+          { name: IdempotencyModel.name, schema: IdempotencySchema },
           { name: DataSourceModel.name, schema: DataSourceSchema },
           { name: DataProviderModel.name, schema: DataProviderSchema },
           { name: SyncConnectionModel.name, schema: SyncConnectionSchema },

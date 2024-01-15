@@ -1,5 +1,7 @@
 import {
+  EventName,
   EventNames,
+  EventPayload,
   SyncConnectionStatus,
   Syncflow,
   SyncflowScheduledPayload,
@@ -9,6 +11,7 @@ import {
 } from '@lib/core';
 import {
   IDataSourceRepository,
+  IIdempotencyRepository,
   ISyncConnectionRepository,
   ISyncflowRepository,
   ITransactionManager,
@@ -33,6 +36,8 @@ export class WorkflowService {
   constructor(
     @Inject(InjectTokens.TRANSACTION_MANAGER)
     private readonly transactionManager: ITransactionManager,
+    @Inject(InjectTokens.IDEMPOTENCY_REPOSITORY)
+    private readonly idempotencyRepository: IIdempotencyRepository,
     @Inject(InjectTokens.TRIGGER_REPOSITORY)
     private readonly triggerRepository: ITriggerRepository,
     @Inject(InjectTokens.SYNCFLOW_REPOSITORY)
@@ -46,8 +51,14 @@ export class WorkflowService {
     private readonly brokerService: BrokerService,
   ) {}
 
-  async checkWorkflowAlreadyScheduled(trigger: Trigger) {
-    const workflow = await this.syncflowRepository.getById(trigger.workflow.id);
+  async checkWorkflowAlreadyScheduled(
+    trigger: Trigger,
+    transaction?: TransactionObject,
+  ) {
+    const workflow = await this.syncflowRepository.getById(
+      trigger.workflow.id,
+      { session: transaction },
+    );
     if (!workflow) {
       this.logger.warn(`Workflow not found: ${trigger.workflow.id}`);
       throw new UnacceptableActivityError(
@@ -64,11 +75,18 @@ export class WorkflowService {
   }
 
   async handleWorkflowTriggered(trigger: Trigger) {
+    this.logger.debug('handleWorkflowTriggered', trigger);
+
+    const events: {
+      name: EventName;
+      payload: EventPayload;
+    }[] = [];
+
     await this.transactionManager.runWithTransaction(
       async (transaction: TransactionObject) => {
         try {
-          this.logger.debug('handleWorkflowTriggered', trigger);
-          await this.checkWorkflowAlreadyScheduled(trigger);
+          await this.checkWorkflowAlreadyScheduled(trigger, transaction);
+
           const triggerFromDb = await this.triggerRepository.getById(
             trigger.id,
             { session: transaction.session },
@@ -82,21 +100,20 @@ export class WorkflowService {
               },
             );
           }
+
           switch (trigger.workflow.type) {
             case WorkflowType.SYNCFLOW:
               const syncflow = await this.handleSyncflowTriggered(
                 trigger,
                 transaction,
               );
-              await this.brokerService.emitEvent(
-                EventNames.SYNCFLOW_SCHEDULED,
-                {
-                  payload: {
-                    syncflow,
-                    version: (syncflow as Syncflow).state.version,
-                  } as SyncflowScheduledPayload,
-                },
-              );
+              events.push({
+                name: EventNames.SYNCFLOW_SCHEDULED,
+                payload: {
+                  syncflow,
+                  version: (syncflow as Syncflow).state.version,
+                } as SyncflowScheduledPayload,
+              });
               break;
             default:
               throw new UnacceptableActivityError(
@@ -114,6 +131,14 @@ export class WorkflowService {
           }
         }
       },
+    );
+
+    await Promise.all(
+      events.map(async (event) => {
+        await this.brokerService.emitEvent(event.name, {
+          payload: event.payload,
+        });
+      }),
     );
   }
 

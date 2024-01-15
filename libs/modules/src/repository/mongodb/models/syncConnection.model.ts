@@ -7,7 +7,6 @@ import {
 } from '@lib/core';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { DataProviderSchema } from './dataProvider.model';
 import mongoose from 'mongoose';
 
 export type SyncConnectionDocument = SyncConnectionModel & Document;
@@ -58,5 +57,5 @@ export const SyncConnectionSchema =
 SyncConnectionSchema.index({ sourceId: 1 }, { background: true });
 
 SyncConnectionSchema.virtual('id').get(function () {
-    return this._id.toHexString(); // eslint-disable-line
+  return this._id.toHexString(); // eslint-disable-line
 });
