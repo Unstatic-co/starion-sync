@@ -7,6 +7,7 @@ import (
 	"loader/libs/schema"
 	"loader/pkg/config"
 	name "loader/service/loader/namespace/postgres"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -164,8 +165,9 @@ func setupPostgresDbLoader() error {
 func formatVariableToPostgresStatementValue(a interface{}) string {
 	switch v := a.(type) {
 	case string:
-		r := strings.NewReplacer("'", "''", "\"", "\\\"")
-		return fmt.Sprintf("\"%s\"", r.Replace(v))
+		// r := strings.NewReplacer("'", "''", "\"", "\\\"")
+		r := strings.NewReplacer("'", "''")
+		return r.Replace(strconv.Quote(v))
 	case nil:
 		return "null"
 	default:
