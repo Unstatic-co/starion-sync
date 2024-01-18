@@ -111,9 +111,10 @@ func setupPostgresDbLoader() error {
 	}
 	query := fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s (%s);
-		CREATE INDEX IF NOT EXISTS idx_data_source_id ON %[1]s (data_source_id)`,
+		CREATE INDEX IF NOT EXISTS idx_data_source_id ON %[1]s (%[3]s)`,
 		name.SchemaTable,
 		strings.Join(columns, ","),
+		name.DataSourceIdColumn,
 	)
 	log.Debug("Query: ", query)
 	_, err = dbConn.Exec(query)
@@ -143,9 +144,11 @@ func setupPostgresDbLoader() error {
 		columns = append(columns, fmt.Sprintf("%s %s", colName, colType))
 	}
 	query = fmt.Sprintf(
-		`CREATE TABLE IF NOT EXISTS %s (%s)`,
+		`CREATE TABLE IF NOT EXISTS %s (%s);
+		CREATE INDEX IF NOT EXISTS idx_operation ON %[1]s (%[3]s)`,
 		name.IdempotencyTable,
 		strings.Join(columns, ","),
+		name.OperationColumn,
 	)
 	log.Debug("Query: ", query)
 	_, err = dbConn.Exec(query)
@@ -234,11 +237,12 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 	}
 	defer txn.Rollback()
 
-	isAlreadyLoaded, err := l.checkIsAlreadyLoaded(txn)
+	isAlreadyLoaded, err := l.checkIsAlreadyLoadedInTransaction(txn)
 	if err != nil {
 		return err
 	}
 	if isAlreadyLoaded {
+		log.Info("Already loaded")
 		return nil
 	}
 
@@ -247,50 +251,50 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 	if l.PrevVersion == 0 {
 		err := l.loadSchema(txn, data)
 		if err != nil {
-			return err
+			return l.checkAndMappingError(err)
 		}
 		err = l.initTable(txn, data)
 		if err != nil {
-			return err
+			return l.checkAndMappingError(err)
 		}
 		err = l.loadAddedRows(txn, data)
 		if err != nil {
-			return err
+			return l.checkAndMappingError(err)
 		}
 		err = l.loadRowErrorMetadata(txn)
 		if err != nil {
-			return err
+			return l.checkAndMappingError(err)
 		}
 	} else {
 		err := l.loadSchemaChange(txn, data)
 		if err != nil {
-			return err
+			return l.checkAndMappingError(err)
 		}
 
 		if IsDataChanged(data) {
 			err = l.loadRemovedRows(txn, data)
 			if err != nil {
-				return err
+				return l.checkAndMappingError(err)
 			}
 			err = l.loadAddedRows(txn, data)
 			if err != nil {
-				return err
+				return l.checkAndMappingError(err)
 			}
 			err = l.loadUpdateFields(txn, data)
 			if err != nil {
-				return err
+				return l.checkAndMappingError(err)
 			}
 			err = l.loadAddedFields(txn, data)
 			if err != nil {
-				return err
+				return l.checkAndMappingError(err)
 			}
 			err = l.loadDeletedFields(txn, data)
 			if err != nil {
-				return err
+				return l.checkAndMappingError(err)
 			}
 			err = l.loadRowErrorMetadata(txn)
 			if err != nil {
-				return err
+				return l.checkAndMappingError(err)
 			}
 		}
 	}
@@ -300,7 +304,7 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 	err = txn.Commit()
 	if err != nil {
 		txn.Rollback()
-		return err
+		return l.checkAndMappingError(err)
 	}
 
 	return nil
@@ -326,7 +330,23 @@ func (l *PostgreLoader) addRowError(rowId string) {
 	}
 }
 
-func (l *PostgreLoader) checkIsAlreadyLoaded(txn *sql.Tx) (bool, error) {
+func (l *PostgreLoader) checkIsAlreadyLoaded() (bool, error) {
+	var count int
+	query := fmt.Sprintf(
+		"SELECT COUNT(*) FROM %s WHERE %s = '%s'",
+		name.IdempotencyTable,
+		name.OperationColumn,
+		l.getLoaderOperationName(l.SyncVersion),
+	)
+	log.Debug("Query: ", query)
+	err := l.dbConn.QueryRow(query).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("error when checking already loaded: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (l *PostgreLoader) checkIsAlreadyLoadedInTransaction(txn *sql.Tx) (bool, error) {
 	var count int
 	query := fmt.Sprintf(
 		"SELECT COUNT(*) FROM %s WHERE %s = '%s'",
@@ -337,7 +357,7 @@ func (l *PostgreLoader) checkIsAlreadyLoaded(txn *sql.Tx) (bool, error) {
 	log.Debug("Query: ", query)
 	err := txn.QueryRow(query).Scan(&count)
 	if err != nil {
-		return false, fmt.Errorf("error when checking already loaded: %w", err)
+		return false, fmt.Errorf("error when checking already loaded in transaction: %w", err)
 	}
 	return count > 0, nil
 }
@@ -382,6 +402,20 @@ func (l *PostgreLoader) markAsLoaded(txn *sql.Tx) error {
 	}
 
 	return nil
+}
+
+func (l *PostgreLoader) checkAndMappingError(err error) error {
+	// check for case of concurrent load
+	isAlreadyLoaded, err := l.checkIsAlreadyLoaded()
+	if err != nil {
+		return err
+	}
+	if isAlreadyLoaded {
+		log.Info("Already loaded")
+		return nil
+	} else {
+		return err
+	}
 }
 
 func (l *PostgreLoader) initTable(txn *sql.Tx, data *LoaderData) error {

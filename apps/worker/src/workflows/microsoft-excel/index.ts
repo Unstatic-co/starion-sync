@@ -34,7 +34,7 @@ const { compareExcel } = proxyActivities<MicrosoftExcelActivities>({
 });
 
 const { loadExcel } = proxyActivities<MicrosoftExcelActivities>({
-  startToCloseTimeout: '4m',
+  startToCloseTimeout: '5m',
   retry: ProcessorRetryPolicy,
   // scheduleToCloseTimeout: '10y',
 });
