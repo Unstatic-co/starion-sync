@@ -404,7 +404,7 @@ func (l *PostgreLoader) markAsLoaded(txn *sql.Tx) error {
 	return nil
 }
 
-func (l *PostgreLoader) checkAndMappingError(err error) error {
+func (l *PostgreLoader) checkAndMappingError(originalErr error) error {
 	// check for case of concurrent load
 	isAlreadyLoaded, err := l.checkIsAlreadyLoaded()
 	if err != nil {
@@ -414,7 +414,7 @@ func (l *PostgreLoader) checkAndMappingError(err error) error {
 		log.Info("Already loaded")
 		return nil
 	} else {
-		return err
+		return originalErr
 	}
 }
 
