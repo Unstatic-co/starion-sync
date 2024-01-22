@@ -26,7 +26,7 @@ export class IdempotencyRepository implements IIdempotencyRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON() as Operation;
+    return result.toObject() as Operation;
   }
 
   public async getByOperationName(
@@ -42,7 +42,7 @@ export class IdempotencyRepository implements IIdempotencyRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON() as Operation;
+    return result.toObject() as Operation;
   }
 
   public async saveOperation(
@@ -56,7 +56,7 @@ export class IdempotencyRepository implements IIdempotencyRepository {
       ? document.save({ session: options.session })
       : document.save();
     await query;
-    // return document.toJSON() as Operation;
+    // return document.toObject() as Operation;
   }
 
   public async deleteByName(

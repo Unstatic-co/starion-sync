@@ -36,7 +36,7 @@ export class SyncflowRepository implements ISyncflowRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async getByTriggerId(id: string, options?: QueryOptions) {
@@ -53,7 +53,7 @@ export class SyncflowRepository implements ISyncflowRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async create(data: CreateSyncflowData) {

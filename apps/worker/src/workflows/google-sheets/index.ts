@@ -14,6 +14,7 @@ import { BrokerActivities } from '@lib/modules/broker/broker.activities';
 import { GoogleSheetsActivities } from '../../activities';
 import { ProcessorRetryPolicy } from '../retryPolicy';
 import { GoogleSheetsDownloadPayload, WorkflowEvents } from '../events';
+import { isWithinOneMinuteRange } from '../utils';
 
 const { checkAndUpdateStatusBeforeStartSyncflow, updateSyncflowState } =
   proxyActivities<WorkflowActivities>({
@@ -42,7 +43,6 @@ const { loadGoogleSheets } = proxyActivities<GoogleSheetsActivities>({
 const {
   getSyncDataGoogleSheets,
   getDownloadDataGoogleSheets,
-  getSpreadSheetDataGoogleSheets,
   getDataSourceProviderGoogleSheets,
   updateProviderStateGoogleSheets,
 } = proxyActivities<GoogleSheetsActivities>({
@@ -59,13 +59,15 @@ export async function googleSheetsDownload(data: GoogleSheetsDownloadPayload) {
       const { syncflow, version } = data;
       const downloadData = await getDownloadDataGoogleSheets(data.syncflow);
 
-      const { downloadedAt, providerDownloadedAt } = downloadData;
+      const { ingestedAt, providerDownloadedAt } = downloadData;
 
       if (
         providerDownloadedAt &&
-        (!downloadedAt || downloadedAt < providerDownloadedAt)
+        ((!ingestedAt &&
+          isWithinOneMinuteRange(new Date(), providerDownloadedAt)) ||
+          ingestedAt < providerDownloadedAt)
       ) {
-        // already has data, no need to run download
+        // already has newable data, no need to run download
         await updateSyncflowState(syncflow.id, {
           downloadedAt: providerDownloadedAt,
         } as GoogleSheetsFullSyncState);
@@ -73,13 +75,11 @@ export async function googleSheetsDownload(data: GoogleSheetsDownloadPayload) {
         // download data
         const { dataProviderId, spreadsheetId, refreshToken } = downloadData;
 
-        await Promise.all([
-          downloadGoogleSheets({
-            dataProviderId,
-            spreadsheetId,
-            refreshToken,
-          }),
-        ]);
+        await downloadGoogleSheets({
+          dataProviderId,
+          spreadsheetId,
+          refreshToken,
+        });
 
         const downloadedAt = new Date();
         await Promise.all([
@@ -126,6 +126,10 @@ export async function googleSheetsProceedSync(data: SyncflowScheduledPayload) {
         // timeZone,
         refreshToken: syncData.refreshToken,
       });
+      await updateSyncflowState(data.syncflow.id, {
+        ingestedAt: new Date(),
+      } as GoogleSheetsFullSyncState);
+
       await compareGoogleSheets({
         dataSourceId: syncData.dataSourceId,
         syncVersion,
@@ -189,7 +193,7 @@ async function GoogleSheetsFullSyncErrorHandler(
 ) {
   const errorDetail = getActivityErrorDetail(error);
   // detect processor external error
-  if (errorDetail.errorData?.type === ErrorType.EXTERNAL) {
+  if (errorDetail?.errorData?.type === ErrorType.EXTERNAL) {
     await updateSyncflowState(data.syncflow.id, {
       version: data.version + 1, // increment version to correctly run retry
       status: WorkflowStatus.IDLING,
@@ -216,7 +220,7 @@ async function GoogleSheetsFullSyncErrorHandler(
       }),
     ]);
     throw error;
-  } else if (errorDetail.errorData?.type === ErrorType.INTERNAL) {
+  } else if (errorDetail?.errorData?.type === ErrorType.INTERNAL) {
     await updateSyncflowState(data.syncflow.id, {
       version: data.version + 1, // increment version to correctly run retry
       status: WorkflowStatus.IDLING,

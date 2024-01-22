@@ -15,6 +15,17 @@ export type DataSourceDocument = DataSourceModel & Document;
   timestamps: true,
   collection: 'datasources',
   versionKey: false,
+  toObject: {
+    virtuals: true,
+    transform: function (doc, ret) {
+      // ret.id = ret._id.toString(); // eslint-disable-line
+      delete ret._id; // eslint-disable-line
+      if (ret.provider?.id) {
+        ret.provider.id = ret.provider.id.toString(); // eslint-disable-line
+      }
+      return ret;
+    },
+  },
   toJSON: {
     virtuals: true,
     transform: function (doc, ret) {

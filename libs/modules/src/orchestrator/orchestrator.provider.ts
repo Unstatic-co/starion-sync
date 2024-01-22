@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { Client, Connection, ConnectionOptions } from '@temporalio/client';
 import { NativeConnection, NativeConnectionOptions } from '@temporalio/worker';
 import { InjectTokens } from '../inject-tokens';
-import * as fs from 'fs';
 
 export const OrchestratorConnectionConfigProvider = {
   provide: InjectTokens.ORCHESTRATOR_CONNECTION_CONFIG,
@@ -89,7 +88,13 @@ export const OrchestratorClientProvider = {
     const namespace = config.get<string>(
       `${ConfigName.ORCHESTRATOR}.namespace`,
     );
-    return new Client({ connection, namespace });
+    return new Client({
+      connection,
+      namespace,
+      dataConverter: {
+        payloadConverterPath: require.resolve('./payload-converter'),
+      },
+    });
   },
   inject: [InjectTokens.ORCHESTRATOR_CONNECTION, ConfigService],
 };

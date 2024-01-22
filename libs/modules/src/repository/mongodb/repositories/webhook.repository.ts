@@ -34,7 +34,7 @@ export class WebhookRepository implements IWebhookRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async getActiveWebhooksByType(
@@ -67,7 +67,7 @@ export class WebhookRepository implements IWebhookRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.map((result) => result.toJSON());
+    return result.map((result) => result.toObject());
   }
 
   public async create(data: CreateWebhookData, options?: QueryOptions) {
@@ -79,7 +79,7 @@ export class WebhookRepository implements IWebhookRepository {
       ? webhook.save({ session: options.session })
       : webhook.save();
     await query;
-    return webhook.toJSON() as Webhook;
+    return webhook.toObject() as Webhook;
   }
 
   public async bulkCreate(data: CreateWebhookData[], options?: QueryOptions) {

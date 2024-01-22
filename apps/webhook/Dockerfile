@@ -9,6 +9,6 @@ RUN pnpm build @app/webhook \
 
 FROM node:18.16.0-bullseye-slim
 WORKDIR /app
-COPY --from=builder /workdir/dist/apps/webhook ./dist
 COPY --from=builder /workdir/node_modules ./node_modules
+COPY --from=builder /workdir/dist/apps/webhook ./dist
 CMD ["node", "dist/apps/webhook/src/main.js"]
