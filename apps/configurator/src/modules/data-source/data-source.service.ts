@@ -234,7 +234,7 @@ export class DataSourceService {
   }
 
   async terminateDataSourceWorkflows(id: DataSourceId) {
-    const query = `DataSourceId = '${id}' AND (ExecutionStatus = 'Running' OR ExecutionStatus = 'TimedOut' OR ExecutionStatus = 'ContinuedAsNew')`;
+    const query = `DataSourceId = '${id}' AND (ExecutionStatus = 'Running' OR ExecutionStatus = 'TimedOut' OR ExecutionStatus = 'ContinuedAsNew') AND (WorkflowType != 'deleteDataSourceWf')`;
     return this.workflowService.terminateWorkflowsByQuery(
       query,
       'Data source deleted',
