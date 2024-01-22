@@ -130,7 +130,6 @@ func (s *GoogleSheetsIngestService) Setup(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		s.logger.Debug("Spreadsheet file metadata", fileMetadata)
 		if len(fileMetadata) == 0 {
 			return fmt.Errorf("Spreadsheet file metadata not found")
 		}
@@ -138,10 +137,13 @@ func (s *GoogleSheetsIngestService) Setup(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		s.logger.Info("Spreadsheet metadata", spreadsheetMetadata)
+		
 		s.sheetName = spreadsheetMetadata.Sheets[s.sheetId].SheetName
 		s.sheetIndex = spreadsheetMetadata.Sheets[s.sheetId].SheetIndex
 		s.timeZone = spreadsheetMetadata.TimeZone
+		s.logger.Debug("Sheet name: ", s.sheetName)
+		s.logger.Debug("Sheet index: ", s.sheetIndex)
+		s.logger.Debug("Time zone: ", s.timeZone)
 		return nil
 	})
 
