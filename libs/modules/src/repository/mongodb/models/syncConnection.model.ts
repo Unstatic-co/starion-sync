@@ -15,6 +15,23 @@ export type SyncConnectionDocument = SyncConnectionModel & Document;
   timestamps: true,
   collection: 'syncconnections',
   versionKey: false,
+  toObject: {
+    virtuals: true,
+    transform: function (doc, ret) {
+      // ret.id = ret._id.toString(); // eslint-disable-line
+      delete ret._id; // eslint-disable-line
+      if (ret.sourceId) {
+        ret.sourceId = ret.sourceId.toString(); // eslint-disable-line
+      }
+      if (ret.syncflows) {
+        ret.syncflows = ret.syncflows.map((syncflow) => {
+          syncflow.id = syncflow.id.toString(); // eslint-disable-line
+          return syncflow;
+        });
+      }
+      return ret;
+    },
+  },
   toJSON: {
     virtuals: true,
     transform: function (doc, ret) {

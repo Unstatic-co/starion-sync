@@ -8,6 +8,14 @@ export type IdempotencyDocument = IdempotencyModel & Document;
   timestamps: true,
   collection: 'dataproviders',
   versionKey: false,
+  toObject: {
+    virtuals: true,
+    transform: function (doc, ret) {
+      // ret.id = ret._id.toString(); // eslint-disable-line
+      delete ret._id; // eslint-disable-line
+      return ret;
+    },
+  },
   toJSON: {
     virtuals: true,
     transform: function (doc, ret) {

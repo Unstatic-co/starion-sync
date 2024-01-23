@@ -57,9 +57,10 @@ export class GoogleSheetsActivities {
       );
     }
     const syncflowState = syncflow.state as GoogleSheetsFullSyncState;
+    const providerState = dataProvider.state as GoogleSheetsProviderState;
 
     const result = {
-      providerDownloadedAt: dataProvider.state.downloadedAt,
+      providerDownloadedAt: providerState?.downloadedAt,
       downloadedAt: syncflowState.downloadedAt,
     };
     return result;
@@ -87,12 +88,14 @@ export class GoogleSheetsActivities {
     }
     const config = dataSource.config as GoogleSheetsDataSourceConfig;
     const syncflowState = syncflow.state as GoogleSheetsFullSyncState;
+    const providerState = provider.state as GoogleSheetsProviderState;
 
     const result = {
       dataSourceId: syncflow.sourceId,
       dataProviderId: dataSource.provider.id,
-      providerDownloadedAt: provider.state?.downloadedAt,
+      providerDownloadedAt: providerState?.downloadedAt,
       downloadedAt: syncflowState.downloadedAt,
+      ingestedAt: syncflowState.ingestedAt,
       spreadsheetId: config.spreadsheetId,
       sheetId: config.sheetId,
       refreshToken: config.auth.refreshToken,

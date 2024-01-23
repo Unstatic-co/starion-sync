@@ -50,6 +50,11 @@ export const OrchestratorWorkerProvider = {
       connection: orchestratorConnection,
       namespace,
       workflowsPath: require.resolve('../../workflows'),
+      dataConverter: {
+        payloadConverterPath: require.resolve(
+          '../../../../../libs/modules/src/orchestrator/payload-converter',
+        ),
+      },
       taskQueue,
       activities,
     });

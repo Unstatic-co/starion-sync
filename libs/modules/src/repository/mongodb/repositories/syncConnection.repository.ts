@@ -60,7 +60,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async getByDataSourceId(id: string, options?: QueryOptions) {
@@ -77,7 +77,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async create(data: CreateSyncConnectionData, options?: QueryOptions) {
@@ -146,7 +146,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
         })),
       });
       await syncConnection.save({ session });
-      result = syncConnection.toJSON();
+      result = syncConnection.toObject();
     };
 
     if (options?.session) {
@@ -244,7 +244,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
 
   public async delete(id: string, options?: QueryOptions) {
     let result;
-    this.logger.debug(`delete sync connection: `, id);
+    this.logger.debug(`delete sync connection: ${id}`);
     const session = options?.session
       ? options.session
       : await this.connection.startSession();
@@ -294,7 +294,7 @@ export class SyncConnectionRepository implements ISyncConnectionRepository {
         }),
       );
       if (options?.old) {
-        result = syncConnection.toJSON();
+        result = syncConnection.toObject();
       }
     };
 

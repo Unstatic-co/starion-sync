@@ -2,7 +2,6 @@ import { ERROR_CODE, ExternalError } from '@lib/core/error';
 import { GaxiosError } from './google.type';
 
 export function handleGoogleAuthError(error: any) {
-  console.log('handleGoogleApiError', JSON.stringify(error));
   const err = error as GaxiosError;
   if (
     err.response.status === 400 &&

@@ -19,6 +19,20 @@ export type TriggerDocument = TriggerModel & Document;
   timestamps: true,
   collection: 'triggers',
   versionKey: false,
+  toObject: {
+    virtuals: true,
+    transform: function (doc, ret) {
+      // ret.id = ret._id.toString(); // eslint-disable-line
+      delete ret._id; // eslint-disable-line
+      if (ret.sourceId) {
+        ret.sourceId = ret.sourceId.toString(); // eslint-disable-line
+      }
+      if (ret.workflow?.id) {
+        ret.workflow.id = ret.workflow.id.toString(); // eslint-disable-line
+      }
+      return ret;
+    },
+  },
   toJSON: {
     virtuals: true,
     transform: function (doc, ret) {
@@ -65,5 +79,5 @@ export const TriggerSchema = SchemaFactory.createForClass(TriggerModel);
 TriggerSchema.index({ sourceId: 1 }, { background: true });
 
 TriggerSchema.virtual('id').get(function () {
-    return this._id.toHexString(); // eslint-disable-line
+  return this._id.toHexString(); // eslint-disable-line
 });

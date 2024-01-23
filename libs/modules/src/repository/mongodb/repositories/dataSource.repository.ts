@@ -32,7 +32,7 @@ export class DataSourceRepository implements IDataSourceRepository {
     private dataSourceModel: Model<DataSourceDocument>,
     @Inject(InjectTokens.SYNC_CONNECTION_REPOSITORY)
     private readonly syncConnectionRepository: ISyncConnectionRepository,
-  ) { }
+  ) {}
 
   public async getById(id: string, options?: QueryOptions) {
     const conditions = {
@@ -51,7 +51,7 @@ export class DataSourceRepository implements IDataSourceRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async getByProviderId(providerId: string, options?: QueryOptions) {
@@ -71,7 +71,7 @@ export class DataSourceRepository implements IDataSourceRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.map((item) => item.toJSON());
+    return result.map((item) => item.toObject());
   }
 
   public async getByExternalId(externalId: string, options?: QueryOptions) {
@@ -88,7 +88,7 @@ export class DataSourceRepository implements IDataSourceRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async create(
@@ -108,7 +108,7 @@ export class DataSourceRepository implements IDataSourceRepository {
       ? dataSource.save({ session: options.session })
       : dataSource.save();
     await query;
-    return dataSource.toJSON() as DataSource;
+    return dataSource.toObject() as DataSource;
   }
 
   public async update(data: UpdateDataSourceData, options?: QueryOptions) {
@@ -144,7 +144,7 @@ export class DataSourceRepository implements IDataSourceRepository {
               _id: Utils.toObjectId(data.id),
             })
             .session(session)
-        ).toJSON();
+        ).toObject();
       }
     };
 
@@ -198,7 +198,7 @@ export class DataSourceRepository implements IDataSourceRepository {
       }
 
       if (options?.old) {
-        result = { dataSource: dataSource.toJSON() };
+        result = { dataSource: dataSource.toObject() };
         if (syncConnection) {
           result.syncConnection = syncConnection;
         }
@@ -253,7 +253,7 @@ export class DataSourceRepository implements IDataSourceRepository {
               _id: Utils.toObjectId(id),
             })
             .session(session)
-        ).toJSON();
+        ).toObject();
       }
     };
 

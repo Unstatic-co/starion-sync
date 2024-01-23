@@ -18,7 +18,6 @@ export class ValidationPipe implements PipeTransform<any> {
   private readonly validationLogger = new Logger('ValidationLog');
 
   async transform(value: any, { metatype }: ArgumentMetadata) {
-    console.log('meatatype', metatype);
     if (!metatype || !this.toValidate(metatype)) {
       return value;
     }

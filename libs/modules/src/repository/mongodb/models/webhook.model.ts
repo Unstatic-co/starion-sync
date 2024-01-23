@@ -14,6 +14,15 @@ export type WebhookDocument = WebhookModel & Document;
   timestamps: true,
   collection: 'webhooks',
   versionKey: false,
+  toObject: {
+    virtuals: true,
+    transform: function (doc, ret) {
+      // ret.id = ret._id.toString(); // eslint-disable-line
+      delete ret._id; // eslint-disable-line
+      // ret.dataSourceId = ret.dataSourceId.toString(); // eslint-disable-line
+      return ret;
+    },
+  },
   toJSON: {
     virtuals: true,
     transform: function (doc, ret) {
@@ -58,5 +67,5 @@ export const WebhookSchema = SchemaFactory.createForClass(WebhookModel);
 WebhookSchema.index({ dataSourceId: 1 }, { background: true });
 
 WebhookSchema.virtual('id').get(function () {
-    return this._id.toHexString(); // eslint-disable-line
+  return this._id.toHexString(); // eslint-disable-line
 });

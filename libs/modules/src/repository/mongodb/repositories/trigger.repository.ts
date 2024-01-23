@@ -36,7 +36,7 @@ export class TriggerRepository implements ITriggerRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async getByDataSourceId(dataSourceId: string, options?: QueryOptions) {
@@ -53,7 +53,7 @@ export class TriggerRepository implements ITriggerRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.map((item) => item.toJSON());
+    return result.map((item) => item.toObject());
   }
 
   public async getByWorkflowId(id: string, options?: QueryOptions) {
@@ -70,14 +70,14 @@ export class TriggerRepository implements ITriggerRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async getByWorkflowIds(syncflowIds: string[]) {
     const result = await this.triggerModel.find({
       'workflow.id': { $in: syncflowIds.map((id) => Utils.toObjectId(id)) },
     });
-    return result.map((item) => item.toJSON() as Trigger);
+    return result.map((item) => item.toObject() as Trigger);
   }
 
   public async getByConfig(
@@ -97,7 +97,7 @@ export class TriggerRepository implements ITriggerRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async create(data: CreateTriggerData) {
@@ -150,7 +150,7 @@ export class TriggerRepository implements ITriggerRepository {
               _id: Utils.toObjectId(data.id),
             })
             .session(session)
-        ).toJSON();
+        ).toObject();
       }
     };
 

@@ -26,7 +26,7 @@ export class DataProviderRepository implements IDataProviderRepository {
     private readonly dataProviderModel: Model<DataProviderDocument>,
     @InjectModel(DataSourceModel.name)
     private readonly dataSourceModel: Model<DataSourceDocument>,
-  ) { }
+  ) {}
 
   public async getById(id: string, options?: QueryOptions) {
     const conditions = {
@@ -42,7 +42,7 @@ export class DataProviderRepository implements IDataProviderRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async getByExternalId(externalId: string, options?: QueryOptions) {
@@ -59,7 +59,7 @@ export class DataProviderRepository implements IDataProviderRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async create(
@@ -72,7 +72,7 @@ export class DataProviderRepository implements IDataProviderRepository {
     const query = options?.session
       ? dataProvider.save({ session: options.session })
       : dataProvider.save();
-    return dataProvider.toJSON() as DataProvider;
+    return dataProvider.toObject() as DataProvider;
   }
 
   public async update(data: UpdateDataProviderData, options?: QueryOptions) {
@@ -110,7 +110,7 @@ export class DataProviderRepository implements IDataProviderRepository {
               _id: Utils.toObjectId(data.id),
             })
             .session(session)
-        ).toJSON();
+        ).toObject();
       }
     };
 
@@ -138,7 +138,7 @@ export class DataProviderRepository implements IDataProviderRepository {
       const dataProvider = await this.dataProviderModel
         .findOne({
           _id: Utils.toObjectId(id),
-          isDeleted: false
+          isDeleted: false,
         })
         .session(session);
       if (!dataProvider) {
@@ -161,7 +161,7 @@ export class DataProviderRepository implements IDataProviderRepository {
               _id: Utils.toObjectId(id),
             })
             .session(session)
-        ).toJSON();
+        ).toObject();
       }
     };
 

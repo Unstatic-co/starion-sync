@@ -11,9 +11,25 @@ import { Document } from 'mongoose';
 export type DataProviderDocument = DataProviderModel & Document;
 
 @Schema({
+  _id: false,
+})
+class DataProviderStateModel {
+  @Prop()
+  downloadedAt?: Date;
+}
+
+@Schema({
   timestamps: true,
   collection: 'dataproviders',
   versionKey: false,
+  toObject: {
+    virtuals: true,
+    transform: function (doc, ret) {
+      // ret.id = ret._id.toString(); // eslint-disable-line
+      delete ret._id; // eslint-disable-line
+      return ret;
+    },
+  },
   toJSON: {
     virtuals: true,
     transform: function (doc, ret) {
@@ -33,7 +49,7 @@ export class DataProviderModel extends DataProvider {
   config: ProviderConfig;
 
   @Prop({
-    type: Object,
+    type: DataProviderStateModel,
   })
   state: ProviderState;
 
