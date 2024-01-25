@@ -1,6 +1,7 @@
 package google_sheets
 
 import (
+	base64 "encoding/base64"
 	"fmt"
 
 	jsoniter "github.com/json-iterator/go"
@@ -15,18 +16,23 @@ func SerializeSpreadsheetFileMetadata(metadata SpreadsheetMetadata) (map[string]
 	if err != nil {
 		return nil, err
 	}
+	sheetsMetadataBase64 := base64.StdEncoding.EncodeToString([]byte(sheetsMetadataJson))
 	result := map[string]*string{
 		"Spreadsheet_id":      &metadata.SpreadsheetId,
 		"Spreadsheet_version": &metadata.SpreadsheetVersion,
 		"Timezone":            &metadata.TimeZone,
-		"Sheets":              &sheetsMetadataJson,
+		"Sheets":              &sheetsMetadataBase64,
 	}
 	return result, nil
 }
 
 func DeserializeSpreadsheetFileMetadata(fileMetadata map[string]*string) (*SpreadsheetMetadata, error) {
+	sheetMetadataByte, err := base64.StdEncoding.DecodeString(*fileMetadata["Sheets"])
+	if err != nil {
+		return nil, err
+	}
 	sheets := make(map[string]SheetsMetadata)
-	err := jsoniter.UnmarshalFromString(*fileMetadata["Sheets"], &sheets)
+	err = jsoniter.Unmarshal(sheetMetadataByte, &sheets)
 	if err != nil {
 		return nil, err
 	}
