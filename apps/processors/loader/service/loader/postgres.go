@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"loader/libs/schema"
 	"loader/pkg/config"
+	commonName "loader/service/loader/namespace"
 	name "loader/service/loader/namespace/postgres"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	pq "github.com/lib/pq"
@@ -57,6 +59,7 @@ var (
 	}
 	idempotencyTableColumns = map[name.TableColumn]string{
 		name.OperationColumn: "varchar(100) NOT NULL",
+		name.StatusColumn: fmt.Sprintf("varchar(20) DEFAULT '%[2]s'", commonName.RunningStatus, commonName.CompletedStatus),
 	}
 )
 
@@ -229,6 +232,8 @@ func (l *PostgreLoader) Close() error {
 
 func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 	log.Info("Loading data to postgres")
+
+	// init transaction
 	txn, err := l.dbConn.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelReadCommitted,
 	})
@@ -236,6 +241,11 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 		return err
 	}
 	defer txn.Rollback()
+
+	err = l.waitForCurrentlyLoading(txn)
+	if err != nil {
+		return err
+	}
 
 	isAlreadyLoaded, err := l.checkIsAlreadyLoadedInTransaction(txn)
 	if err != nil {
@@ -299,7 +309,7 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 		}
 	}
 
-	err = l.markAsLoaded(txn)
+	err = l.markAsLoadedAndRemovePreviousMark(txn)
 
 	err = txn.Commit()
 	if err != nil {
@@ -333,12 +343,13 @@ func (l *PostgreLoader) addRowError(rowId string) {
 func (l *PostgreLoader) checkIsAlreadyLoaded() (bool, error) {
 	var count int
 	query := fmt.Sprintf(
-		"SELECT COUNT(*) FROM %s WHERE %s = '%s'",
+		"SELECT COUNT(*) FROM %s WHERE %s = '%s' AND %s = '%s'",
 		name.IdempotencyTable,
 		name.OperationColumn,
 		l.getLoaderOperationName(l.SyncVersion),
+		name.StatusColumn,
+		commonName.CompletedStatus,
 	)
-	log.Debug("Query: ", query)
 	err := l.dbConn.QueryRow(query).Scan(&count)
 	if err != nil {
 		return false, fmt.Errorf("error when checking already loaded: %w", err)
@@ -349,12 +360,13 @@ func (l *PostgreLoader) checkIsAlreadyLoaded() (bool, error) {
 func (l *PostgreLoader) checkIsAlreadyLoadedInTransaction(txn *sql.Tx) (bool, error) {
 	var count int
 	query := fmt.Sprintf(
-		"SELECT COUNT(*) FROM %s WHERE %s = '%s'",
+		"SELECT COUNT(*) FROM %s WHERE %s = '%s' AND %s = '%s'",
 		name.IdempotencyTable,
 		name.OperationColumn,
 		l.getLoaderOperationName(l.SyncVersion),
+		name.StatusColumn,
+		commonName.CompletedStatus,
 	)
-	log.Debug("Query: ", query)
 	err := txn.QueryRow(query).Scan(&count)
 	if err != nil {
 		return false, fmt.Errorf("error when checking already loaded in transaction: %w", err)
@@ -362,18 +374,43 @@ func (l *PostgreLoader) checkIsAlreadyLoadedInTransaction(txn *sql.Tx) (bool, er
 	return count > 0, nil
 }
 
-func (l *PostgreLoader) markAsLoaded(txn *sql.Tx) error {
+func (l *PostgreLoader) waitForCurrentlyLoading(txn *sql.Tx) error {
+	for {
+		var isAcquiredLock bool
+		query := fmt.Sprintf(
+			"SELECT pg_try_advisory_xact_lock(hashtext('%s'))",
+			l.getLoaderOperationName(l.SyncVersion),
+		)
+		err := txn.QueryRow(query).Scan(&isAcquiredLock)
+		if err != nil {
+			return fmt.Errorf("error when acquiring lock: %w", err)
+		}
+		if isAcquiredLock {
+			log.Debug("Not currently loading")
+			break
+		} else {
+			log.Debug("Currently loading, wait for 10 seconds")
+			time.Sleep(10 * time.Second)
+		}
+	}
+
+
+	return nil
+}
+
+func (l *PostgreLoader) markAsLoadedAndRemovePreviousMark(txn *sql.Tx) error {
 	var eg errgroup.Group
 
 	// Mark as loaded
 	eg.Go(func() error {
 		query := fmt.Sprintf(
-			"INSERT INTO %s (%s) VALUES ('%s')",
+			"INSERT INTO %s (%s, %s) VALUES ('%s', '%s')",
 			name.IdempotencyTable,
 			name.OperationColumn,
+			name.StatusColumn,
 			l.getLoaderOperationName(l.SyncVersion),
+			commonName.CompletedStatus,
 		)
-		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return fmt.Errorf("error when marking as loaded: %w", err)
@@ -389,7 +426,6 @@ func (l *PostgreLoader) markAsLoaded(txn *sql.Tx) error {
 			name.OperationColumn,
 			l.getLoaderOperationName(l.PrevVersion),
 		)
-		log.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return fmt.Errorf("error when removing mark of prev version: %w", err)
