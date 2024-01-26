@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"loader/libs/schema"
 	"loader/pkg/config"
+	"loader/service"
+	"loader/service/getter"
 	commonName "loader/service/loader/namespace"
 	name "loader/service/loader/namespace/postgres"
 	"strconv"
@@ -230,7 +232,7 @@ func (l *PostgreLoader) Close() error {
 	return nil
 }
 
-func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
+func (l *PostgreLoader) Load(ctx context.Context, getter *getter.Getter) (*service.LoadedResult, error) {
 	log.Info("Loading data to postgres")
 
 	// init transaction
@@ -238,22 +240,30 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 		Isolation: sql.LevelReadCommitted,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer txn.Rollback()
 
 	err = l.waitForCurrentlyLoading(txn)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	isAlreadyLoaded, err := l.checkIsAlreadyLoadedInTransaction(txn)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if isAlreadyLoaded {
 		log.Info("Already loaded")
-		return nil
+		return nil, nil
+	}
+
+	// get load data
+	log.Info("Getting diff data")
+	data, err := getter.GetLoadData()
+	if err != nil {
+		log.Error("Error when getting diff data: ", err)
+		return nil, err
 	}
 
 	l.setTimezone(txn)
@@ -261,50 +271,50 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 	if l.PrevVersion == 0 {
 		err := l.loadSchema(txn, data)
 		if err != nil {
-			return l.checkAndMappingError(err)
+			return nil, l.checkAndMappingError(err)
 		}
 		err = l.initTable(txn, data)
 		if err != nil {
-			return l.checkAndMappingError(err)
+			return nil, l.checkAndMappingError(err)
 		}
 		err = l.loadAddedRows(txn, data)
 		if err != nil {
-			return l.checkAndMappingError(err)
+			return nil, l.checkAndMappingError(err)
 		}
 		err = l.loadRowErrorMetadata(txn)
 		if err != nil {
-			return l.checkAndMappingError(err)
+			return nil, l.checkAndMappingError(err)
 		}
 	} else {
 		err := l.loadSchemaChange(txn, data)
 		if err != nil {
-			return l.checkAndMappingError(err)
+			return nil, l.checkAndMappingError(err)
 		}
 
 		if IsDataChanged(data) {
 			err = l.loadRemovedRows(txn, data)
 			if err != nil {
-				return l.checkAndMappingError(err)
+				return nil, l.checkAndMappingError(err)
 			}
 			err = l.loadAddedRows(txn, data)
 			if err != nil {
-				return l.checkAndMappingError(err)
+				return nil, l.checkAndMappingError(err)
 			}
 			err = l.loadUpdateFields(txn, data)
 			if err != nil {
-				return l.checkAndMappingError(err)
+				return nil, l.checkAndMappingError(err)
 			}
 			err = l.loadAddedFields(txn, data)
 			if err != nil {
-				return l.checkAndMappingError(err)
+				return nil, l.checkAndMappingError(err)
 			}
 			err = l.loadDeletedFields(txn, data)
 			if err != nil {
-				return l.checkAndMappingError(err)
+				return nil, l.checkAndMappingError(err)
 			}
 			err = l.loadRowErrorMetadata(txn)
 			if err != nil {
-				return l.checkAndMappingError(err)
+				return nil, l.checkAndMappingError(err)
 			}
 		}
 	}
@@ -314,10 +324,14 @@ func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
 	err = txn.Commit()
 	if err != nil {
 		txn.Rollback()
-		return l.checkAndMappingError(err)
+		return nil, l.checkAndMappingError(err)
 	}
 
-	return nil
+	return &service.LoadedResult{
+		AddedRowsCount:   len(data.AddedRows.Rows),
+		DeletedRowsCount: len(data.DeletedRows),
+		IsSchemaChanged:  IsSchemaChanged(data.SchemaChanges),
+	}, nil
 }
 
 func (l *PostgreLoader) setTimezone(txn *sql.Tx) error {
@@ -454,7 +468,7 @@ func (l *PostgreLoader) checkAndMappingError(originalErr error) error {
 	}
 }
 
-func (l *PostgreLoader) initTable(txn *sql.Tx, data *LoaderData) error {
+func (l *PostgreLoader) initTable(txn *sql.Tx, data *service.LoaderData) error {
 	log.Info("Initilizing table")
 
 	fields := make([]string, 0, len(dataTableColumns))
@@ -473,7 +487,7 @@ func (l *PostgreLoader) initTable(txn *sql.Tx, data *LoaderData) error {
 	return nil
 }
 
-func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
+func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *service.LoaderData) error {
 	log.Info("Loading schema")
 
 	// get schema id if exists
@@ -560,7 +574,7 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
 	return nil
 }
 
-func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
+func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *service.LoaderData) error {
 	log.Info("Loading schema changes")
 
 	// get schema id
@@ -690,7 +704,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 	return nil
 }
 
-func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *LoaderData) error {
+func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *service.LoaderData) error {
 	log.Info("Loading added rows to postgres, count: ", len(data.AddedRows.Rows))
 
 	if len(data.AddedRows.Rows) == 0 {
@@ -749,7 +763,7 @@ func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *LoaderData) error {
 	return nil
 }
 
-func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *LoaderData) error {
+func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *service.LoaderData) error {
 	log.Info("Loading removed rows to postgres")
 
 	if len(data.DeletedRows) == 0 {
@@ -780,7 +794,7 @@ func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *LoaderData) error {
 	return nil
 }
 
-func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *LoaderData) error {
+func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *service.LoaderData) error {
 	log.Info("Loading updated fields rows")
 
 	if len(data.UpdatedFields) == 0 {
@@ -835,7 +849,7 @@ func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *LoaderData) error {
 	return nil
 }
 
-func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *LoaderData) error {
+func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) error {
 	log.Info("Loading added fields rows")
 
 	if len(data.AddedFields) == 0 {
@@ -890,7 +904,7 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *LoaderData) error {
 	return nil
 }
 
-func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *LoaderData) error {
+func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *service.LoaderData) error {
 	log.Info("Loading deleted fields rows")
 
 	if len(data.DeletedFields) == 0 {

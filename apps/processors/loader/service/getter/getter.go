@@ -6,7 +6,6 @@ import (
 	sch "loader/libs/schema"
 	"loader/pkg/config"
 	"loader/service"
-	"loader/service/loader"
 	"loader/util/s3"
 
 	jsoniter "github.com/json-iterator/go"
@@ -92,10 +91,10 @@ func (g *Getter) GetSchema() (sch.TableSchema, error) {
 	return schema, nil
 }
 
-func (g *Getter) GetLoadData() (loader.LoaderData, error) {
+func (g *Getter) GetLoadData() (*service.LoaderData, error) {
 	log.Info("Start getting diff data")
 
-	var data loader.LoaderData
+	var data service.LoaderData
 
 	ctx := context.Background()
 	group, _ := errgroup.WithContext(ctx)
@@ -130,7 +129,7 @@ func (g *Getter) GetLoadData() (loader.LoaderData, error) {
 			log.Error("Error when unmarshal added rows file: ", err)
 			return err
 		}
-		var addedRowsData loader.AddedRowsData
+		var addedRowsData service.AddedRowsData
 		for _, field := range addedRows.Meta {
 			addedRowsData.Fields = append(addedRowsData.Fields, field.Name)
 		}
@@ -278,10 +277,10 @@ func (g *Getter) GetLoadData() (loader.LoaderData, error) {
 	}
 
 	if err := group.Wait(); err != nil {
-		return data, err
+		return &data, err
 	}
 
 	log.Info("Finish getting diff data")
 
-	return data, nil
+	return &data, nil
 }

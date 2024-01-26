@@ -9,7 +9,7 @@ func IsSchemaChanged(schemaDiffResult service.SchemaDiffResult) bool {
 		len(schemaDiffResult.UpdatedTypeFields) > 0
 }
 
-func IsDataChanged(data *LoaderData) bool {
+func IsDataChanged(data *service.LoaderData) bool {
 	return len(data.AddedRows.Rows) > 0 ||
 		len(data.DeletedRows) > 0 ||
 		len(data.AddedFields) > 0 ||
