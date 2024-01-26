@@ -36,4 +36,5 @@ const (
 
 	// idempotency table column
     OperationColumn = "operation"
+	StatusColumn    = "status"
 )
