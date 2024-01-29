@@ -4,6 +4,7 @@ import (
 	"context"
 	"downloader/pkg/config"
 	"downloader/pkg/e"
+	"downloader/util"
 	"downloader/util/s3"
 	"fmt"
 	"io"
@@ -186,7 +187,7 @@ func (s *GoogleSheetsDownloadService) Run(ctx context.Context) (*DownloadResult,
 		spreadsheet, err := s.sheetService.Spreadsheets.Get(s.spreadsheetId).Fields(
 			"sheets.properties.sheetId",
 			"sheets.properties.index",
-			"sheets.properties.title",
+			// "sheets.properties.title",
 			"properties.timeZone",
 		).Do()
 		if err != nil {
@@ -215,6 +216,7 @@ func (s *GoogleSheetsDownloadService) Run(ctx context.Context) (*DownloadResult,
 	}
 
 	// TODO: upload spreadsheet
+	sheetNames := util.GetSheetNamesFromXlsxData(*s.spreadsheetData)
 	sheetsMetadata := make(map[string]SheetsMetadata) // sheetId -> SheetMetadata
 	if err != nil {
 		return nil, err
@@ -224,7 +226,7 @@ func (s *GoogleSheetsDownloadService) Run(ctx context.Context) (*DownloadResult,
 		sheetsMetadata[sheetId] = SheetsMetadata{
 			SheetId:    sheetId,
 			SheetIndex: sheet.Properties.Index,
-			SheetName:  sheet.Properties.Title,
+			SheetName:  sheetNames[sheet.Properties.Index],
 		}
 	}
 	spreadsheetMetadata := &SpreadsheetMetadata{
