@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { GoogleService, GoogleSheetsService } from '@lib/modules/third-party';
+import {
+  GoogleService,
+  GoogleSheetsService,
+  formatSheetNameInRange,
+} from '@lib/modules/third-party';
 import {
   DataDiscoverer,
   DiscoveredGoogleSheetsDataSource,
@@ -76,7 +80,7 @@ export class GoogleSheetsDiscoverer implements DataDiscoverer {
     const headerRangeValues = await this.googleSheetsService.getRangeValue({
       client,
       spreadsheetId,
-      range: `${sheetName}!A1:Z1`,
+      range: `${formatSheetNameInRange(sheetName)}!A1:Z1`,
     });
     if (!headerRangeValues.length) {
       isEmpty = true;
