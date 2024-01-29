@@ -1,4 +1,4 @@
-version: "3.9"
+version: '3.9'
 services:
   configurator:
     depends_on:
@@ -230,6 +230,10 @@ services:
         delay: 3s
         max_attempts: 5
         window: 60s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1024M
     platform: linux/amd64
     build:
       context: ./apps/processors/downloader
@@ -255,6 +259,10 @@ services:
         delay: 3s
         max_attempts: 5
         window: 60s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
     build:
       context: ./apps/processors/comparer
       dockerfile: Dockerfile
@@ -280,6 +288,10 @@ services:
         delay: 3s
         max_attempts: 5
         window: 60s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
     build:
       context: ./apps/processors/loader
       dockerfile: Dockerfile
@@ -288,6 +300,8 @@ services:
     ports:
       - 8002:8080
     environment:
+      - GOGC=50
+      - GOMEMLIMIT=400MiB
       - PORT=8080
       - API_KEYS=${PROCESSOR_API_KEYS}
       - S3_ENDPOINT=${S3_ENDPOINT}
@@ -394,7 +408,7 @@ services:
         window: 60s
     build:
       context: ./harmonies/rate-limiter
-      dockerfile: Dockerfile 
+      dockerfile: Dockerfile
     expose:
       - 8080
     environment:
@@ -545,7 +559,7 @@ services:
     stdin_open: true
     tty: true
     entrypoint: bash
-    command: "/etc/temporal/init.sh"
+    command: '/etc/temporal/init.sh'
     volumes:
       - ./init/temporal-init.sh:/etc/temporal/init.sh
     environment:

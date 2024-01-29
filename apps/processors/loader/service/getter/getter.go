@@ -130,8 +130,9 @@ func (g *Getter) GetLoadData() (*service.LoaderData, error) {
 			return err
 		}
 		var addedRowsData service.AddedRowsData
-		for _, field := range addedRows.Meta {
-			addedRowsData.Fields = append(addedRowsData.Fields, field.Name)
+		addedRowsData.Fields = make([]string, len(addedRows.Meta))
+		for i, field := range addedRows.Meta {
+			addedRowsData.Fields[i] = field.Name
 		}
 		addedRowsData.Rows = addedRows.Data
 		data.AddedRows = addedRowsData
