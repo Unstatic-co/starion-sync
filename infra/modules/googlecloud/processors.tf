@@ -287,6 +287,10 @@ resource "google_cloud_run_service" "loader" {
           }
         }
         env {
+          name = "GOMEMLIMIT"
+          value = var.is_production ? "400MiB" : "400MiB"
+        }
+        env {
           name  = "PRODUCTION"
           value = "true"
         }
