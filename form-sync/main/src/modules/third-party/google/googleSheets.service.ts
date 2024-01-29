@@ -1,8 +1,8 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { sheets, sheets_v4 as SheetsV4 } from '@googleapis/sheets';
-import { OAuth2Client } from 'google-auth-library';
 import { GoogleService } from './google.service';
+import { formatSheetNameInRange } from '../utils';
 
 @Injectable()
 export class GoogleSheetsService {
@@ -95,7 +95,9 @@ export class GoogleSheetsService {
     const value = await this.getRangeValue({
       client,
       spreadsheetId,
-      range: `${sheetName}!R${rowPos}C${colPos}:R${rowPos}C${colPos}`,
+      range: `${formatSheetNameInRange(
+        sheetName,
+      )}!R${rowPos}C${colPos}:R${rowPos}C${colPos}`,
     });
     if (value?.length) {
       return value[0][0];

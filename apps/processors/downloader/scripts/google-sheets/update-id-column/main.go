@@ -128,7 +128,7 @@ func generateUpdateIdGoogleSheetsData(data UpdateIdData, sheetName string, idCol
 		for i, val := range values {
 			formattedValues[i] = []interface{}{val}
 		}
-		valueRange := fmt.Sprintf("%s!R%[2]dC%[3]d:R%[4]dC%[3]d", sheetName, firstRowNumber, idColIndex, firstRowNumber+len(values)-1)
+		valueRange := fmt.Sprintf("%s!R%[2]dC%[3]d:R%[4]dC%[3]d", util.FormatSheetNameInRange(sheetName), firstRowNumber, idColIndex, firstRowNumber+len(values)-1)
 		result = append(result, &sheets.ValueRange{
 			Range:  valueRange,
 			Values: formattedValues,
@@ -184,7 +184,7 @@ func main() {
 	sheetIdInt, _ := strconv.Atoi(service.SheetId)
 
 	if *missingIdCol {
-		res, err := sheetClient.Spreadsheets.Get(service.SpreadsheetId).Ranges(service.SheetName).IncludeGridData(false).Fields(googleapi.Field("sheets.properties.gridProperties.columnCount")).Do()
+		res, err := sheetClient.Spreadsheets.Get(service.SpreadsheetId).Ranges(util.FormatSheetNameInRange(service.SheetName)).IncludeGridData(false).Fields(googleapi.Field("sheets.properties.gridProperties.columnCount")).Do()
 		if err != nil {
 			handleGoogleApiError(err, *exErrFile)
 		}

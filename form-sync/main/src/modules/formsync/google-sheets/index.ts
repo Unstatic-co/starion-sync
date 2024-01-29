@@ -26,6 +26,7 @@ import { sheets_v4 as SheetsV4 } from '@googleapis/sheets';
 import { ConfigName } from 'src/config';
 import axios from 'axios';
 import { FormSyncCommonService } from '../common.service';
+import { formatSheetNameInRange } from 'src/modules/third-party/utils';
 
 export type GoogleSheetsFormSyncConfig = {
   refreshToken: string;
@@ -247,9 +248,9 @@ export class GoogleSheetsFormSyncService implements IFormSyncService {
     }
     const lastColIndex = Math.max(...Object.values(headers));
     this.logger.debug(`Last column index: ${lastColIndex}`);
-    const newRange = `${sheetName}!R${rowCount + 1}C1:R${rowCount + 1}C${
-      lastColIndex + 1
-    }`;
+    const newRange = `${formatSheetNameInRange(sheetName)}!R${
+      rowCount + 1
+    }C1:R${rowCount + 1}C${lastColIndex + 1}`;
 
     const formatedData = this.convertData(data, dataSourceSchema, { timezone });
     if (recordId) {
@@ -332,9 +333,9 @@ export class GoogleSheetsFormSyncService implements IFormSyncService {
     this.logger.debug(`Current value in id cell: ${curValueInIdCell}`);
     if (curValueInIdCell === rowId) {
       const lastColIndex = Math.max(...Object.values(headers));
-      const range = `${sheetName}!R${rowPos + 1}C1:R${rowPos + 1}C${
-        lastColIndex + 1
-      }`;
+      const range = `${formatSheetNameInRange(sheetName)}!R${rowPos + 1}C1:R${
+        rowPos + 1
+      }C${lastColIndex + 1}`;
       this.logger.debug(`Range: ${range}`);
       await this.googleSheetsService.deleteRow({
         client,
@@ -404,9 +405,9 @@ export class GoogleSheetsFormSyncService implements IFormSyncService {
       });
 
       const lastColIndex = Math.max(...Object.values(headers));
-      const range = `${sheetName}!R${rowPos + 1}C1:R${rowPos + 1}C${
-        lastColIndex + 1
-      }`;
+      const range = `${formatSheetNameInRange(sheetName)}!R${rowPos + 1}C1:R${
+        rowPos + 1
+      }C${lastColIndex + 1}`;
       this.logger.debug(`Range: ${range}`);
       const valuesUpdate = new Array(lastColIndex + 1).fill(null);
       let updateCount = 0;
@@ -505,7 +506,7 @@ export class GoogleSheetsFormSyncService implements IFormSyncService {
       await this.googleSheetsService.getRangeValue({
         client: data.client,
         spreadsheetId: data.spreadsheetId,
-        range: `${data.sheetName}!A1:Z1`,
+        range: `${formatSheetNameInRange(data.sheetName)}!A1:Z1`,
       })
     )[0];
     headerValues.forEach((header, index) => {
