@@ -4,6 +4,7 @@ type SheetsMetadata struct {
 	SheetId    string `json:"sheet_id"`
 	SheetIndex int64  `json:"sheet_index"`
 	SheetName  string `json:"sheet_name"`
+	XlsxSheetName string `json:"xlsx_sheet_name"`
 }
 
 type SpreadsheetMetadata struct {

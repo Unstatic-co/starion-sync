@@ -48,6 +48,7 @@ type GoogleSheetsIngestService struct {
 	spreadsheetId string
 	sheetId       string
 	sheetName     string
+	xlsxSheetName string
 	sheetIndex    int64
 	timeZone      string
 
@@ -139,6 +140,7 @@ func (s *GoogleSheetsIngestService) Setup(ctx context.Context) error {
 		}
 		
 		s.sheetName = spreadsheetMetadata.Sheets[s.sheetId].SheetName
+		s.xlsxSheetName = spreadsheetMetadata.Sheets[s.sheetId].XlsxSheetName
 		s.sheetIndex = spreadsheetMetadata.Sheets[s.sheetId].SheetIndex
 		s.timeZone = spreadsheetMetadata.TimeZone
 		s.logger.Debug("Sheet name: ", s.sheetName)
@@ -179,6 +181,7 @@ func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
 		"--spreadsheetId", s.spreadsheetId,
 		"--sheetId", s.sheetId,
 		"--sheetName", s.sheetName,
+		"--xlsxSheetName", s.xlsxSheetName,
 		"--sheetIndex", fmt.Sprintf("%d", s.sheetIndex+1),
 		"--spreadsheetFile", s.spreadsheetFilePath,
 		"--timezone", s.timeZone,

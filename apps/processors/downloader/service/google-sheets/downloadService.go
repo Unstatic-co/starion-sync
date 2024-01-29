@@ -187,7 +187,7 @@ func (s *GoogleSheetsDownloadService) Run(ctx context.Context) (*DownloadResult,
 		spreadsheet, err := s.sheetService.Spreadsheets.Get(s.spreadsheetId).Fields(
 			"sheets.properties.sheetId",
 			"sheets.properties.index",
-			// "sheets.properties.title",
+			"sheets.properties.title",
 			"properties.timeZone",
 		).Do()
 		if err != nil {
@@ -226,7 +226,8 @@ func (s *GoogleSheetsDownloadService) Run(ctx context.Context) (*DownloadResult,
 		sheetsMetadata[sheetId] = SheetsMetadata{
 			SheetId:    sheetId,
 			SheetIndex: sheet.Properties.Index,
-			SheetName:  sheetNames[sheet.Properties.Index],
+			SheetName:  sheet.Properties.Title,
+			XlsxSheetName:  sheetNames[sheet.Properties.Index],
 		}
 	}
 	spreadsheetMetadata := &SpreadsheetMetadata{
