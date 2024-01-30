@@ -38,168 +38,184 @@ export class GoogleSheetsActivities {
   ) {}
 
   async getDataStateGoogleSheets(syncflow: Syncflow) {
-    const dataSource = await this.dataSourceRepository.getById(
-      syncflow.sourceId,
-    );
-    if (!dataSource) {
-      throw new UnacceptableActivityError(
-        `DataSource not found: ${syncflow.sourceId}`,
-        { shouldWorkflowFail: false },
+    return await activityWrapper(async () => {
+      const dataSource = await this.dataSourceRepository.getById(
+        syncflow.sourceId,
       );
-    }
-    const dataProvider = await this.dataProviderRepository.getById(
-      dataSource.provider.id,
-    );
-    if (!dataProvider) {
-      throw new UnacceptableActivityError(
-        `DataProvider not found: ${dataSource.provider.id}`,
-        { shouldWorkflowFail: false },
+      if (!dataSource) {
+        throw new UnacceptableActivityError(
+          `DataSource not found: ${syncflow.sourceId}`,
+          { shouldWorkflowFail: false },
+        );
+      }
+      const dataProvider = await this.dataProviderRepository.getById(
+        dataSource.provider.id,
       );
-    }
-    const syncflowState = syncflow.state as GoogleSheetsFullSyncState;
-    const providerState = dataProvider.state as GoogleSheetsProviderState;
+      if (!dataProvider) {
+        throw new UnacceptableActivityError(
+          `DataProvider not found: ${dataSource.provider.id}`,
+          { shouldWorkflowFail: false },
+        );
+      }
+      const syncflowState = syncflow.state as GoogleSheetsFullSyncState;
+      const providerState = dataProvider.state as GoogleSheetsProviderState;
 
-    const result = {
-      providerDownloadedAt: providerState?.downloadedAt,
-      downloadedAt: syncflowState.downloadedAt,
-    };
-    return result;
+      const result = {
+        providerDownloadedAt: providerState?.downloadedAt,
+        downloadedAt: syncflowState.downloadedAt,
+      };
+      return result;
+    });
   }
 
   async getDownloadDataGoogleSheets(syncflow: Syncflow) {
-    this.logger.debug(`Getting download data for syncflow: ${syncflow.id}`);
-    const dataSource = await this.dataSourceRepository.getById(
-      syncflow.sourceId,
-    );
-    if (!dataSource) {
-      throw new UnacceptableActivityError(
-        `DataSource not found: ${syncflow.sourceId}`,
-        { shouldWorkflowFail: false },
+    return await activityWrapper(async () => {
+      this.logger.debug(`Getting download data for syncflow: ${syncflow.id}`);
+      const dataSource = await this.dataSourceRepository.getById(
+        syncflow.sourceId,
       );
-    }
-    const provider = await this.dataProviderRepository.getById(
-      dataSource.provider.id,
-    );
-    if (!provider) {
-      throw new UnacceptableActivityError(
-        `DataProvider not found: ${dataSource.provider.id}`,
-        { shouldWorkflowFail: false },
+      if (!dataSource) {
+        throw new UnacceptableActivityError(
+          `DataSource not found: ${syncflow.sourceId}`,
+          { shouldWorkflowFail: false },
+        );
+      }
+      const provider = await this.dataProviderRepository.getById(
+        dataSource.provider.id,
       );
-    }
-    const config = dataSource.config as GoogleSheetsDataSourceConfig;
-    const syncflowState = syncflow.state as GoogleSheetsFullSyncState;
-    const providerState = provider.state as GoogleSheetsProviderState;
+      if (!provider) {
+        throw new UnacceptableActivityError(
+          `DataProvider not found: ${dataSource.provider.id}`,
+          { shouldWorkflowFail: false },
+        );
+      }
+      const config = dataSource.config as GoogleSheetsDataSourceConfig;
+      const syncflowState = syncflow.state as GoogleSheetsFullSyncState;
+      const providerState = provider.state as GoogleSheetsProviderState;
 
-    const result = {
-      dataSourceId: syncflow.sourceId,
-      dataProviderId: dataSource.provider.id,
-      providerDownloadedAt: providerState?.downloadedAt,
-      downloadedAt: syncflowState.downloadedAt,
-      ingestedAt: syncflowState.ingestedAt,
-      spreadsheetId: config.spreadsheetId,
-      sheetId: config.sheetId,
-      refreshToken: config.auth.refreshToken,
-    };
-    return result;
+      const result = {
+        dataSourceId: syncflow.sourceId,
+        dataProviderId: dataSource.provider.id,
+        providerDownloadedAt: providerState?.downloadedAt,
+        downloadedAt: syncflowState.downloadedAt,
+        ingestedAt: syncflowState.ingestedAt,
+        spreadsheetId: config.spreadsheetId,
+        sheetId: config.sheetId,
+        refreshToken: config.auth.refreshToken,
+      };
+      return result;
+    });
   }
 
   async getDataSourceProviderGoogleSheets(dataSourceId: DataSourceId) {
-    this.logger.debug(`Getting data provider for datasource: ${dataSourceId}`);
-    const dataSource = await this.dataSourceRepository.getById(dataSourceId, {
-      select: ['provider'],
+    return await activityWrapper(async () => {
+      this.logger.debug(
+        `Getting data provider for datasource: ${dataSourceId}`,
+      );
+      const dataSource = await this.dataSourceRepository.getById(dataSourceId, {
+        select: ['provider'],
+      });
+      return dataSource.provider;
     });
-    return dataSource.provider;
   }
 
   async getSpreadSheetDataGoogleSheets(data: {
     spreadsheetId: string;
     refreshToken: string;
   }) {
-    const client = await this.googleService.createAuthClient(data.refreshToken);
-    const res = await this.googleSheetsService.getSpreadSheets({
-      client,
-      spreadsheetId: data.spreadsheetId,
-      fields: [
-        'sheets.properties.sheetId',
-        'sheets.properties.index',
-        'sheets.properties.title',
-        'properties.timeZone',
-      ],
-    });
-    const timeZone = res.properties.timeZone;
-    const sheets: {
-      [sheetId: string]: {
-        name: string;
-        index: number;
-      };
-    } = {};
-    if (res.sheets) {
-      res.sheets.forEach((sheet) => {
-        sheets[sheet.properties.sheetId.toString()] = {
-          name: sheet.properties.title,
-          index: sheet.properties.index,
-        };
+    return await activityWrapper(async () => {
+      const client = await this.googleService.createAuthClient(
+        data.refreshToken,
+      );
+      const res = await this.googleSheetsService.getSpreadSheets({
+        client,
+        spreadsheetId: data.spreadsheetId,
+        fields: [
+          'sheets.properties.sheetId',
+          'sheets.properties.index',
+          'sheets.properties.title',
+          'properties.timeZone',
+        ],
       });
-    }
-    return {
-      timeZone,
-      sheets,
-    };
+      const timeZone = res.properties.timeZone;
+      const sheets: {
+        [sheetId: string]: {
+          name: string;
+          index: number;
+        };
+      } = {};
+      if (res.sheets) {
+        res.sheets.forEach((sheet) => {
+          sheets[sheet.properties.sheetId.toString()] = {
+            name: sheet.properties.title,
+            index: sheet.properties.index,
+          };
+        });
+      }
+      return {
+        timeZone,
+        sheets,
+      };
+    });
   }
 
   async updateProviderStateGoogleSheets(
     id: ProviderId,
     data: GoogleSheetsProviderState,
   ) {
-    const dataProvider = await this.dataProviderRepository.getById(id);
-    if (!dataProvider) {
-      throw new UnacceptableActivityError(`DataProvider not found: ${id}`, {
-        shouldWorkflowFail: false,
-      });
-    }
-    await this.dataProviderRepository.updateState(id, data);
+    return await activityWrapper(async () => {
+      const dataProvider = await this.dataProviderRepository.getById(id);
+      if (!dataProvider) {
+        throw new UnacceptableActivityError(`DataProvider not found: ${id}`, {
+          shouldWorkflowFail: false,
+        });
+      }
+      await this.dataProviderRepository.updateState(id, data);
+    });
   }
 
   async getSyncDataGoogleSheets(syncflow: Syncflow) {
-    this.logger.debug(`Getting sync data for syncflow: ${syncflow.id}`);
-    const dataSource = await this.dataSourceRepository.getById(
-      syncflow.sourceId,
-    );
-    if (!dataSource) {
-      throw new UnacceptableActivityError(
-        `DataSource not found: ${syncflow.sourceId}`,
-        { shouldWorkflowFail: false },
+    return await activityWrapper(async () => {
+      this.logger.debug(`Getting sync data for syncflow: ${syncflow.id}`);
+      const dataSource = await this.dataSourceRepository.getById(
+        syncflow.sourceId,
       );
-    }
-    const dataProvider = await this.dataProviderRepository.getById(
-      dataSource.provider.id,
-    );
-    if (!dataProvider) {
-      throw new UnacceptableActivityError(
-        `DataProvider not found: ${dataSource.provider.id}`,
-        { shouldWorkflowFail: false },
+      if (!dataSource) {
+        throw new UnacceptableActivityError(
+          `DataSource not found: ${syncflow.sourceId}`,
+          { shouldWorkflowFail: false },
+        );
+      }
+      const dataProvider = await this.dataProviderRepository.getById(
+        dataSource.provider.id,
       );
-    }
-    const config = dataSource.config as GoogleSheetsDataSourceConfig;
-    const syncflowState = syncflow.state as GoogleSheetsFullSyncState;
+      if (!dataProvider) {
+        throw new UnacceptableActivityError(
+          `DataProvider not found: ${dataSource.provider.id}`,
+          { shouldWorkflowFail: false },
+        );
+      }
+      const config = dataSource.config as GoogleSheetsDataSourceConfig;
+      const syncflowState = syncflow.state as GoogleSheetsFullSyncState;
 
-    const result = {
-      dataProviderState: dataProvider.state as GoogleSheetsProviderState,
-      dataProviderId: dataSource.provider.id,
-      dataSourceId: syncflow.sourceId,
-      syncVersion: syncflowState.version,
-      prevVersion: syncflowState.prevVersion,
-      downloadedAt: syncflowState.downloadedAt,
-      spreadsheetId: config.spreadsheetId,
-      sheetId: config.sheetId,
-      refreshToken: config.auth.refreshToken,
-      destTableName: config.dest?.tableName || `_${dataSource.id}`,
-      metadata: null,
-    };
-    if (syncflow.state.prevVersion === 0) {
-      result.metadata = dataSource.metadata;
-    }
-    return result;
+      const result = {
+        dataProviderState: dataProvider.state as GoogleSheetsProviderState,
+        dataProviderId: dataSource.provider.id,
+        dataSourceId: syncflow.sourceId,
+        syncVersion: syncflowState.version,
+        prevVersion: syncflowState.prevVersion,
+        downloadedAt: syncflowState.downloadedAt,
+        spreadsheetId: config.spreadsheetId,
+        sheetId: config.sheetId,
+        refreshToken: config.auth.refreshToken,
+        destTableName: config.dest?.tableName || `_${dataSource.id}`,
+        metadata: null,
+      };
+      if (syncflow.state.prevVersion === 0) {
+        result.metadata = dataSource.metadata;
+      }
+      return result;
+    });
   }
 
   async downloadGoogleSheets(data: {
