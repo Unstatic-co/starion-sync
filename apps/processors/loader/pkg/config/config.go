@@ -37,6 +37,9 @@ type IAppConfig struct {
 	DbPassword string `env:"DB_PASSWORD" envDefault:"abc123456"`
 	DbName     string `env:"DB_NAME" envDefault:"starion-sync"`
 	DbSslMode  string `env:"DB_SSL_MODE" envDefault:"disable"`
+
+	// Postgres loader
+	PostgrestInsertBactchSize int `env:"POSTGRES_INSERT_BATCH_SIZE" envDefault:"1000"`
 }
 
 var AppConfig = &IAppConfig{}

@@ -712,7 +712,7 @@ func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *service.LoaderData) err
         return nil
     }
 
-	batchSize := 1000
+	batchSize := config.AppConfig.PostgrestInsertBactchSize
 	rowQuantity := len(data.AddedRows.Rows)
 
     log.Debug("Inserting data")
