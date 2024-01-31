@@ -334,6 +334,10 @@ resource "google_cloud_run_service" "loader" {
           name  = "S3_SSL"
           value = "true"
         }
+        env {
+          name  = "RESTART"
+          value = "false"
+        }
       }
       timeout_seconds       = 310
       container_concurrency = 5

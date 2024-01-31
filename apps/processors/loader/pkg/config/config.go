@@ -16,7 +16,7 @@ type IAppConfig struct {
 	IsProduction bool   `env:"PRODUCTION" envDefault:"false"`
 	Port         int    `env:"PORT" envDefault:"8080"`
 	ReadTimeout  int    `env:"READ_TIMEOUT" envDefault:"30"`
-	WriteTimeout int    `env:"WRITE_TIMEOUT" envDefault:"360"`
+	WriteTimeout int    `env:"WRITE_TIMEOUT" envDefault:"900"`
 	LogLevel     string `env:"LOG_LEVEL" envDefault:"debug"`
 	ApiKeys      string `env:"API_KEYS" envDefault:"api-keys"`
 
