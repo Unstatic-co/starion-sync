@@ -705,62 +705,74 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *service.LoaderData) 
 }
 
 func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *service.LoaderData) error {
-	log.Info("Loading added rows to postgres, count: ", len(data.AddedRows.Rows))
+    log.Info("Loading added rows to postgres, count: ", len(data.AddedRows.Rows))
 
-	if len(data.AddedRows.Rows) == 0 {
-		log.Info("No added rows to load")
-		return nil
-	}
+    if len(data.AddedRows.Rows) == 0 {
+        log.Info("No added rows to load")
+        return nil
+    }
 
-	log.Debug("Inserting data")
-	query := pq.CopyIn(l.tableName, string(name.IdColumn), string(name.TableDataDataColumn))
-	log.Debug("Query: ", query)
-	stmt, err := txn.Prepare(query)
-	if err != nil {
-		log.Debug("Error when preparing statement: ", err)
-		return err
-	}
-	defer stmt.Close()
-	for _, row := range data.AddedRows.Rows {
-		dataInsert := make(map[string]interface{}, len(data.AddedRows.Fields))
-		var id string
-		isRowHasError := false
-		for index, field := range data.AddedRows.Fields {
-			fieldData := row[index]
-			if field == schema.HashedPrimaryField {
-				id = fieldData.(string)
-			}
-			dataInsert[field] = fieldData
-			if fieldData == schema.ErrorValue && !isRowHasError {
-				isRowHasError = true
-			}
-		}
-		if isRowHasError {
-			l.addRowError(id)
-		}
-		dataInsertJson, err := jsoniter.MarshalToString(dataInsert)
-		if err != nil {
-			log.Error("Error when marshaling data: ", err)
-			return err
-		}
-		_, err = stmt.Exec(id, dataInsertJson)
-		if err != nil {
-			log.Debug("Error when inserting data: ", err)
-			return err
-		}
-	}
-	_, err = stmt.Exec()
-	if err != nil {
-		return err
-	}
-	err = stmt.Close()
-	if err != nil {
-		return err
-	}
+	batchSize := 1000
+	rowQuantity := len(data.AddedRows.Rows)
 
-	log.Info("Loaded added rows to postgres")
+    log.Debug("Inserting data")
+    query := pq.CopyIn(l.tableName, string(name.IdColumn), string(name.TableDataDataColumn))
+    log.Debug("Query: ", query)
 
-	return nil
+    for i := 0; i < rowQuantity; i += batchSize {
+        stmt, err := txn.Prepare(query)
+        if err != nil {
+            log.Debug("Error when preparing statement: ", err)
+            return err
+        }
+        defer stmt.Close()
+
+        end := i + batchSize
+        if end > rowQuantity {
+            end = rowQuantity
+        }
+
+        for _, row := range data.AddedRows.Rows[i:end] {
+            dataInsert := make(map[string]interface{}, len(data.AddedRows.Fields))
+            var id string
+            isRowHasError := false
+            for index, field := range data.AddedRows.Fields {
+                fieldData := row[index]
+                if field == schema.HashedPrimaryField {
+                    id = fieldData.(string)
+                }
+                dataInsert[field] = fieldData
+                if fieldData == schema.ErrorValue && !isRowHasError {
+                    isRowHasError = true
+                }
+            }
+            if isRowHasError {
+                l.addRowError(id)
+            }
+            dataInsertJson, err := jsoniter.MarshalToString(dataInsert)
+            if err != nil {
+                log.Error("Error when marshaling data: ", err)
+                return err
+            }
+            _, err = stmt.Exec(id, dataInsertJson)
+            if err != nil {
+                log.Debug("Error when inserting data: ", err)
+                return err
+            }
+        }
+        _, err = stmt.Exec()
+        if err != nil {
+            return err
+        }
+        err = stmt.Close()
+        if err != nil {
+            return err
+        }
+    }
+
+    log.Info("Loaded added rows to postgres")
+
+    return nil
 }
 
 func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *service.LoaderData) error {
