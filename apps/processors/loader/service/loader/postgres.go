@@ -62,6 +62,7 @@ var (
 	idempotencyTableColumns = map[name.TableColumn]string{
 		name.OperationColumn: "varchar(100) NOT NULL",
 		name.StatusColumn: fmt.Sprintf("varchar(20) DEFAULT '%[2]s'", commonName.RunningStatus, commonName.CompletedStatus),
+		name.MetadataColumn: "jsonb",
 	}
 )
 
@@ -207,6 +208,9 @@ type PostgreLoader struct {
 	rowErrorMap map[string]bool
 
 	dbConn *sql.DB
+
+	// result
+	result *service.LoadedResult
 }
 
 type PostgresAddRowData struct {
@@ -260,7 +264,8 @@ func (l *PostgreLoader) Load(ctx context.Context, getter *getter.Getter) (*servi
 	}
 	if isAlreadyLoaded {
 		log.Info("Already loaded")
-		return nil, nil
+		l.getSavedResult(txn)
+		return l.result, nil
 	}
 
 	// get load data
@@ -324,6 +329,8 @@ func (l *PostgreLoader) Load(ctx context.Context, getter *getter.Getter) (*servi
 		}
 	}
 
+	l.result = CaculateLoadedResult(data)
+
 	err = l.markAsLoadedAndRemovePreviousMark(txn)
 
 	err = txn.Commit()
@@ -332,11 +339,7 @@ func (l *PostgreLoader) Load(ctx context.Context, getter *getter.Getter) (*servi
 		return nil, l.checkAndMappingError(err)
 	}
 
-	return &service.LoadedResult{
-		AddedRowsCount:   len(data.AddedRows.Rows),
-		DeletedRowsCount: len(data.DeletedRows),
-		IsSchemaChanged:  IsSchemaChanged(data.SchemaChanges),
-	}, nil
+	return l.result, nil
 }
 
 func (l *PostgreLoader) setTimezone(txn *sql.Tx) error {
@@ -420,15 +423,22 @@ func (l *PostgreLoader) waitForCurrentlyLoading(txn *sql.Tx) error {
 func (l *PostgreLoader) markAsLoadedAndRemovePreviousMark(txn *sql.Tx) error {
 	var eg errgroup.Group
 
+	metadata, err := jsoniter.MarshalToString(l.result)
+	if err != nil {
+		return fmt.Errorf("error when marshaling load metadata: %w", err)
+	}
+
 	// Mark as loaded
 	eg.Go(func() error {
 		query := fmt.Sprintf(
-			"INSERT INTO %s (%s, %s) VALUES ('%s', '%s')",
+			"INSERT INTO %s (%s, %s, %s) VALUES ('%s', '%s', '%s'::jsonb)",
 			name.IdempotencyTable,
 			name.OperationColumn,
 			name.StatusColumn,
+			name.MetadataColumn,
 			l.getLoaderOperationName(l.SyncVersion),
 			commonName.CompletedStatus,
+			metadata,
 		)
 		_, err := txn.Exec(query)
 		if err != nil {
@@ -456,6 +466,26 @@ func (l *PostgreLoader) markAsLoadedAndRemovePreviousMark(txn *sql.Tx) error {
 		return err
 	}
 
+	return nil
+}
+
+func (l *PostgreLoader) getSavedResult(txn *sql.Tx) error {
+	var metadata string
+	query := fmt.Sprintf(
+		"SELECT %s FROM %s WHERE %s = '%s'",
+		name.MetadataColumn,
+		name.IdempotencyTable,
+		name.OperationColumn,
+		l.getLoaderOperationName(l.SyncVersion),
+	)
+	err := txn.QueryRow(query).Scan(&metadata)
+	if err != nil {
+		return err
+	}
+	err = jsoniter.UnmarshalFromString(metadata, &l.result)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
