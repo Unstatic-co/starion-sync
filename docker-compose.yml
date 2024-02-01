@@ -317,6 +317,7 @@ services:
       # - DB_NAME=starion-sync
       # - DB_SSL_MODE=disable
       - DB_URI=${DEST_DB_URI}
+      - POSTGRES_INSERT_BATCH_SIZE=${POSTGRES_INSERT_BATCH_SIZE}
   #--------------------------------- TRIGGERS --------------------------------------#
   cron-trigger:
     depends_on:

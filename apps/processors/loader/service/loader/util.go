@@ -16,3 +16,11 @@ func IsDataChanged(data *service.LoaderData) bool {
 		len(data.UpdatedFields) > 0 ||
 		len(data.DeletedFields) > 0
 }
+
+func CaculateLoadedResult(loadData *service.LoaderData) *service.LoadedResult {
+	return &service.LoadedResult{
+		AddedRowsCount:   len(loadData.AddedRows.Rows),
+		DeletedRowsCount: len(loadData.DeletedRows),
+		IsSchemaChanged:  IsSchemaChanged(loadData.SchemaChanges),
+	}
+}

@@ -8,6 +8,7 @@ import {
 import { WebhookServiceFactory } from './webhook.factory';
 import { BullModule } from '@nestjs/bull';
 import { QUEUES } from '../../common/queues';
+import { WebhookController } from './webhook.controller';
 
 export const WebhookProviders = [
   GoogleSheetsWebhookService,
@@ -18,14 +19,14 @@ export const WebhookProviders = [
   imports: [
     BullModule.registerQueue({
       name: QUEUES.GOOGLE_SHEETS_WEBHOOK_REFRESH,
-      defaultJobOptions: { removeOnComplete: true, removeOnFail: true }
+      defaultJobOptions: { removeOnComplete: true, removeOnFail: true },
     }),
     ConfigModule,
     RepositoryModule.registerAsync(),
     GoogleModule,
   ],
-  controllers: [],
+  controllers: [WebhookController],
   providers: [...WebhookProviders, WebhookServiceFactory],
   exports: [...WebhookProviders, WebhookServiceFactory],
 })
-export class WebhookModule { }
+export class WebhookModule {}

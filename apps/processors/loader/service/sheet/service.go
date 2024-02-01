@@ -7,7 +7,6 @@ import (
 	"loader/service/getter"
 	"loader/service/loader"
 	"loader/util/s3"
-	"os"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -29,9 +28,6 @@ type SheetService struct {
 	tableName    string
 	metadata     interface{}
 
-	// loger
-	logger *log.Entry
-
 	// s3
 	s3DiffDataHandler *s3.S3Handler
 }
@@ -43,17 +39,6 @@ func NewService(params SheetServiceInitParams) (*SheetService, error) {
 	s.prevVersion = params.PrevVersion
 	s.tableName = params.TableName
 	s.metadata = params.Metadata
-
-	// logger
-	logger := log.New()
-	logger.SetOutput(os.Stdout)
-	logger.SetFormatter(&log.JSONFormatter{})
-	logger.SetLevel(log.DebugLevel)
-	loggerEntry := logger.WithFields(log.Fields{
-		"dataSourceId": params.DataSourceId,
-		"syncVersion":  params.SyncVersion,
-	})
-	s.logger = loggerEntry
 
 	// s3
 	handler, err := s3.NewHandlerWithConfig(&s3.S3HandlerConfig{
@@ -73,7 +58,7 @@ func NewService(params SheetServiceInitParams) (*SheetService, error) {
 }
 
 func (s *SheetService) Load(ctx context.Context) (*service.LoadedResult, error) {
-	s.logger.Info("Start load data")
+	log.Info("Start load data")
 
 	// create getter
 	getter, err := getter.NewGetter(getter.GetterInitParams{
@@ -87,7 +72,7 @@ func (s *SheetService) Load(ctx context.Context) (*service.LoadedResult, error) 
 	}
 
 	// execute loader
-	s.logger.Debug("Executing loader")
+	log.Debug("Executing loader")
 	loaderInstance, err := loader.NewDefaultLoader(service.LoaderParams{
 		DataSourceId: s.dataSourceId,
 		SyncVersion:  s.syncVersion,
@@ -95,18 +80,18 @@ func (s *SheetService) Load(ctx context.Context) (*service.LoadedResult, error) 
 		TableName:    s.tableName,
 	})
 	if err != nil {
-		s.logger.Error("Error when creating loader: ", err)
+		log.Error("Error when creating loader: ", err)
 		return nil, err
 	}
 	defer loaderInstance.Close()
 	loadResult, err := loaderInstance.Load(ctx, getter)
 	if err != nil {
-		s.logger.Error("Error when loading data: ", err)
+		log.Error("Error when loading data: ", err)
 		return nil, err
 	}
 
 	// caculate statistic
-	s.logger.Debug("Caculating statistic")
+	log.Debug("Caculating statistic")
 
 	return loadResult, nil
 }
