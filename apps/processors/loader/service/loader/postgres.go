@@ -27,7 +27,7 @@ import (
 
 var (
 	dataTableColumns = map[name.TableColumn]string{
-		name.IdColumn:            "text PRIMARY KEY NOT NULL",
+		name.IdColumn:            "uuid PRIMARY KEY NOT NULL",
 		name.TableDataDataColumn: "jsonb",
 		name.MetadataColumn:      "jsonb",
 		name.CreatedAtColumn:     "timestamptz DEFAULT NOW() NOT NULL",
@@ -207,6 +207,11 @@ type PostgreLoader struct {
 	rowErrorMap map[string]bool
 
 	dbConn *sql.DB
+}
+
+type PostgresAddRowData struct {
+	RowId string
+	Data  *string // json
 }
 
 func (l *PostgreLoader) Setup() error {
@@ -712,63 +717,77 @@ func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *service.LoaderData) err
         return nil
     }
 
-	batchSize := config.AppConfig.PostgrestInsertBactchSize
-	rowQuantity := len(data.AddedRows.Rows)
+	pipelineSize := 5000
 
     log.Debug("Inserting data")
     query := pq.CopyIn(l.tableName, string(name.IdColumn), string(name.TableDataDataColumn))
     log.Debug("Query: ", query)
 
-    for i := 0; i < rowQuantity; i += batchSize {
-        stmt, err := txn.Prepare(query)
-        if err != nil {
-            log.Debug("Error when preparing statement: ", err)
-            return err
-        }
-        defer stmt.Close()
+	marshaledChan := make(chan PostgresAddRowData, pipelineSize)
 
-        end := i + batchSize
-        if end > rowQuantity {
-            end = rowQuantity
-        }
+	group, _ := errgroup.WithContext(context.Background())
+	group.Go(func() error {
+		for _, row := range data.AddedRows.Rows {
+			dataInsert := make(map[string]interface{}, len(data.AddedRows.Fields))
+			var insertRowObject PostgresAddRowData
+			isRowHasError := false
+			for index, field := range data.AddedRows.Fields {
+				fieldData := row[index]
+				if field == schema.HashedPrimaryField {
+					insertRowObject.RowId = fieldData.(string)
+				}
+				dataInsert[field] = fieldData
+				if fieldData == schema.ErrorValue && !isRowHasError {
+					isRowHasError = true
+				}
+			}
+			if isRowHasError {
+				l.addRowError(insertRowObject.RowId)
+			}
+			dataInsertJson, err := jsoniter.MarshalToString(dataInsert)
+			if err != nil {
+				log.Error("Error when marshaling data: ", err)
+				return err
+			}
+			insertRowObject.Data = &dataInsertJson
+			marshaledChan <- insertRowObject
+		}
+		close(marshaledChan)
+		return nil
+	})
+	group.Go(func() error {
+		stmt, err := txn.Prepare(query)
+		if err != nil {
+			log.Debug("Error when preparing statement: ", err)
+			return err
+		}
+		defer stmt.Close()
 
-        for _, row := range data.AddedRows.Rows[i:end] {
-            dataInsert := make(map[string]interface{}, len(data.AddedRows.Fields))
-            var id string
-            isRowHasError := false
-            for index, field := range data.AddedRows.Fields {
-                fieldData := row[index]
-                if field == schema.HashedPrimaryField {
-                    id = fieldData.(string)
-                }
-                dataInsert[field] = fieldData
-                if fieldData == schema.ErrorValue && !isRowHasError {
-                    isRowHasError = true
-                }
-            }
-            if isRowHasError {
-                l.addRowError(id)
-            }
-            dataInsertJson, err := jsoniter.MarshalToString(dataInsert)
-            if err != nil {
-                log.Error("Error when marshaling data: ", err)
-                return err
-            }
-            _, err = stmt.Exec(id, dataInsertJson)
-            if err != nil {
-                log.Debug("Error when inserting data: ", err)
-                return err
-            }
-        }
-        _, err = stmt.Exec()
-        if err != nil {
-            return err
-        }
-        err = stmt.Close()
-        if err != nil {
-            return err
-        }
-    }
+		for addRowData := range marshaledChan {
+			_, err = stmt.Exec(addRowData.RowId, *addRowData.Data)
+			if err != nil {
+				log.Debug("Error when prepare data: ", err)
+				return err
+			}
+		}
+		log.Debug("Executing load statement")
+		_, err = stmt.Exec()
+		if err != nil {
+			log.Debug("Error when inserting data: ", err)
+			return err
+		}
+		err = stmt.Close()
+		if err != nil {
+			log.Debug("Error when closing statement: ", err)
+			return err
+		}
+		return nil
+	})
+
+	err := group.Wait()
+	if err != nil {
+		return err
+	}
 
     log.Info("Loaded added rows to postgres")
 
