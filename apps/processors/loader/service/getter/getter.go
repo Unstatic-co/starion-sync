@@ -37,6 +37,7 @@ func NewGetter(params GetterInitParams) (*Getter, error) {
 	g.dataSourceId = params.DataSourceId
 	g.syncVersion = params.SyncVersion
 	g.prevVersion = params.PrevVersion
+	g.metadata = params.Metadata
 
 	// s3
 	handler, err := s3.NewHandlerWithConfig(&s3.S3HandlerConfig{
