@@ -74,6 +74,24 @@ variable "orchestrator_address" {
   sensitive = true
 }
 
+variable "orchestrator_namespace" {
+  type = string
+}
+
+variable "orchestrator_tls_enabled" {
+  type = bool
+}
+
+variable "orchestrator_client_cert" {
+  type      = string
+  sensitive = true
+}
+
+variable "orchestrator_client_key" {
+  type      = string
+  sensitive = true
+}
+
 variable "broker_uris" {
   type      = string
   sensitive = true

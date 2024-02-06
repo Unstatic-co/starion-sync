@@ -6,13 +6,20 @@ import (
 	"fmt"
 	"loader/libs/schema"
 	"loader/pkg/config"
+	"loader/service"
+	"loader/service/getter"
+	commonName "loader/service/loader/namespace"
 	name "loader/service/loader/namespace/postgres"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	pq "github.com/lib/pq"
 	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -21,11 +28,12 @@ import (
 
 var (
 	dataTableColumns = map[name.TableColumn]string{
-		name.IdColumn:            "text PRIMARY KEY NOT NULL",
+		name.IdColumn:            "uuid PRIMARY KEY NOT NULL",
 		name.TableDataDataColumn: "jsonb",
 		name.MetadataColumn:      "jsonb",
 		name.CreatedAtColumn:     "timestamptz DEFAULT NOW() NOT NULL",
 		name.UpdatedAtColumn:     "timestamptz DEFAULT NOW() NOT NULL",
+		name.IsDeletedColumn:     "boolean DEFAULT false NOT NULL",
 	}
 	schemaTableColumns = map[name.TableColumn]string{
 		name.IdColumn:           "serial PRIMARY KEY NOT NULL",
@@ -52,6 +60,11 @@ var (
 		name.MetadataColumn:     "jsonb",
 		name.CreatedAtColumn:    "timestamptz DEFAULT NOW() NOT NULL",
 		name.UpdatedAtColumn:    "timestamptz DEFAULT NOW() NOT NULL",
+	}
+	idempotencyTableColumns = map[name.TableColumn]string{
+		name.OperationColumn: "varchar(100) NOT NULL",
+		name.StatusColumn: fmt.Sprintf("varchar(20) DEFAULT '%[2]s'", commonName.RunningStatus, commonName.CompletedStatus),
+		name.MetadataColumn: "jsonb",
 	}
 )
 
@@ -106,9 +119,10 @@ func setupPostgresDbLoader() error {
 	}
 	query := fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s (%s);
-		CREATE INDEX IF NOT EXISTS idx_data_source_id ON %[1]s (data_source_id)`,
+		CREATE INDEX IF NOT EXISTS idx_data_source_id ON %[1]s (%[3]s)`,
 		name.SchemaTable,
 		strings.Join(columns, ","),
+		name.DataSourceIdColumn,
 	)
 	log.Debug("Query: ", query)
 	_, err = dbConn.Exec(query)
@@ -132,6 +146,25 @@ func setupPostgresDbLoader() error {
 		return err
 	}
 
+	// create idempotency table
+	columns = make([]string, 0, len(idempotencyTableColumns))
+	for colName, colType := range idempotencyTableColumns {
+		columns = append(columns, fmt.Sprintf("%s %s", colName, colType))
+	}
+	query = fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s (%s);
+		CREATE INDEX IF NOT EXISTS idx_operation ON %[1]s (%[3]s)`,
+		name.IdempotencyTable,
+		strings.Join(columns, ","),
+		name.OperationColumn,
+	)
+	log.Debug("Query: ", query)
+	_, err = dbConn.Exec(query)
+	if err != nil {
+		return err
+	}
+
+
 	log.Info("Initialized schema tables")
 
 	log.Info("Initialized postgres")
@@ -143,8 +176,9 @@ func setupPostgresDbLoader() error {
 func formatVariableToPostgresStatementValue(a interface{}) string {
 	switch v := a.(type) {
 	case string:
-		r := strings.NewReplacer("'", "''", "\"", "\\\"")
-		return fmt.Sprintf("\"%s\"", r.Replace(v))
+		// r := strings.NewReplacer("'", "''", "\"", "\\\"")
+		r := strings.NewReplacer("'", "''")
+		return r.Replace(strconv.Quote(v))
 	case nil:
 		return "null"
 	default:
@@ -176,10 +210,32 @@ type PostgreLoader struct {
 	rowErrorMap map[string]bool
 
 	dbConn *sql.DB
+
+	// loger
+	logger *log.Entry
+
+	// result
+	result *service.LoadedResult
+}
+
+type PostgresAddRowData struct {
+	RowId string
+	Data  *string // json
 }
 
 func (l *PostgreLoader) Setup() error {
 	log.Debug("Setting up postgres loader")
+
+	// logger
+	logger := log.New()
+	logger.SetOutput(os.Stdout)
+	logger.SetFormatter(&log.JSONFormatter{})
+	logger.SetLevel(log.DebugLevel)
+	loggerEntry := logger.WithFields(log.Fields{
+		"dataSourceId": l.DatasourceId,
+		// "syncVersion":  l.SyncVersion,
+	})
+	l.logger = loggerEntry
 
 	dbConn, err := getPostgresDbConnection()
 	if err != nil {
@@ -201,70 +257,104 @@ func (l *PostgreLoader) Close() error {
 	return nil
 }
 
-func (l *PostgreLoader) Load(ctx context.Context, data *LoaderData) error {
-	log.Info("Loading data to postgres")
+func (l *PostgreLoader) Load(ctx context.Context, getter *getter.Getter) (*service.LoadedResult, error) {
+	l.logger.Info("Loading data to postgres")
+
+	// init transaction
 	txn, err := l.dbConn.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelReadCommitted,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer txn.Rollback()
 
+	err = l.waitForCurrentlyLoading(txn)
+	if err != nil {
+		return nil, err
+	}
+
+	isAlreadyLoaded, err := l.checkIsAlreadyLoadedInTransaction(txn)
+	if err != nil {
+		return nil, err
+	}
+	if isAlreadyLoaded {
+		l.logger.Info("Already loaded")
+		l.getSavedResult(txn)
+		return l.result, nil
+	}
+
+	// get load data
+	l.logger.Info("Getting diff data")
+	data, err := getter.GetLoadData()
+	if err != nil {
+		l.logger.Error("Error when getting diff data: ", err)
+		return nil, err
+	}
 	l.setTimezone(txn)
 
 	if l.PrevVersion == 0 {
 		err := l.loadSchema(txn, data)
 		if err != nil {
-			return err
+			return nil, l.checkAndMappingError(err)
 		}
 		err = l.initTable(txn, data)
 		if err != nil {
-			return err
+			return nil, l.checkAndMappingError(err)
 		}
 		err = l.loadAddedRows(txn, data)
 		if err != nil {
-			return err
+			return nil, l.checkAndMappingError(err)
+		}
+		err = l.loadRowErrorMetadata(txn)
+		if err != nil {
+			return nil, l.checkAndMappingError(err)
 		}
 	} else {
 		err := l.loadSchemaChange(txn, data)
 		if err != nil {
-			return err
+			return nil, l.checkAndMappingError(err)
 		}
-		err = l.loadRemovedRows(txn, data)
-		if err != nil {
-			return err
-		}
-		err = l.loadAddedRows(txn, data)
-		if err != nil {
-			return err
-		}
-		err = l.loadUpdateFields(txn, data)
-		if err != nil {
-			return err
-		}
-		err = l.loadAddedFields(txn, data)
-		if err != nil {
-			return err
-		}
-		err = l.loadDeletedFields(txn, data)
-		if err != nil {
-			return err
+
+		if IsDataChanged(data) {
+			err = l.loadRemovedRows(txn, data)
+			if err != nil {
+				return nil, l.checkAndMappingError(err)
+			}
+			err = l.loadAddedRows(txn, data)
+			if err != nil {
+				return nil, l.checkAndMappingError(err)
+			}
+			err = l.loadUpdateFields(txn, data)
+			if err != nil {
+				return nil, l.checkAndMappingError(err)
+			}
+			err = l.loadAddedFields(txn, data)
+			if err != nil {
+				return nil, l.checkAndMappingError(err)
+			}
+			err = l.loadDeletedFields(txn, data)
+			if err != nil {
+				return nil, l.checkAndMappingError(err)
+			}
+			err = l.loadRowErrorMetadata(txn)
+			if err != nil {
+				return nil, l.checkAndMappingError(err)
+			}
 		}
 	}
 
-	err = l.loadRowErrorMetadata(txn)
-	if err != nil {
-		return err
-	}
+	l.result = CaculateLoadedResult(data)
+
+	err = l.markAsLoadedAndRemovePreviousMark(txn)
 
 	err = txn.Commit()
 	if err != nil {
 		txn.Rollback()
-		return err
+		return nil, l.checkAndMappingError(err)
 	}
 
-	return nil
+	return l.result, nil
 }
 
 func (l *PostgreLoader) setTimezone(txn *sql.Tx) error {
@@ -277,45 +367,190 @@ func (l *PostgreLoader) setTimezone(txn *sql.Tx) error {
 	return nil
 }
 
+func (l *PostgreLoader) getLoaderOperationName(syncVersion uint) string {
+	return fmt.Sprintf("load-%s-%d", l.DatasourceId, syncVersion)
+}
+
 func (l *PostgreLoader) addRowError(rowId string) {
 	if _, ok := l.rowErrorMap[rowId]; !ok {
 		l.rowErrorMap[rowId] = true
 	}
 }
 
-func (l *PostgreLoader) initTable(txn *sql.Tx, data *LoaderData) error {
-	log.Info("Initilizing table")
+func (l *PostgreLoader) checkIsAlreadyLoaded() (bool, error) {
+	var count int
+	query := fmt.Sprintf(
+		"SELECT COUNT(*) FROM %s WHERE %s = '%s' AND %s = '%s'",
+		name.IdempotencyTable,
+		name.OperationColumn,
+		l.getLoaderOperationName(l.SyncVersion),
+		name.StatusColumn,
+		commonName.CompletedStatus,
+	)
+	err := l.dbConn.QueryRow(query).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("error when checking already loaded: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (l *PostgreLoader) checkIsAlreadyLoadedInTransaction(txn *sql.Tx) (bool, error) {
+	var count int
+	query := fmt.Sprintf(
+		"SELECT COUNT(*) FROM %s WHERE %s = '%s' AND %s = '%s'",
+		name.IdempotencyTable,
+		name.OperationColumn,
+		l.getLoaderOperationName(l.SyncVersion),
+		name.StatusColumn,
+		commonName.CompletedStatus,
+	)
+	err := txn.QueryRow(query).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("error when checking already loaded in transaction: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (l *PostgreLoader) waitForCurrentlyLoading(txn *sql.Tx) error {
+	for {
+		var isAcquiredLock bool
+		query := fmt.Sprintf(
+			"SELECT pg_try_advisory_xact_lock(hashtext('%s'))",
+			l.getLoaderOperationName(l.SyncVersion),
+		)
+		err := txn.QueryRow(query).Scan(&isAcquiredLock)
+		if err != nil {
+			return fmt.Errorf("error when acquiring lock: %w", err)
+		}
+		if isAcquiredLock {
+			l.logger.Debug("Not currently loading")
+			break
+		} else {
+			l.logger.Debug("Currently loading, wait for 10 seconds")
+			time.Sleep(10 * time.Second)
+		}
+	}
+
+
+	return nil
+}
+
+func (l *PostgreLoader) markAsLoadedAndRemovePreviousMark(txn *sql.Tx) error {
+	var eg errgroup.Group
+
+	metadata, err := jsoniter.MarshalToString(l.result)
+	if err != nil {
+		return fmt.Errorf("error when marshaling load metadata: %w", err)
+	}
+
+	// Mark as loaded
+	eg.Go(func() error {
+		query := fmt.Sprintf(
+			"INSERT INTO %s (%s, %s, %s) VALUES ('%s', '%s', '%s'::jsonb)",
+			name.IdempotencyTable,
+			name.OperationColumn,
+			name.StatusColumn,
+			name.MetadataColumn,
+			l.getLoaderOperationName(l.SyncVersion),
+			commonName.CompletedStatus,
+			metadata,
+		)
+		_, err := txn.Exec(query)
+		if err != nil {
+			return fmt.Errorf("error when marking as loaded: %w", err)
+		}
+		return nil
+	})
+
+	// Remove mark of previous version
+	eg.Go(func() error {
+		query := fmt.Sprintf(
+			"DELETE FROM %s WHERE %s = '%s'",
+			name.IdempotencyTable,
+			name.OperationColumn,
+			l.getLoaderOperationName(l.PrevVersion),
+		)
+		_, err := txn.Exec(query)
+		if err != nil {
+			return fmt.Errorf("error when removing mark of prev version: %w", err)
+		}
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *PostgreLoader) getSavedResult(txn *sql.Tx) error {
+	var metadata string
+	query := fmt.Sprintf(
+		"SELECT %s FROM %s WHERE %s = '%s'",
+		name.MetadataColumn,
+		name.IdempotencyTable,
+		name.OperationColumn,
+		l.getLoaderOperationName(l.SyncVersion),
+	)
+	err := txn.QueryRow(query).Scan(&metadata)
+	if err != nil {
+		return err
+	}
+	err = jsoniter.UnmarshalFromString(metadata, &l.result)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (l *PostgreLoader) checkAndMappingError(originalErr error) error {
+	// check for case of concurrent load
+	isAlreadyLoaded, err := l.checkIsAlreadyLoaded()
+	if err != nil {
+		return err
+	}
+	if isAlreadyLoaded {
+		l.logger.Info("Already loaded")
+		return nil
+	} else {
+		return originalErr
+	}
+}
+
+func (l *PostgreLoader) initTable(txn *sql.Tx, data *service.LoaderData) error {
+	l.logger.Info("Initilizing table")
 
 	fields := make([]string, 0, len(dataTableColumns))
 	for fieldName, fieldType := range dataTableColumns {
 		fields = append(fields, fmt.Sprintf("%s %s", fieldName, fieldType))
 	}
 	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS \"%s\" (%s)", l.tableName, strings.Join(fields, ","))
-	log.Debug("Query: ", query)
+	// l.logger.Debug("Query: ", query)
 	_, err := txn.Exec(query)
 	if err != nil {
 		return err
 	}
 
-	log.Info("Initialized table to postgres")
+	l.logger.Info("Initialized table to postgres")
 
 	return nil
 }
 
-func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
-	log.Info("Loading schema")
+func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *service.LoaderData) error {
+	l.logger.Info("Loading schema")
 
 	// get schema id if exists
 	var schemaId int
 	query := fmt.Sprintf(`SELECT id FROM %s WHERE %s = $1`, name.SchemaTable, name.DataSourceIdColumn)
-	log.Debug("Query: ", query)
+	// l.logger.Debug("Query: ", query)
 	err := txn.QueryRow(query, l.DatasourceId).Scan(&schemaId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// create schema
-			log.Info("Creating schema")
+			l.logger.Info("Creating schema")
 			query = fmt.Sprintf("INSERT INTO %s (%s) VALUES ($1) RETURNING id", name.SchemaTable, name.DataSourceIdColumn)
-			log.Debug("Query: ", query)
+			// l.logger.Debug("Query: ", query)
 			err = txn.QueryRow(query, l.DatasourceId).Scan(&schemaId)
 			if err != nil {
 				return err
@@ -332,7 +567,7 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
 					name.MetadataColumn, metadata,
 					name.IdColumn, schemaId,
 				)
-				log.Debug("Query: ", query)
+				// l.logger.Debug("Query: ", query)
 				_, err = txn.Exec(query)
 				if err != nil {
 					return err
@@ -344,7 +579,7 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
 	}
 
 	// create schema fields
-	log.Info("Creating schema fields")
+	l.logger.Info("Creating schema fields")
 	query = pq.CopyIn(
 		name.SchemaFieldTable,
 		name.HashedNameColumn,
@@ -357,10 +592,10 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
 		name.ReadonlyColumn,
 		name.IsPrimaryColumn,
 	)
-	log.Debug("Query: ", query)
+	// l.logger.Debug("Query: ", query)
 	stmt, err := txn.Prepare(query)
 	if err != nil {
-		log.Debug("Error when preparing statement: ", err)
+		l.logger.Debug("Error when preparing statement: ", err)
 		return err
 	}
 	defer stmt.Close()
@@ -371,7 +606,7 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
 		}
 		_, err = stmt.Exec(fieldId, schemaId, field.Name, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary)
 		if err != nil {
-			log.Debug("Error when inserting field: ", err)
+			l.logger.Debug("Error when inserting field: ", err)
 			return err
 		}
 	}
@@ -384,18 +619,18 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *LoaderData) error {
 		return err
 	}
 
-	log.Info("Loaded schema")
+	l.logger.Info("Loaded schema")
 
 	return nil
 }
 
-func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
-	log.Info("Loading schema changes")
+func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *service.LoaderData) error {
+	l.logger.Info("Loading schema changes")
 
 	// get schema id
 	var schemaId int
 	query := fmt.Sprintf("SELECT id FROM %s WHERE %s = $1", name.SchemaTable, name.DataSourceIdColumn)
-	log.Debug("Query: ", query)
+	// l.logger.Debug("Query: ", query)
 	err := txn.QueryRow(query, l.DatasourceId).Scan(&schemaId)
 	if err != nil {
 		return err
@@ -403,7 +638,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 
 	// deleted fields
 	if len(data.SchemaChanges.DeletedFields) > 0 {
-		log.Info("Deleting fields")
+		l.logger.Info("Deleting fields")
 		// delete from schema fields
 		query = fmt.Sprintf(
 			"DELETE FROM %s WHERE %s = %d AND %s IN ('%s')",
@@ -413,10 +648,10 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 			name.HashedNameColumn,
 			strings.Join(data.SchemaChanges.DeletedFields, "','"),
 		)
-		log.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
-			log.Error("Error when deleting fields: ", err)
+			l.logger.Error("Error when deleting fields: ", err)
 			return err
 		}
 		// delete from table data
@@ -431,17 +666,17 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 				}),
 				","),
 		)
-		log.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err = txn.Exec(query)
 		if err != nil {
-			log.Error("Error when deleting fields from table data: ", err)
+			l.logger.Error("Error when deleting fields from table data: ", err)
 			return err
 		}
 	}
 
 	// added fields
 	if len(data.SchemaChanges.AddedFields) > 0 {
-		log.Info("Adding schema fields")
+		l.logger.Info("Adding schema fields")
 		query = pq.CopyIn(
 			name.SchemaFieldTable,
 			name.HashedNameColumn,
@@ -454,10 +689,10 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 			name.ReadonlyColumn,
 			name.IsPrimaryColumn,
 		)
-		log.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		stmt, err := txn.Prepare(query)
 		if err != nil {
-			log.Debug("Error when preparing statement: ", err)
+			l.logger.Debug("Error when preparing statement: ", err)
 			return err
 		}
 		defer stmt.Close()
@@ -468,7 +703,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 			}
 			_, err = stmt.Exec(fieldId, schemaId, field.Name, field.Type, field.OriginalType, field.Nullable, enum, field.Readonly, field.Primary)
 			if err != nil {
-				log.Debug("Error when inserting field: ", err)
+				l.logger.Debug("Error when inserting field: ", err)
 				return err
 			}
 		}
@@ -484,7 +719,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 
 	// updated fields
 	if len(data.SchemaChanges.UpdatedFields) > 0 {
-		log.Info("Updating fields")
+		l.logger.Info("Updating fields")
 
 		for fieldId, field := range data.SchemaChanges.UpdatedFields {
 			enum, err := formatEnumToPostgresStatementValue(field.Enum)
@@ -505,84 +740,117 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *LoaderData) error {
 				name.SchemaIdColumn, schemaId,
 				name.HashedNameColumn, fieldId,
 			)
-			log.Debug("Query: ", query)
+			// l.logger.Debug("Query: ", query)
 			_, err = txn.Exec(query)
 			if err != nil {
-				log.Error("Error when updating fields: ", err)
+				l.logger.Error("Error when updating fields: ", err)
 				return err
 			}
 		}
 	}
 
-	log.Info("Loaded schema changes")
+	l.logger.Info("Loaded schema changes")
 
 	return nil
 }
 
-func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *LoaderData) error {
-	log.Info("Loading added rows to postgres, count: ", len(data.AddedRows.Rows))
+func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *service.LoaderData) error {
+    l.logger.Info("Loading added rows to postgres, count: ", len(data.AddedRows.Rows))
 
-	if len(data.AddedRows.Rows) == 0 {
-		log.Info("No added rows to load")
+    if len(data.AddedRows.Rows) == 0 {
+        l.logger.Info("No added rows to load")
+        return nil
+    }
+
+	pipelineSize := 5000
+
+    query := pq.CopyIn(l.tableName, string(name.IdColumn), string(name.TableDataDataColumn))
+    // l.logger.Debug("Query: ", query)
+
+	marshaledChan := make(chan PostgresAddRowData, pipelineSize)
+
+	group, _ := errgroup.WithContext(context.Background())
+	group.Go(func() error {
+		l.logger.Debug("Start marshaling data")
+		for _, row := range data.AddedRows.Rows {
+			dataInsert := make(map[string]interface{}, len(data.AddedRows.Fields))
+			var insertRowObject PostgresAddRowData
+			isRowHasError := false
+			for index, field := range data.AddedRows.Fields {
+				fieldData := row[index]
+				if field == schema.HashedPrimaryField {
+					insertRowObject.RowId = fieldData.(string)
+				}
+				dataInsert[field] = fieldData
+				if fieldData == schema.ErrorValue && !isRowHasError {
+					isRowHasError = true
+				}
+			}
+			if isRowHasError {
+				l.addRowError(insertRowObject.RowId)
+			}
+			dataInsertJson, err := jsoniter.MarshalToString(dataInsert)
+			if err != nil {
+				l.logger.Error("Error when marshaling data: ", err)
+				return err
+			}
+			insertRowObject.Data = &dataInsertJson
+			marshaledChan <- insertRowObject
+			// l.logger.Debug("Marshaled data for row ", insertRowObject.RowId)
+		}
+		close(marshaledChan)
+
+		l.logger.Debug("Finished marshaling data")
+
 		return nil
-	}
+	})
+	group.Go(func() error {
+		l.logger.Debug("Preparing insert data")
 
-	log.Debug("Inserting data")
-	query := pq.CopyIn(l.tableName, string(name.IdColumn), string(name.TableDataDataColumn))
-	log.Debug("Query: ", query)
-	stmt, err := txn.Prepare(query)
-	if err != nil {
-		log.Debug("Error when preparing statement: ", err)
-		return err
-	}
-	defer stmt.Close()
-	for _, row := range data.AddedRows.Rows {
-		dataInsert := make(map[string]interface{}, len(data.AddedRows.Fields))
-		var id string
-		isRowHasError := false
-		for index, field := range data.AddedRows.Fields {
-			fieldData := row[index]
-			if field == schema.HashedPrimaryField {
-				id = fieldData.(string)
-			}
-			dataInsert[field] = fieldData
-			if fieldData == schema.ErrorValue && !isRowHasError {
-				isRowHasError = true
-			}
-		}
-		if isRowHasError {
-			l.addRowError(id)
-		}
-		dataInsertJson, err := jsoniter.MarshalToString(dataInsert)
+		stmt, err := txn.Prepare(query)
 		if err != nil {
-			log.Error("Error when marshaling data: ", err)
+			l.logger.Debug("Error when preparing statement: ", err)
 			return err
 		}
-		_, err = stmt.Exec(id, dataInsertJson)
+		defer stmt.Close()
+
+		for addRowData := range marshaledChan {
+			// l.logger.Debug("Preparing data for row ", addRowData.RowId)
+			_, err = stmt.Exec(addRowData.RowId, *addRowData.Data)
+			if err != nil {
+				l.logger.Debug("Error when prepare data: ", err)
+				return err
+			}
+		}
+		l.logger.Debug("Executing load statement")
+		_, err = stmt.Exec()
 		if err != nil {
-			log.Debug("Error when inserting data: ", err)
+			l.logger.Debug("Error when inserting data: ", err)
 			return err
 		}
-	}
-	_, err = stmt.Exec()
-	if err != nil {
-		return err
-	}
-	err = stmt.Close()
+		err = stmt.Close()
+		if err != nil {
+			l.logger.Debug("Error when closing statement: ", err)
+			return err
+		}
+		return nil
+	})
+
+	err := group.Wait()
 	if err != nil {
 		return err
 	}
 
-	log.Info("Loaded added rows to postgres")
+    l.logger.Info("Loaded added rows to postgres")
 
-	return nil
+    return nil
 }
 
-func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *LoaderData) error {
-	log.Info("Loading removed rows to postgres")
+func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *service.LoaderData) error {
+	l.logger.Info("Loading removed rows to postgres")
 
 	if len(data.DeletedRows) == 0 {
-		log.Info("No removed rows to load")
+		l.logger.Info("No removed rows to load")
 		return nil
 	}
 
@@ -597,23 +865,23 @@ func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *LoaderData) error {
 			name.UpdatedAtColumn, "NOW()",
 			name.IdColumn, id,
 		)
-		log.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return err
 		}
 	}
 
-	log.Info("Loaded removed rows to postgres")
+	l.logger.Info("Loaded removed rows to postgres")
 
 	return nil
 }
 
-func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *LoaderData) error {
-	log.Info("Loading updated fields rows")
+func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *service.LoaderData) error {
+	l.logger.Info("Loading updated fields rows")
 
 	if len(data.UpdatedFields) == 0 {
-		log.Info("No updated fields rows to load")
+		l.logger.Info("No updated fields rows to load")
 		return nil
 	}
 
@@ -652,25 +920,29 @@ func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *LoaderData) error {
 			name.UpdatedAtColumn, "NOW()",
 			name.IdColumn, rowId,
 		)
-		log.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return err
 		}
 	}
 
-	log.Info("Loaded updated fields")
+	l.logger.Info("Loaded updated fields")
 
 	return nil
 }
 
-func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *LoaderData) error {
-	log.Info("Loading added fields rows")
+func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) error {
+	l.logger.Info("Loading added fields rows")
 
 	if len(data.AddedFields) == 0 {
-		log.Info("No added fields rows to load")
+		l.logger.Info("No added fields rows to load")
 		return nil
 	}
+
+	// updateQueriesMap := make(map[string][]string) // query -> rowIds
+	// queryGroup, _ := errgroup.WithContext(context.Background())
+	// queryGroup.SetLimit(10)
 
 	for rowId, fieldAddData := range data.AddedFields {
 		isRowHasError := false
@@ -707,23 +979,26 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *LoaderData) error {
 			name.UpdatedAtColumn, "NOW()",
 			name.IdColumn, rowId,
 		)
-		log.Debug("Query: ", query)
+		l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return err
 		}
 	}
 
-	log.Info("Loaded updated fields to postgres")
+	// err := batchGroup.Wait()
+	// if err != nil {
+		// return err
+	// }
 
 	return nil
 }
 
-func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *LoaderData) error {
-	log.Info("Loading deleted fields rows")
+func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *service.LoaderData) error {
+	l.logger.Info("Loading deleted fields rows")
 
 	if len(data.DeletedFields) == 0 {
-		log.Info("No deleted fields rows to load")
+		l.logger.Info("No deleted fields rows to load")
 		return nil
 	}
 
@@ -743,23 +1018,23 @@ func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *LoaderData) error {
 			name.UpdatedAtColumn, "NOW()",
 			name.IdColumn, rowId,
 		)
-		log.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return err
 		}
 	}
 
-	log.Info("Loaded deleted fields to postgres")
+	l.logger.Info("Loaded deleted fields to postgres")
 
 	return nil
 }
 
 func (l *PostgreLoader) loadRowErrorMetadata(txn *sql.Tx) error {
-	log.Info("Loading row error metadata")
+	l.logger.Info("Loading row error metadata")
 
 	if len(l.rowErrorMap) == 0 {
-		log.Info("No new error metadata to load")
+		l.logger.Info("No new error metadata to load")
 		if l.PrevVersion == 0 {
 			return nil
 		}
@@ -777,7 +1052,7 @@ func (l *PostgreLoader) loadRowErrorMetadata(txn *sql.Tx) error {
 				name.MetadataColumn, jsonbSet,
 				name.IdColumn, rowId,
 			)
-			log.Debug("Query: ", query)
+			// l.logger.Debug("Query: ", query)
 			_, err := txn.Exec(query)
 			if err != nil {
 				return err
@@ -795,15 +1070,15 @@ func (l *PostgreLoader) loadRowErrorMetadata(txn *sql.Tx) error {
 			name.TableDataDataColumn,
 			schema.ErrorValue,
 		)
-		log.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return err
 		}
-		log.Debug("Cleaned no longer error rows")
+		l.logger.Debug("Cleaned no longer error rows")
 	}
 
-	log.Info("Loaded row error metadata to postgres")
+	l.logger.Info("Loaded row error metadata to postgres")
 
 	return nil
 }

@@ -7,6 +7,7 @@ const (
 	DataSourceTable  string = "datasources"
 	SchemaTable      string = "schemas"
 	SchemaFieldTable string = "schema_fields"
+	IdempotencyTable string = "idempotency"
 
 	// common column
 	IdColumn        TableColumn = "id"
@@ -32,4 +33,8 @@ const (
 	EnumColumn         = "enum"
 	ReadonlyColumn     = "readonly"
 	IsPrimaryColumn    = "is_primary"
+
+	// idempotency table column
+    OperationColumn = "operation"
+	StatusColumn    = "status"
 )

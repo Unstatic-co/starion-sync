@@ -38,13 +38,23 @@ export const OrchestratorWorkerProvider = {
         ),
     };
 
+    const namespace = configService.get<string>(
+      `${ConfigName.ORCHESTRATOR}.namespace`,
+    );
+
     const taskQueue = configService.get<string>(
       `${ConfigName.ORCHESTRATOR}.workerTaskQueue`,
     );
 
     const worker = await Worker.create({
       connection: orchestratorConnection,
+      namespace,
       workflowsPath: require.resolve('../../workflows'),
+      dataConverter: {
+        payloadConverterPath: require.resolve(
+          '../../../../../libs/modules/src/orchestrator/payload-converter',
+        ),
+      },
       taskQueue,
       activities,
     });

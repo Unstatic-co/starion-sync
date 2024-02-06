@@ -20,7 +20,9 @@ export type SyncflowPayload = any;
 
 export type SyncflowVersion = number;
 
-export type SyncflowCursor = any;
+export interface SyncflowCursor {
+  [key: string]: any;
+}
 
 export interface SyncflowState extends WorkflowState {
   status: SyncflowStatus;

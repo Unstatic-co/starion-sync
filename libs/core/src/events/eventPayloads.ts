@@ -1,12 +1,27 @@
 import {
   DataSourceId,
+  ProviderId,
+  ProviderType,
   SyncConnection,
   SyncConnectionId,
   Syncflow,
+  WorkflowId,
+  WorkflowName,
+  WorkflowType,
 } from '../entities';
-import { Trigger } from '../entities/trigger';
+import {
+  Trigger,
+  TriggerId,
+  TriggerName,
+  TriggerType,
+} from '../entities/trigger';
 import { ErrorCode, ErrorType } from '../error';
 import { EventPayload } from './baseEvent';
+
+export type DataProviderDeletedPayload = EventPayload & {
+  providerId: ProviderId;
+  providerType: ProviderType;
+};
 
 export type DataSourceDeletedPayload = EventPayload & {
   dataSourceId: DataSourceId;
@@ -21,7 +36,23 @@ export type DataSourceErrorPayload = EventPayload & {
 
 export type ConnectionCreatedPayload = EventPayload & SyncConnection;
 export type ConnectionDeletedPayload = EventPayload & SyncConnection;
-export type WorkflowTriggeredPayload = EventPayload & Trigger;
+export type WorkflowTriggeredPayload = EventPayload &
+  (
+    | Trigger
+    | {
+        trigger: {
+          id: TriggerId;
+          type: TriggerType;
+          name: TriggerName;
+        };
+        sourceId: DataSourceId;
+        workflow: {
+          id: WorkflowId;
+          name: WorkflowName;
+          type: WorkflowType;
+        };
+      }
+  );
 export type SyncflowScheduledPayload = EventPayload & {
   syncflow: Syncflow;
   version: number;

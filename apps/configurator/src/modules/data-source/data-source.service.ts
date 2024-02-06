@@ -20,7 +20,9 @@ import {
   IDataProviderRepository,
   IDataSourceRepository,
   IDestinationDatabaseService,
+  ITransactionManager,
   InjectTokens,
+  TransactionObject,
   UpdateDataSourceData,
 } from '@lib/modules';
 import { ApiError } from '../../common/exception/api.exception';
@@ -37,6 +39,7 @@ import { TriggerService } from '../trigger/trigger.service';
 export type DeleteDataSourceResult = {
   dataSource: DataSource;
   syncConnection?: SyncConnection;
+  isProviderDeleted: boolean;
 };
 
 @Injectable()
@@ -48,6 +51,8 @@ export class DataSourceService {
 
   constructor(
     private readonly dataProviderService: DataProviderService,
+    @Inject(InjectTokens.TRANSACTION_MANAGER)
+    private readonly transactionManager: ITransactionManager,
     @Inject(InjectTokens.DATA_PROVIDER_REPOSITORY)
     private readonly dataProviderRepository: IDataProviderRepository,
     @Inject(InjectTokens.DATA_SOURCE_REPOSITORY)
@@ -186,26 +191,50 @@ export class DataSourceService {
     id: DataSourceId,
   ): Promise<DeleteResult<DeleteDataSourceResult>> {
     this.logger.debug(`Delete ds with id: ${id}`);
-    let isAlreadyDeleted = false;
-    const existingDs = await this.dataSourceRepository.getById(id);
-    if (!existingDs) {
-      isAlreadyDeleted = true;
-      return {
-        isAlreadyDeleted,
-      };
-    }
-    const data = (await this.dataSourceRepository.delete(id, {
-      old: true,
-    })) as DeleteDataSourceResult;
+    return await this.transactionManager.runWithTransaction(
+      async (transaction: TransactionObject) => {
+        let isAlreadyDeleted = false;
+        const existingDs = await this.dataSourceRepository.getById(id, {
+          session: transaction,
+        });
+        if (!existingDs) {
+          isAlreadyDeleted = true;
+          return {
+            isAlreadyDeleted,
+          };
+        }
+        const data = (await this.dataSourceRepository.delete(id, {
+          old: true,
+          session: transaction,
+        })) as DeleteDataSourceResult;
 
-    return {
-      isAlreadyDeleted,
-      data,
-    };
+        const dataSourcesInProvider =
+          await this.dataSourceRepository.getByProviderId(
+            existingDs.provider.id,
+            { session: transaction, select: ['_id'] },
+          );
+        const isProviderDeleted = dataSourcesInProvider.length === 0;
+        if (isProviderDeleted) {
+          this.logger.log(`Delete provider with id: ${existingDs.provider.id}`);
+          await this.dataProviderRepository.delete(existingDs.provider.id, {
+            session: transaction,
+          });
+        }
+
+        return {
+          isAlreadyDeleted,
+          data: {
+            dataSource: data.dataSource,
+            syncConnection: data.syncConnection,
+            isProviderDeleted,
+          },
+        };
+      },
+    );
   }
 
   async terminateDataSourceWorkflows(id: DataSourceId) {
-    const query = `DataSourceId = '${id}' AND (ExecutionStatus = 'Running' OR ExecutionStatus = 'TimedOut' OR ExecutionStatus = 'ContinuedAsNew')`;
+    const query = `DataSourceId = '${id}' AND (ExecutionStatus = 'Running' OR ExecutionStatus = 'TimedOut' OR ExecutionStatus = 'ContinuedAsNew') AND (WorkflowType != 'deleteDataSourceWf')`;
     return this.workflowService.terminateWorkflowsByQuery(
       query,
       'Data source deleted',

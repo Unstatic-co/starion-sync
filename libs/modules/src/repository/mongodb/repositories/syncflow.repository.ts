@@ -11,7 +11,8 @@ import {
   UpdateSyncflowStateData,
 } from '../../classes/repositories/syncflow.repository';
 import { SyncflowDocument, SyncflowModel } from '../models';
-import { SyncflowCursor, WorkflowStatus } from '@lib/core';
+import { WorkflowStatus } from '@lib/core';
+import { mapKeys } from 'lodash';
 
 @Injectable()
 export class SyncflowRepository implements ISyncflowRepository {
@@ -35,7 +36,7 @@ export class SyncflowRepository implements ISyncflowRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async getByTriggerId(id: string, options?: QueryOptions) {
@@ -52,7 +53,7 @@ export class SyncflowRepository implements ISyncflowRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async create(data: CreateSyncflowData) {
@@ -145,16 +146,11 @@ export class SyncflowRepository implements ISyncflowRepository {
     state: UpdateSyncflowStateData,
     options?: QueryOptions,
   ) {
-    const { status, version, cursor, prevVersion } = state;
     const updatesSet = {};
-    status !== undefined &&
-      Object.assign(updatesSet, { 'state.status': status });
-    prevVersion !== undefined &&
-      Object.assign(updatesSet, { 'state.prevVersion': prevVersion });
-    cursor !== undefined &&
-      Object.assign(updatesSet, { 'state.cursor': cursor });
-    version !== undefined &&
-      Object.assign(updatesSet, { 'state.version': version });
+    Object.assign(
+      updatesSet,
+      mapKeys(state, (_, key) => `state.${key}`),
+    );
     await this.syncflowModel.updateOne(
       {
         _id: Utils.toObjectId(id),

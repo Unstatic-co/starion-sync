@@ -7,7 +7,6 @@ import {
 } from '@lib/core';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { DataProviderSchema } from './dataProvider.model';
 import mongoose from 'mongoose';
 
 export type SyncConnectionDocument = SyncConnectionModel & Document;
@@ -16,6 +15,23 @@ export type SyncConnectionDocument = SyncConnectionModel & Document;
   timestamps: true,
   collection: 'syncconnections',
   versionKey: false,
+  toObject: {
+    virtuals: true,
+    transform: function (doc, ret) {
+      // ret.id = ret._id.toString(); // eslint-disable-line
+      delete ret._id; // eslint-disable-line
+      if (ret.sourceId) {
+        ret.sourceId = ret.sourceId.toString(); // eslint-disable-line
+      }
+      if (ret.syncflows) {
+        ret.syncflows = ret.syncflows.map((syncflow) => {
+          syncflow.id = syncflow.id.toString(); // eslint-disable-line
+          return syncflow;
+        });
+      }
+      return ret;
+    },
+  },
   toJSON: {
     virtuals: true,
     transform: function (doc, ret) {
@@ -58,5 +74,5 @@ export const SyncConnectionSchema =
 SyncConnectionSchema.index({ sourceId: 1 }, { background: true });
 
 SyncConnectionSchema.virtual('id').get(function () {
-    return this._id.toHexString(); // eslint-disable-line
+  return this._id.toHexString(); // eslint-disable-line
 });

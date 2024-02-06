@@ -7,8 +7,28 @@ import { InjectTokens } from '../inject-tokens';
 export const OrchestratorConnectionConfigProvider = {
   provide: InjectTokens.ORCHESTRATOR_CONNECTION_CONFIG,
   useFactory: (config: ConfigService) => {
+    const tlsEnabled = config.get<boolean>(
+      `${ConfigName.ORCHESTRATOR}.tlsEnabled`,
+    );
+    const cert = Buffer.from(
+      config.get<string>(`${ConfigName.ORCHESTRATOR}.clientCert`),
+      'base64',
+    );
+    const key = Buffer.from(
+      config.get<string>(`${ConfigName.ORCHESTRATOR}.clientKey`),
+      'base64',
+    );
     return {
       address: config.get(`${ConfigName.ORCHESTRATOR}.address`),
+      tls: tlsEnabled
+        ? {
+            clientCertPair: {
+              crt: cert,
+              key,
+            },
+          }
+        : false,
+      connectTimeout: 10000,
     } as ConnectionOptions;
   },
   inject: [ConfigService],
@@ -17,8 +37,28 @@ export const OrchestratorConnectionConfigProvider = {
 export const OrchestratorNativeConnectionConfigProvider = {
   provide: InjectTokens.ORCHESTRATOR_NATIVE_CONNECTION_CONFIG,
   useFactory: (config: ConfigService) => {
+    const tlsEnabled = config.get<boolean>(
+      `${ConfigName.ORCHESTRATOR}.tlsEnabled`,
+    );
+    const cert = Buffer.from(
+      config.get<string>(`${ConfigName.ORCHESTRATOR}.clientCert`),
+      'base64',
+    );
+    const key = Buffer.from(
+      config.get<string>(`${ConfigName.ORCHESTRATOR}.clientKey`),
+      'base64',
+    );
     return {
       address: config.get(`${ConfigName.ORCHESTRATOR}.address`),
+      tls: tlsEnabled
+        ? {
+            clientCertPair: {
+              crt: cert,
+              key,
+            },
+          }
+        : false,
+      connectTimeout: 10000,
     } as ConnectionOptions;
   },
   inject: [ConfigService],
@@ -44,10 +84,19 @@ export const OrchestratorNativeConnectionProvider = {
 
 export const OrchestratorClientProvider = {
   provide: InjectTokens.ORCHESTRATOR_CLIENT,
-  useFactory: (connection: Connection) => {
-    return new Client({ connection });
+  useFactory: (connection: Connection, config: ConfigService) => {
+    const namespace = config.get<string>(
+      `${ConfigName.ORCHESTRATOR}.namespace`,
+    );
+    return new Client({
+      connection,
+      namespace,
+      dataConverter: {
+        payloadConverterPath: require.resolve('./payload-converter'),
+      },
+    });
   },
-  inject: [InjectTokens.ORCHESTRATOR_CONNECTION],
+  inject: [InjectTokens.ORCHESTRATOR_CONNECTION, ConfigService],
 };
 
 export default [

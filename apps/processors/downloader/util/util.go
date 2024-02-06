@@ -65,14 +65,6 @@ func CreateTempFileWithContent(filePrefix string, fileExtension string, content 
 	return tempFile.Name(), nil
 }
 
-func DeleteFile(filePath string) error {
-	err := os.Remove(filePath)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func MarshalJsonFile(filePath string, v interface{}) error {
 	externalErrContent, err := os.ReadFile(filePath)
 	if err != nil {

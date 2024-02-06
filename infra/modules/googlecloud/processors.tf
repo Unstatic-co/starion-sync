@@ -283,8 +283,12 @@ resource "google_cloud_run_service" "loader" {
         resources {
           limits = {
             cpu    = 1
-            memory = var.is_production ? "512Mi" : "256Mi"
+            memory = var.is_production ? "512Mi" : "512Mi"
           }
+        }
+        env {
+          name = "GOMEMLIMIT"
+          value = var.is_production ? "400MiB" : "400MiB"
         }
         env {
           name  = "PRODUCTION"
@@ -330,13 +334,17 @@ resource "google_cloud_run_service" "loader" {
           name  = "S3_SSL"
           value = "true"
         }
+        env {
+          name  = "RESTART"
+          value = "false"
+        }
       }
       timeout_seconds       = 310
       container_concurrency = 5
     }
     metadata {
       annotations = {
-        "run.googleapis.com/execution-environment" = var.is_production ? "gen2" : "gen1"
+        "run.googleapis.com/execution-environment" = var.is_production ? "gen2" : "gen2"
         "autoscaling.knative.dev/maxScale"         = "5"
       }
     }
@@ -407,7 +415,7 @@ resource "google_cloud_run_service" "metadata" {
         resources {
           limits = {
             cpu    = 1
-            memory = var.is_production ? "512Mi" : "256Mi"
+            memory = var.is_production ? "512Mi" : "512Mi"
           }
         }
         env {
@@ -432,7 +440,7 @@ resource "google_cloud_run_service" "metadata" {
     }
     metadata {
       annotations = {
-        "run.googleapis.com/execution-environment" = var.is_production ? "gen2" : "gen1"
+        "run.googleapis.com/execution-environment" = var.is_production ? "gen2" : "gen2"
         "autoscaling.knative.dev/maxScale"         = "5"
       }
     }

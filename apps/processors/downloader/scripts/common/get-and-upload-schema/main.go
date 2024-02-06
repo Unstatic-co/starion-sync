@@ -319,7 +319,7 @@ func uploadSchema(schema *schema.TableSchema, s3Config s3.S3HandlerConfig, dataS
 	}
 	log.Println("Uploading schema to s3...")
 	schemaFileKey := fmt.Sprintf("schema/%s-%s.json", dataSourceId, syncVersion)
-	err = handler.UploadFileWithBytes(schemaFileKey, schemaJson)
+	err = handler.UploadFileWithBytes(schemaFileKey, schemaJson, nil)
 	if err != nil {
 		log.Fatalf("Error when uploading schema to s3: %+v\n", err)
 		return err

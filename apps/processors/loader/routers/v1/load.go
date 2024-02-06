@@ -54,5 +54,5 @@ func LoadSheet(c *gin.Context) {
 		return
 	}
 
-	appG.Response(http.StatusOK, &result)
+	appG.Response(http.StatusOK, *result)
 }

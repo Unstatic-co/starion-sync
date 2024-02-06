@@ -119,7 +119,7 @@ func GetValuesOfGoogleSheetsColumns(
 	allRanges := lo.Map(
 		columns,
 		func(idx int, _ int) string {
-			return fmt.Sprintf("%s!R2C%[2]d:R%dC%[2]d", s.SheetName, idx, 1+rowNumber)
+			return fmt.Sprintf("%s!R2C%[2]d:R%dC%[2]d", util.FormatSheetNameInRange(s.SheetName), idx, 1+rowNumber)
 		},
 	)
 

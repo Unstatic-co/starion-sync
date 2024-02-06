@@ -26,7 +26,6 @@ import {
 } from '@nestjs/bull';
 import { QUEUES } from '../../../common/queues';
 import { Job, Queue } from 'bull';
-import { ConfigName } from '@lib/core/config';
 
 type GoogleSheetsWebhookRefreshmentJobData = {
   triggerId: TriggerId;
@@ -41,6 +40,8 @@ export class GoogleSheetsWebhookService implements WebhookService {
     private readonly refreshmentQueue: Queue,
     @Inject(InjectTokens.TRIGGER_REPOSITORY)
     private readonly triggerRepository: ITriggerRepository,
+    @Inject(InjectTokens.DATA_SOURCE_REPOSITORY)
+    private readonly dataSourceRepository: IDataSourceRepository,
     private readonly configService: ConfigService,
     private readonly googleService: GoogleService,
     private readonly googleSheetsService: GoogleSheetsService,
@@ -161,6 +162,38 @@ export class GoogleSheetsWebhookService implements WebhookService {
       resourceId: trigger.config.resourceId,
     });
   }
+
+  async refreshWebhook(triggerId: TriggerId) {
+    this.logger.log(`refresh google sheets webhook, triggerId = ${triggerId}`);
+    const trigger = await this.triggerRepository.getById(triggerId);
+    if (trigger) {
+      const dataSource = await this.dataSourceRepository.getById(
+        trigger.sourceId,
+      );
+      try {
+        await this.stop({
+          trigger,
+          dataSource,
+        });
+      } catch (e) {
+        this.logger.log(
+          `failed to stop google sheets webhook, triggerId = ${triggerId}, error = ${e.message}`,
+        );
+      }
+      try {
+        await this.create({
+          trigger,
+          dataSource,
+        });
+      } catch (e) {
+        this.logger.log(
+          `failed to create google sheets webhook, triggerId = ${triggerId}, error = ${e.message}`,
+        );
+      }
+    } else {
+      this.logger.log(`trigger ${triggerId} not found`);
+    }
+  }
 }
 
 @Processor(QUEUES.GOOGLE_SHEETS_WEBHOOK_REFRESH)
@@ -181,32 +214,7 @@ export class GoogleSheetsWebhookJobProcessor {
   @Process()
   async process(job: Job<GoogleSheetsWebhookRefreshmentJobData>) {
     const triggerId = job.data.triggerId;
-    this.logger.log(`refresh google sheets webhook, triggerId = ${triggerId}`);
-    const trigger = await this.triggerRepository.getById(triggerId);
-    if (trigger) {
-      const syncflow = await this.syncflowRepository.getById(
-        trigger.workflow.id,
-      );
-      const dataSource = await this.dataSourceRepository.getById(
-        syncflow.sourceId,
-      );
-      try {
-        await this.googleSheetsWebhookService.stop({
-          trigger,
-          dataSource,
-        });
-      } catch (e) {
-        this.logger.log(
-          `failed to stop google sheets webhook, triggerId = ${triggerId}, error = ${e.message}`,
-        );
-      }
-      await this.googleSheetsWebhookService.create({
-        trigger,
-        dataSource,
-      });
-    } else {
-      this.logger.log(`trigger ${triggerId} not found`);
-    }
+    await this.googleSheetsWebhookService.refreshWebhook(triggerId);
   }
 
   @OnQueueCompleted()

@@ -1,12 +1,12 @@
 import {
   SyncConnectionId,
   Syncflow,
-  SyncflowCursor,
   SyncflowId,
+  SyncflowState,
   TriggerId,
   WorkflowStatus,
 } from '@lib/core';
-import { IRepository } from '../baseRepository';
+import { IRepository } from '../base';
 import { QueryOptions } from '../common';
 
 export interface ISyncflowRepository extends IRepository {
@@ -44,9 +44,4 @@ export type CreateSyncflowData = any;
 
 export type UpdateSyncflowData = any;
 
-export type UpdateSyncflowStateData = {
-  status?: WorkflowStatus;
-  version?: number;
-  prevVersion?: number;
-  cursor?: SyncflowCursor;
-};
+export type UpdateSyncflowStateData = Partial<SyncflowState>;

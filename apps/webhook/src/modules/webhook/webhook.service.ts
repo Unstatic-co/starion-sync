@@ -40,6 +40,7 @@ import {
   SyncflowScheduledWebhookPayload,
   SyncflowSucceedWebhookPayload,
 } from './webhook.payload';
+import { isInitialSyncVersion } from '../common';
 
 @Injectable()
 export class WebhookService {
@@ -56,6 +57,7 @@ export class WebhookService {
     private readonly brokerService: BrokerService,
   ) {}
 
+  // eslint-disable-next-line max-lines-per-function
   async addWebhookExecution(
     eventName: EventName,
     eventPayload: EventPayload,
@@ -96,6 +98,9 @@ export class WebhookService {
         webhookPayload = {
           syncflowId: synflowScheduledPayload.syncflow.id,
           syncVersion: synflowScheduledPayload.syncflow.state.version,
+          isInitialSyncVersion: isInitialSyncVersion(
+            synflowScheduledPayload.syncflow.state.prevVersion,
+          ),
           dataSourceId,
         } as SyncflowScheduledWebhookPayload;
         break;
@@ -108,6 +113,9 @@ export class WebhookService {
           syncflowId: syncflowSucceedPayload.syncflowId,
           dataSourceId,
           syncVersion: syncflowSucceedPayload.syncVersion,
+          isInitialSyncVersion: isInitialSyncVersion(
+            syncflowSucceedPayload.prevSyncVersion,
+          ),
           statistics: syncflowSucceedPayload.statistics,
         } as SyncflowSucceedWebhookPayload;
         break;
@@ -120,6 +128,9 @@ export class WebhookService {
         webhookPayload = {
           syncflowId: syncflowCompletedPayload.syncflowId,
           syncVersion: syncflowCompletedPayload.syncVersion,
+          isInitialSyncVersion: isInitialSyncVersion(
+            syncflowCompletedPayload.prevSyncVersion,
+          ),
           dataSourceId,
           rowsNumber: syncflowCompletedPayload.rowsNumber,
         } as SyncflowCompletedWebhookPayload;
@@ -133,6 +144,9 @@ export class WebhookService {
           syncflowId: syncflowFailedPayload.syncflowId,
           dataSourceId,
           syncVersion: syncflowFailedPayload.syncVersion,
+          isInitialSyncVersion: isInitialSyncVersion(
+            syncflowFailedPayload.prevSyncVersion,
+          ),
           error: {
             type: syncflowFailedPayload.error.type,
             code: syncflowFailedPayload.error.code,

@@ -23,7 +23,7 @@ export class SyncflowService {
     private readonly dataSourceRepository: IDataSourceRepository,
     private readonly cleanerFactory: CleanerFactory,
     private readonly brokerService: BrokerService,
-  ) {}
+  ) { }
 
   async handleSyncflowSucceed(data: SyncflowSucceedPayload): Promise<void> {
     const {
@@ -47,7 +47,7 @@ export class SyncflowService {
       this.logger.warn(`Data source not found: ${syncflow.sourceId}`);
       return;
     }
-    const cleaner = this.cleanerFactory.get(dataSource.provider.type);
+    const cleaner = this.cleanerFactory.getWorkflowCleaner(dataSource.provider.type);
 
     await cleaner.run(syncflow, { syncVersion, prevSyncVersion });
 

@@ -4,3 +4,4 @@ export * from './syncConnection.model';
 export * from './syncflow.model';
 export * from './trigger.model';
 export * from './webhook.model';
+export * from './idempotency.model';

@@ -17,12 +17,14 @@ export interface SyncflowScheduledWebhookPayload extends WebhookPayload {
   syncflowId: SyncflowId;
   dataSourceId: DataSourceId;
   syncVersion: number;
+  isInitialSyncVersion: boolean;
 }
 
 export interface SyncflowSucceedWebhookPayload extends WebhookPayload {
   syncflowId: SyncflowId;
   dataSourceId: DataSourceId;
   syncVersion: number;
+  isInitialSyncVersion: boolean;
   statistics: {
     addedRowsCount: number;
     deletedRowsCount: number;

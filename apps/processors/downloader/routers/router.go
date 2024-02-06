@@ -30,6 +30,7 @@ func InitRouter() *gin.Engine {
 
 	apiV1GoogleSheets := apiV1.Group("/google-sheets")
 	apiV1GoogleSheets.POST("/download", v1.DownloadGoogleSheets)
+	apiV1GoogleSheets.POST("/ingest", v1.IngestGoogleSheets)
 
 	return r
 }

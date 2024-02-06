@@ -51,7 +51,27 @@ export class DataSourceRepository implements IDataSourceRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
+  }
+
+  public async getByProviderId(providerId: string, options?: QueryOptions) {
+    const conditions = {
+      'provider.id': Utils.toObjectId(providerId),
+      isDeleted: false,
+    };
+    if (options?.includeDeleted) {
+      delete conditions.isDeleted;
+    }
+    let query = this.dataSourceModel.find(conditions);
+    if (options?.session) {
+      query = query.session(options.session);
+    }
+    if (options?.select?.length) {
+      query = query.select(options.select.join(' '));
+    }
+    const result = await query;
+    if (!result) return null;
+    return result.map((item) => item.toObject());
   }
 
   public async getByExternalId(externalId: string, options?: QueryOptions) {
@@ -68,7 +88,7 @@ export class DataSourceRepository implements IDataSourceRepository {
     }
     const result = await query;
     if (!result) return null;
-    return result.toJSON();
+    return result.toObject();
   }
 
   public async create(
@@ -88,7 +108,7 @@ export class DataSourceRepository implements IDataSourceRepository {
       ? dataSource.save({ session: options.session })
       : dataSource.save();
     await query;
-    return dataSource.toJSON() as DataSource;
+    return dataSource.toObject() as DataSource;
   }
 
   public async update(data: UpdateDataSourceData, options?: QueryOptions) {
@@ -124,7 +144,7 @@ export class DataSourceRepository implements IDataSourceRepository {
               _id: Utils.toObjectId(data.id),
             })
             .session(session)
-        ).toJSON();
+        ).toObject();
       }
     };
 
@@ -178,7 +198,7 @@ export class DataSourceRepository implements IDataSourceRepository {
       }
 
       if (options?.old) {
-        result = { dataSource: dataSource.toJSON() };
+        result = { dataSource: dataSource.toObject() };
         if (syncConnection) {
           result.syncConnection = syncConnection;
         }
@@ -233,7 +253,7 @@ export class DataSourceRepository implements IDataSourceRepository {
               _id: Utils.toObjectId(id),
             })
             .session(session)
-        ).toJSON();
+        ).toObject();
       }
     };
 

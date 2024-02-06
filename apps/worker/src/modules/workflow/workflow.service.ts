@@ -1,8 +1,10 @@
-import { Syncflow, SyncflowId, SyncflowState, WorkflowStatus } from '@lib/core';
+import { SyncflowId, SyncflowState, WorkflowStatus } from '@lib/core';
 import { ISyncflowRepository, InjectTokens } from '@lib/modules';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { UnacceptableActivityError } from '../../common/exception';
-import { AcceptableActivityError } from 'apps/controller/src/common/exception';
+import {
+  AcceptableActivityError,
+  UnacceptableActivityError,
+} from '../../common/exception';
 
 @Injectable()
 export class WorkflowService {
