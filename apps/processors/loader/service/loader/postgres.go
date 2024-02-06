@@ -940,6 +940,10 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) e
 		return nil
 	}
 
+	// updateQueriesMap := make(map[string][]string) // query -> rowIds
+	// queryGroup, _ := errgroup.WithContext(context.Background())
+	// queryGroup.SetLimit(10)
+
 	for rowId, fieldAddData := range data.AddedFields {
 		isRowHasError := false
 		var jsonbSet string
@@ -975,14 +979,17 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) e
 			name.UpdatedAtColumn, "NOW()",
 			name.IdColumn, rowId,
 		)
-		// l.logger.Debug("Query: ", query)
+		l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return err
 		}
 	}
 
-	l.logger.Info("Loaded updated fields to postgres")
+	// err := batchGroup.Wait()
+	// if err != nil {
+		// return err
+	// }
 
 	return nil
 }

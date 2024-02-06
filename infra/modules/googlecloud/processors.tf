@@ -415,7 +415,7 @@ resource "google_cloud_run_service" "metadata" {
         resources {
           limits = {
             cpu    = 1
-            memory = var.is_production ? "512Mi" : "256Mi"
+            memory = var.is_production ? "512Mi" : "512Mi"
           }
         }
         env {
@@ -440,7 +440,7 @@ resource "google_cloud_run_service" "metadata" {
     }
     metadata {
       annotations = {
-        "run.googleapis.com/execution-environment" = var.is_production ? "gen2" : "gen1"
+        "run.googleapis.com/execution-environment" = var.is_production ? "gen2" : "gen2"
         "autoscaling.knative.dev/maxScale"         = "5"
       }
     }
