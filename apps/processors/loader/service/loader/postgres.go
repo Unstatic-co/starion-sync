@@ -526,7 +526,7 @@ func (l *PostgreLoader) initTable(txn *sql.Tx, data *service.LoaderData) error {
 		fields = append(fields, fmt.Sprintf("%s %s", fieldName, fieldType))
 	}
 	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS \"%s\" (%s)", l.tableName, strings.Join(fields, ","))
-	l.logger.Debug("Query: ", query)
+	// l.logger.Debug("Query: ", query)
 	_, err := txn.Exec(query)
 	if err != nil {
 		return err
@@ -543,14 +543,14 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *service.LoaderData) error 
 	// get schema id if exists
 	var schemaId int
 	query := fmt.Sprintf(`SELECT id FROM %s WHERE %s = $1`, name.SchemaTable, name.DataSourceIdColumn)
-	l.logger.Debug("Query: ", query)
+	// l.logger.Debug("Query: ", query)
 	err := txn.QueryRow(query, l.DatasourceId).Scan(&schemaId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// create schema
 			l.logger.Info("Creating schema")
 			query = fmt.Sprintf("INSERT INTO %s (%s) VALUES ($1) RETURNING id", name.SchemaTable, name.DataSourceIdColumn)
-			l.logger.Debug("Query: ", query)
+			// l.logger.Debug("Query: ", query)
 			err = txn.QueryRow(query, l.DatasourceId).Scan(&schemaId)
 			if err != nil {
 				return err
@@ -567,7 +567,7 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *service.LoaderData) error 
 					name.MetadataColumn, metadata,
 					name.IdColumn, schemaId,
 				)
-				l.logger.Debug("Query: ", query)
+				// l.logger.Debug("Query: ", query)
 				_, err = txn.Exec(query)
 				if err != nil {
 					return err
@@ -592,7 +592,7 @@ func (l *PostgreLoader) loadSchema(txn *sql.Tx, data *service.LoaderData) error 
 		name.ReadonlyColumn,
 		name.IsPrimaryColumn,
 	)
-	l.logger.Debug("Query: ", query)
+	// l.logger.Debug("Query: ", query)
 	stmt, err := txn.Prepare(query)
 	if err != nil {
 		l.logger.Debug("Error when preparing statement: ", err)
@@ -630,7 +630,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *service.LoaderData) 
 	// get schema id
 	var schemaId int
 	query := fmt.Sprintf("SELECT id FROM %s WHERE %s = $1", name.SchemaTable, name.DataSourceIdColumn)
-	l.logger.Debug("Query: ", query)
+	// l.logger.Debug("Query: ", query)
 	err := txn.QueryRow(query, l.DatasourceId).Scan(&schemaId)
 	if err != nil {
 		return err
@@ -648,7 +648,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *service.LoaderData) 
 			name.HashedNameColumn,
 			strings.Join(data.SchemaChanges.DeletedFields, "','"),
 		)
-		l.logger.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			l.logger.Error("Error when deleting fields: ", err)
@@ -666,7 +666,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *service.LoaderData) 
 				}),
 				","),
 		)
-		l.logger.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err = txn.Exec(query)
 		if err != nil {
 			l.logger.Error("Error when deleting fields from table data: ", err)
@@ -689,7 +689,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *service.LoaderData) 
 			name.ReadonlyColumn,
 			name.IsPrimaryColumn,
 		)
-		l.logger.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		stmt, err := txn.Prepare(query)
 		if err != nil {
 			l.logger.Debug("Error when preparing statement: ", err)
@@ -740,7 +740,7 @@ func (l *PostgreLoader) loadSchemaChange(txn *sql.Tx, data *service.LoaderData) 
 				name.SchemaIdColumn, schemaId,
 				name.HashedNameColumn, fieldId,
 			)
-			l.logger.Debug("Query: ", query)
+			// l.logger.Debug("Query: ", query)
 			_, err = txn.Exec(query)
 			if err != nil {
 				l.logger.Error("Error when updating fields: ", err)
@@ -765,7 +765,7 @@ func (l *PostgreLoader) loadAddedRows(txn *sql.Tx, data *service.LoaderData) err
 	pipelineSize := 5000
 
     query := pq.CopyIn(l.tableName, string(name.IdColumn), string(name.TableDataDataColumn))
-    l.logger.Debug("Query: ", query)
+    // l.logger.Debug("Query: ", query)
 
 	marshaledChan := make(chan PostgresAddRowData, pipelineSize)
 
@@ -865,7 +865,7 @@ func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *service.LoaderData) e
 			name.UpdatedAtColumn, "NOW()",
 			name.IdColumn, id,
 		)
-		l.logger.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return err
@@ -920,7 +920,7 @@ func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *service.LoaderData) 
 			name.UpdatedAtColumn, "NOW()",
 			name.IdColumn, rowId,
 		)
-		l.logger.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return err
@@ -975,7 +975,7 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) e
 			name.UpdatedAtColumn, "NOW()",
 			name.IdColumn, rowId,
 		)
-		l.logger.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return err
@@ -1011,7 +1011,7 @@ func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *service.LoaderData)
 			name.UpdatedAtColumn, "NOW()",
 			name.IdColumn, rowId,
 		)
-		l.logger.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return err
@@ -1045,7 +1045,7 @@ func (l *PostgreLoader) loadRowErrorMetadata(txn *sql.Tx) error {
 				name.MetadataColumn, jsonbSet,
 				name.IdColumn, rowId,
 			)
-			l.logger.Debug("Query: ", query)
+			// l.logger.Debug("Query: ", query)
 			_, err := txn.Exec(query)
 			if err != nil {
 				return err
@@ -1063,7 +1063,7 @@ func (l *PostgreLoader) loadRowErrorMetadata(txn *sql.Tx) error {
 			name.TableDataDataColumn,
 			schema.ErrorValue,
 		)
-		l.logger.Debug("Query: ", query)
+		// l.logger.Debug("Query: ", query)
 		_, err := txn.Exec(query)
 		if err != nil {
 			return err
