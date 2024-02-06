@@ -738,7 +738,7 @@ locals {
     GOOGLE_CLIENT_ID               = var.google_client_id
     GOOGLE_CLIENT_SECRET           = var.google_client_secret
     TRIGGER_RESTART                = "true",
-    IGNORE_WORKFLOW_TRIGGERED      = "true"
+    IGNORE_WORKFLOW_TRIGGERED      = "false"
   }
 }
 resource "null_resource" "fly_app_controller" {
