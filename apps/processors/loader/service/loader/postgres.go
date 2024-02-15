@@ -951,6 +951,10 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) e
 	queryGroup, _ := errgroup.WithContext(context.Background())
 	queryGroup.SetLimit(updateQueryConcurrent)
 
+	// updateQueriesMap := make(map[string][]string) // query -> rowIds
+	// queryGroup, _ := errgroup.WithContext(context.Background())
+	// queryGroup.SetLimit(10)
+
 	for rowId, fieldAddData := range data.AddedFields {
 		isRowHasError := false
 		var jsonbSet string
