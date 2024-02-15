@@ -10,6 +10,7 @@ import (
 	"loader/service/getter"
 	commonName "loader/service/loader/namespace"
 	name "loader/service/loader/namespace/postgres"
+	"loader/util"
 	"os"
 	"strconv"
 	"strings"
@@ -221,6 +222,11 @@ type PostgreLoader struct {
 type PostgresAddRowData struct {
 	RowId string
 	Data  *string // json
+}
+
+type PostgresUpdateQuery struct {
+	RowIds []string
+	Query  *string
 }
 
 func (l *PostgreLoader) Setup() error {
@@ -939,6 +945,11 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) e
 		l.logger.Info("No added fields rows to load")
 		return nil
 	}
+	
+	updateQueryConcurrent := 10
+	updateQueriesMap := make(map[uint32]PostgresUpdateQuery) // hash -> query data
+	queryGroup, _ := errgroup.WithContext(context.Background())
+	queryGroup.SetLimit(updateQueryConcurrent)
 
 	// updateQueriesMap := make(map[string][]string) // query -> rowIds
 	// queryGroup, _ := errgroup.WithContext(context.Background())
@@ -972,24 +983,44 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) e
 		if isRowHasError {
 			l.addRowError(rowId)
 		}
+
 		query := fmt.Sprintf(
-			"UPDATE \"%s\" SET %s = %s, %s = %s WHERE %s = '%s'",
+			"UPDATE \"%s\" SET %s = %s, %s = %s",
 			l.tableName,
 			name.TableDataDataColumn, jsonbSet,
 			name.UpdatedAtColumn, "NOW()",
-			name.IdColumn, rowId,
 		)
-		l.logger.Debug("Query: ", query)
-		_, err := txn.Exec(query)
-		if err != nil {
-			return err
+		hashedQuery := util.MurmurHashString(jsonbSet)
+		if queryData, ok := updateQueriesMap[hashedQuery]; !ok {
+			queryData = PostgresUpdateQuery{
+				RowIds: []string{rowId},
+				Query:  &query,
+			}
+			updateQueriesMap[hashedQuery] = queryData
+		} else {
+			queryData.RowIds = append(queryData.RowIds, rowId)
+			updateQueriesMap[hashedQuery] = queryData
 		}
 	}
 
-	// err := batchGroup.Wait()
-	// if err != nil {
-		// return err
-	// }
+	for _, queryData := range updateQueriesMap {
+		query := *queryData.Query
+		rowIds := queryData.RowIds
+		finalQuery := fmt.Sprintf("%s WHERE %s IN ('%s')", query, name.IdColumn, strings.Join(rowIds, "','"))
+		// l.logger.Debug("Update query: ", finalQuery)
+		queryGroup.Go(func() error {
+			_, err := txn.Exec(finalQuery)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+
+	err := queryGroup.Wait()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
