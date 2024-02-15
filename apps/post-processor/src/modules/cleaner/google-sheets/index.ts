@@ -14,7 +14,7 @@ export class GoogleSheetsWorkflowCleaner implements WorkflowCleaner {
     @Inject(AppInjectTokens.STORAGE_CLIENT)
     private readonly storageClient: S3Client,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   async run(
     syncflow: Syncflow,
@@ -90,34 +90,34 @@ export class GoogleSheetsDataProviderCleaner implements DataProviderCleaner {
     @Inject(AppInjectTokens.STORAGE_CLIENT)
     private readonly storageClient: S3Client,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
-  async run(
-    providerId: ProviderId
-  ): Promise<void> {
+  async run(providerId: ProviderId): Promise<void> {
     this.logger.log(`Cleaning provider ${providerId}`);
     await this.cleanSpreadsheetData(providerId);
   }
 
   private async cleanSpreadsheetData(providerId: ProviderId) {
-    this.logger.log(
-      `Cleaning diff data for ds ${providerId}`,
-    );
-
-    const res = await this.storageClient.send(
-      new DeleteObjectsCommand({
-        Bucket: this.configService.get<string>(
-          `${ConfigName.STORAGE}.s3DiffDataBucket`,
-        ),
-        Delete: {
-          Objects: [
-            {
-              Key: `data/${providerId}.xlsx`,
-            },
-          ],
-        },
-      }),
-    );
+    this.logger.log(`Cleaning diff data for ds ${providerId}`);
+    let res;
+    try {
+      res = await this.storageClient.send(
+        new DeleteObjectsCommand({
+          Bucket: this.configService.get<string>(
+            `${ConfigName.STORAGE}.s3DiffDataBucket`,
+          ),
+          Delete: {
+            Objects: [
+              {
+                Key: `data/${providerId}.xlsx`,
+              },
+            ],
+          },
+        }),
+      );
+    } catch (err) {
+      this.logger.error('Error deleting objects', err);
+    }
 
     if (res.Errors?.length) {
       this.logger.log(
