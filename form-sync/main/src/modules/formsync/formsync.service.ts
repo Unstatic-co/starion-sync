@@ -46,11 +46,7 @@ export class FormSyncService {
       this.logger.debug(`Generated record id ${data.payload.recordId}`);
       if (data.metadata?.localId) {
         promises.push(
-          this.cacheManager.set(
-            CacheRegistry.RecordLocalIdMapping.Key(data.payload.recordId),
-            data.metadata.localId,
-            CacheRegistry.RecordLocalIdMapping.TTL,
-          ),
+          this.saveLocalIdMapping(data.payload.recordId, data.metadata.localId),
         );
       }
     }
@@ -67,6 +63,19 @@ export class FormSyncService {
 
     const service = this.formSyncFactory.get(dataSource.provider);
     return service.run(formSync);
+  }
+
+  private async saveLocalIdMapping(recordId: string, localId: string) {
+    this.logger.debug(`Saving local id mapping for ${recordId}`);
+    try {
+      await this.cacheManager.set(
+        CacheRegistry.RecordLocalIdMapping.Key(recordId),
+        localId,
+        CacheRegistry.RecordLocalIdMapping.TTL,
+      );
+    } catch (e) {
+      this.logger.error(`Failed to save local id mapping for ${recordId}`);
+    }
   }
 
   async test() {

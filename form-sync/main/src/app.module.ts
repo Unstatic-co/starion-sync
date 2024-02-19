@@ -91,14 +91,30 @@ import { redisStore } from 'cache-manager-redis-yet';
             host,
             port: Number(port),
             tls,
-            reconnectStrategy: (retries) => Math.min(retries * 50, 500),
+            connectTimeout: 10000,
+            disableOfflineQueue: false,
+            reconnectStrategy: (retries) => Math.min(retries * 50, 5000),
           },
           password,
           database: 0,
-          pingInterval: 1000 * 60 * 4,
+          pingInterval: 1000 * 60 * 2,
+          disableOfflineQueue: true,
+          // legacyMode: true,
         } as RedisClientOptions);
         store.client.on('error', (error) => {
           console.error(error);
+        });
+        store.client.on('connect', () => {
+          console.log('Cache manager connected to redis');
+        });
+        store.client.on('ready', () => {
+          console.log('Cache manager ready to accept commands');
+        });
+        store.client.on('reconnecting', () => {
+          console.log('Cache manager reconnecting to redis');
+        });
+        store.client.on('end', () => {
+          console.log('Cache manager disconnected from redis');
         });
 
         return {
