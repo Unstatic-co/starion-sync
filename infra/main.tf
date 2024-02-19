@@ -79,38 +79,38 @@ module "digitalocean" {
 #   ]
 # }
 
-# module "googlecloud" {
-#   source = "./modules/googlecloud"
+module "googlecloud" {
+  source = "./modules/googlecloud"
 
-#   project       = var.project
-#   environment   = var.environment
-#   is_production = local.is_production
+  project       = var.project
+  environment   = var.environment
+  is_production = local.is_production
 
-#   github_repo_name = var.github_repo_name
-#   github_repo_url  = var.github_repo_url
-#   github_owner     = var.github_owner
-#   github_branch    = var.github_branch
+  github_repo_name = var.github_repo_name
+  github_repo_url  = var.github_repo_url
+  github_owner     = var.github_owner
+  github_branch    = var.github_branch
 
-#   gcp_project                   = var.gcp_project
-#   gcp_region                    = var.gcp_region
-#   gcp_secret_prefix             = var.gcp_secret_prefix
-#   gcp_deploy_service_account_id = var.gcp_deploy_service_account_id
-#   gcp_docker_repository_name    = var.gcp_docker_repository_name
+  gcp_project                   = var.gcp_project
+  gcp_region                    = var.gcp_region
+  gcp_secret_prefix             = var.gcp_secret_prefix
+  gcp_deploy_service_account_id = var.gcp_deploy_service_account_id
+  gcp_docker_repository_name    = var.gcp_docker_repository_name
 
-#   metadata_db_uri    = local.is_production ? module.digitalocean.mongodb_uri : local.metadata_db_stagging_uri
-#   dest_db_uri        = local.is_production ? module.digitalocean.postgres_uri : var.dest_db_uri
-#   s3_endpoint        = module.cloudflare.s3_endpoint
-#   s3_region          = var.s3_region
-#   s3_bucket          = module.cloudflare.s3_bucket_name
-#   s3_access_key      = var.s3_access_key
-#   s3_secret_key      = var.s3_secret_key
-#   processor_api_keys = split(",", var.processor_api_keys)
+  metadata_db_uri    = local.is_production ? module.digitalocean.mongodb_uri : local.metadata_db_stagging_uri
+  dest_db_uri        = local.is_production ? module.digitalocean.postgres_uri : var.dest_db_uri
+  s3_endpoint        = module.cloudflare.s3_endpoint
+  s3_region          = var.s3_region
+  s3_bucket          = module.cloudflare.s3_bucket_name
+  s3_access_key      = var.s3_access_key
+  s3_secret_key      = var.s3_secret_key
+  processor_api_keys = split(",", var.processor_api_keys)
 
-#   depends_on = [
-#     module.cloudflare,
-#     module.digitalocean
-#   ]
-# }
+  depends_on = [
+    module.cloudflare,
+    module.digitalocean
+  ]
+}
 
 module "cloudflare" {
   source = "./modules/cloudflare"
