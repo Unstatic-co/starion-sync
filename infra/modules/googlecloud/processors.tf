@@ -436,7 +436,7 @@ resource "google_cloud_run_service" "metadata" {
         }
       }
       timeout_seconds       = 310
-      container_concurrency = 5
+      container_concurrency = 3
     }
     metadata {
       annotations = {

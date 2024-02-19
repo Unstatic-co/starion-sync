@@ -11,6 +11,8 @@ import (
 
 	"crypto/rand"
 	"crypto/sha256"
+
+	"github.com/spaolacci/murmur3"
 )
 
 func GetMD5Hash(text string) string {
@@ -48,4 +50,13 @@ func CreateTempFileWithContent(filePrefix string, content string) (string, error
 	}
 
 	return tempFilePath, nil
+}
+
+func MurmurHashString(input string) uint32 {
+    hasher := murmur3.New32()
+    _, err := hasher.Write([]byte(input))
+    if err != nil {
+        return 0
+    }
+    return hasher.Sum32()
 }
