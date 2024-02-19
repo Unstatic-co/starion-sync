@@ -860,22 +860,22 @@ func (l *PostgreLoader) loadRemovedRows(txn *sql.Tx, data *service.LoaderData) e
 		return nil
 	}
 
-	for _, id := range data.DeletedRows {
-		// query := fmt.Sprintf("DELETE FROM \"%s\" WHERE %s = '%s'", l.tableName, name.IdColumn, id)
+	placeholders := make([]string, len(data.DeletedRows))
+	for i := range data.DeletedRows {
+		placeholders[i] = fmt.Sprintf("'%s'", data.DeletedRows[i])
+	}
 
-		// update deleted_at = true
-		query := fmt.Sprintf(
-			"UPDATE \"%s\" SET %s = true, %s = %s WHERE %s = '%s'",
-			l.tableName,
-			name.IsDeletedColumn,
-			name.UpdatedAtColumn, "NOW()",
-			name.IdColumn, id,
-		)
-		// l.logger.Debug("Query: ", query)
-		_, err := txn.Exec(query)
-		if err != nil {
-			return err
-		}
+	query := fmt.Sprintf(
+		"UPDATE \"%s\" SET %s = true, %s = %s WHERE %s IN (%s)",
+		l.tableName,
+		name.IsDeletedColumn,
+		name.UpdatedAtColumn, "NOW()",
+		name.IdColumn, strings.Join(placeholders, ", "),
+	)
+
+	_, err := txn.Exec(query)
+	if err != nil {
+		return err
 	}
 
 	l.logger.Info("Loaded removed rows to postgres")
@@ -890,6 +890,11 @@ func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *service.LoaderData) 
 		l.logger.Info("No updated fields rows to load")
 		return nil
 	}
+
+	updateQueryConcurrent := 10
+	updateQueriesMap := make(map[uint32]PostgresUpdateQuery) // hash -> query data
+	queryGroup, _ := errgroup.WithContext(context.Background())
+	queryGroup.SetLimit(updateQueryConcurrent)
 
 	for rowId, fieldUpdateData := range data.UpdatedFields {
 		isRowHasError := false
@@ -919,18 +924,44 @@ func (l *PostgreLoader) loadUpdateFields(txn *sql.Tx, data *service.LoaderData) 
 		if isRowHasError {
 			l.addRowError(rowId)
 		}
+
 		query := fmt.Sprintf(
-			"UPDATE \"%s\" SET %s = %s, %s = %s WHERE %s = '%s'",
+			"UPDATE \"%s\" SET %s = %s, %s = %s",
 			l.tableName,
 			name.TableDataDataColumn, jsonbSet,
 			name.UpdatedAtColumn, "NOW()",
-			name.IdColumn, rowId,
 		)
-		// l.logger.Debug("Query: ", query)
-		_, err := txn.Exec(query)
-		if err != nil {
-			return err
+		hashedQuery := util.MurmurHashString(jsonbSet)
+		if queryData, ok := updateQueriesMap[hashedQuery]; !ok {
+			queryData = PostgresUpdateQuery{
+				RowIds: []string{rowId},
+				Query:  &query,
+			}
+			updateQueriesMap[hashedQuery] = queryData
+		} else {
+			queryData.RowIds = append(queryData.RowIds, rowId)
+			updateQueriesMap[hashedQuery] = queryData
 		}
+	}
+
+	for queryKey, queryData := range updateQueriesMap {
+		query := *queryData.Query
+		rowIds := queryData.RowIds
+		finalQuery := fmt.Sprintf("%s WHERE %s IN ('%s')", query, name.IdColumn, strings.Join(rowIds, "','"))
+		// l.logger.Debug("Update query: ", finalQuery)
+		queryGroup.Go(func() error {
+			_, err := txn.Exec(finalQuery)
+			if err != nil {
+				return err
+			}
+			delete(updateQueriesMap, queryKey)
+			return nil
+		})
+	}
+
+	err := queryGroup.Wait()
+	if err != nil {
+		return err
 	}
 
 	l.logger.Info("Loaded updated fields")
@@ -950,10 +981,6 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) e
 	updateQueriesMap := make(map[uint32]PostgresUpdateQuery) // hash -> query data
 	queryGroup, _ := errgroup.WithContext(context.Background())
 	queryGroup.SetLimit(updateQueryConcurrent)
-
-	// updateQueriesMap := make(map[string][]string) // query -> rowIds
-	// queryGroup, _ := errgroup.WithContext(context.Background())
-	// queryGroup.SetLimit(10)
 
 	for rowId, fieldAddData := range data.AddedFields {
 		isRowHasError := false
@@ -1003,7 +1030,7 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) e
 		}
 	}
 
-	for _, queryData := range updateQueriesMap {
+	for queryKey, queryData := range updateQueriesMap {
 		query := *queryData.Query
 		rowIds := queryData.RowIds
 		finalQuery := fmt.Sprintf("%s WHERE %s IN ('%s')", query, name.IdColumn, strings.Join(rowIds, "','"))
@@ -1013,6 +1040,7 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) e
 			if err != nil {
 				return err
 			}
+			delete(updateQueriesMap, queryKey)
 			return nil
 		})
 	}
@@ -1068,7 +1096,7 @@ func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *service.LoaderData)
 		}
 	}
 
-	for _, queryData := range updateQueriesMap {
+	for queryKey, queryData := range updateQueriesMap {
 		query := *queryData.Query
 		rowIds := queryData.RowIds
 		finalQuery := fmt.Sprintf("%s WHERE %s IN ('%s')", query, name.IdColumn, strings.Join(rowIds, "','"))
@@ -1078,6 +1106,7 @@ func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *service.LoaderData)
 			if err != nil {
 				return err
 			}
+			delete(updateQueriesMap, queryKey)
 			return nil
 		})
 	}
