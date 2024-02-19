@@ -147,7 +147,7 @@ resource "upstash_kafka_topic" "google_sheet_full_sync_proceed" {
 
 resource "upstash_kafka_topic" "data_provider_deleted" {
   topic_name       = "dataProvider.deleted"
-  partitions       = var.is_production ? 10 : 5
+  partitions       = var.is_production ? 5 : 5
   retention_time   = 625135
   retention_size   = 725124
   max_message_size = 829213
