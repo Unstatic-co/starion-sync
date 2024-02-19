@@ -1,5 +1,6 @@
-project     = "starion-sync"
-environment = "stagging"
+project      = "starion-sync"
+environment  = "stagging"
+cluster_name = "staging-cluster"
 
 github_owner     = "Unstatic-co"
 github_repo_url  = "https://github.com/Unstatic-co/starion-sync"
@@ -32,3 +33,162 @@ webhook_public_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ
 
 microsoft_client_id = "4bca9f40-7c40-48bb-9d25-faff5dfa926d"
 google_client_id    = "547922925132-naqkb1pboc8ua54cj5gar0p43t030q70.apps.googleusercontent.com"
+
+#k8s config
+redis_host = "redisdb-headless.default.svc.cluster.local"
+redis_port = 6379
+#domain
+letsencrypt_email               = "khoihoang@unstatic.co"
+letsencrypt_cluster_issuer_name = "backend-sync-letsencrypt-nginx"
+configurator_domain             = "sync-configurator.starion-stagging.com"
+webhook_trigger_domain          = "sync-webhook-trigger.starion-stagging.com"
+formsync_domain                 = "sync-form.starion-stagging.com"
+replicas_count                  = 1
+downloader_url                  = "http://downloader.backend-sync-app.svc.cluster.local"
+metadata_url                    = "http://metadata.backend-sync-app.svc.cluster.local"
+comparer_url                    = "http://comparer.backend-sync-app.svc.cluster.local"
+loader_url                      = "http://loader.backend-sync-app.svc.cluster.local"
+
+#k8s config
+k8s_deployment_downloader = {
+  replicas = 1
+  limits = {
+    cpu    = "100m"
+    memory = "512Mi"
+  }
+  requests = {
+    cpu    = "1m"
+    memory = "50Mi"
+  }
+}
+
+k8s_deployment_comparer = {
+  replicas = 1
+  limits = {
+    cpu    = "100m"
+    memory = "256Mi"
+  }
+  requests = {
+    cpu    = "1m"
+    memory = "50Mi"
+  }
+}
+k8s_deployment_loader = {
+  replicas = 1
+  limits = {
+    cpu    = "100m"
+    memory = "256Mi"
+  }
+  requests = {
+    cpu    = "1m"
+    memory = "50Mi"
+  }
+}
+k8s_deployment_metadata = {
+  replicas = 1
+  limits = {
+    cpu    = "100m"
+    memory = "256Mi"
+  }
+  requests = {
+    cpu    = "1m"
+    memory = "50Mi"
+  }
+}
+
+k8s_deployment_configurator = {
+  replicas = 1
+  limits = {
+    cpu    = "500m"
+    memory = "512Mi"
+  }
+  requests = {
+    cpu    = "100m"
+    memory = "512Mi"
+  }
+}
+
+k8s_deployment_webhook_trigger = {
+  replicas = 1
+  limits = {
+    cpu    = "200m"
+    memory = "256Mi"
+  }
+  requests = {
+    cpu    = "100m"
+    memory = "128Mi"
+  }
+}
+
+k8s_deployment_formsync = {
+  replicas = 1
+  limits = {
+    cpu    = "200m"
+    memory = "256Mi"
+  }
+  requests = {
+    cpu    = "100m"
+    memory = "128Mi"
+  }
+}
+
+k8s_deployment_cron_trigger = {
+  replicas = 1
+  limits = {
+    cpu    = "500m"
+    memory = "512Mi"
+  }
+  requests = {
+    cpu    = "100m"
+    memory = "128Mi"
+  }
+}
+
+k8s_deployment_controller = {
+  replicas = 1
+  limits = {
+    cpu    = "500m"
+    memory = "512Mi"
+  }
+  requests = {
+    cpu    = "100m"
+    memory = "512Mi"
+  }
+}
+
+k8s_deployment_worker = {
+  replicas = 1
+  limits = {
+    cpu    = "500m"
+    memory = "512Mi"
+  }
+  requests = {
+    cpu    = "100m"
+    memory = "256Mi"
+  }
+}
+
+k8s_deployment_post_processor = {
+  replicas = 1
+  limits = {
+    cpu    = "500m"
+    memory = "512Mi"
+  }
+  requests = {
+    cpu    = "100m"
+    memory = "256Mi"
+  }
+}
+
+
+k8s_deployment_webhook = {
+  replicas = 1
+  limits = {
+    cpu    = "500m"
+    memory = "256Mi"
+  }
+  requests = {
+    cpu    = "100m"
+    memory = "128Mi"
+  }
+}
