@@ -1018,6 +1018,8 @@ func (l *PostgreLoader) loadAddedFields(txn *sql.Tx, data *service.LoaderData) e
 		return err
 	}
 
+	l.logger.Info("Loaded added fields to postgres")
+
 	return nil
 }
 
@@ -1029,6 +1031,11 @@ func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *service.LoaderData)
 		return nil
 	}
 
+	updateQueryConcurrent := 10
+	updateQueriesMap := make(map[uint32]PostgresUpdateQuery) // hash -> query data
+	queryGroup, _ := errgroup.WithContext(context.Background())
+	queryGroup.SetLimit(updateQueryConcurrent)
+
 	for rowId, fieldsToDelete := range data.DeletedFields {
 		var jsonbSet string
 		for i, fieldName := range fieldsToDelete {
@@ -1039,17 +1046,41 @@ func (l *PostgreLoader) loadDeletedFields(txn *sql.Tx, data *service.LoaderData)
 			}
 		}
 		query := fmt.Sprintf(
-			"UPDATE \"%s\" SET %s = %s, %s = %s WHERE %s = '%s'",
+			"UPDATE \"%s\" SET %s = %s, %s = %s",
 			l.tableName,
 			name.TableDataDataColumn, jsonbSet,
 			name.UpdatedAtColumn, "NOW()",
-			name.IdColumn, rowId,
 		)
-		// l.logger.Debug("Query: ", query)
-		_, err := txn.Exec(query)
-		if err != nil {
-			return err
+		hashedQuery := util.MurmurHashString(jsonbSet)
+		if queryData, ok := updateQueriesMap[hashedQuery]; !ok {
+			queryData = PostgresUpdateQuery{
+				RowIds: []string{rowId},
+				Query:  &query,
+			}
+			updateQueriesMap[hashedQuery] = queryData
+		} else {
+			queryData.RowIds = append(queryData.RowIds, rowId)
+			updateQueriesMap[hashedQuery] = queryData
 		}
+	}
+
+	for _, queryData := range updateQueriesMap {
+		query := *queryData.Query
+		rowIds := queryData.RowIds
+		finalQuery := fmt.Sprintf("%s WHERE %s IN ('%s')", query, name.IdColumn, strings.Join(rowIds, "','"))
+		// l.logger.Debug("Update query: ", finalQuery)
+		queryGroup.Go(func() error {
+			_, err := txn.Exec(finalQuery)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+
+	err := queryGroup.Wait()
+	if err != nil {
+		return err
 	}
 
 	l.logger.Info("Loaded deleted fields to postgres")
