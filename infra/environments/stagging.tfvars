@@ -54,7 +54,7 @@ k8s_deployment_downloader = {
   replicas = 1
   limits = {
     cpu    = "100m"
-    memory = "256Mi"
+    memory = "512Mi"
   }
   requests = {
     cpu    = "1m"
