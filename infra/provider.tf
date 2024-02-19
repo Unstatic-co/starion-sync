@@ -20,6 +20,20 @@ terraform {
       source  = "digitalocean/digitalocean"
       version = "~> 2.30.0"
     }
+
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.16.1"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.8.0"
+    }
+
+    kubectl = {
+      source  = "gavinbunney/kubectl"
+      version = ">= 1.7.0"
+    }
   }
 
   backend "gcs" {}
@@ -46,3 +60,41 @@ provider "upstash" {
 provider "digitalocean" {
   token = var.do_token
 }
+
+data "digitalocean_kubernetes_cluster" "default_cluster" {
+  name = var.cluster_name
+}
+
+locals {
+  doks_config         = data.digitalocean_kubernetes_cluster.default_cluster.kube_config[0].raw_config
+  doks_endpoint       = data.digitalocean_kubernetes_cluster.default_cluster.endpoint
+  doks_token          = data.digitalocean_kubernetes_cluster.default_cluster.kube_config[0].token
+  doks_ca_certificate = data.digitalocean_kubernetes_cluster.default_cluster.kube_config[0].cluster_ca_certificate
+}
+
+provider "kubernetes" {
+  host  = local.doks_endpoint
+  token = local.doks_token
+  cluster_ca_certificate = base64decode(
+    local.doks_ca_certificate
+  )
+}
+provider "kubectl" {
+  host = local.doks_endpoint
+  cluster_ca_certificate = base64decode(
+    local.doks_ca_certificate
+  )
+  token            = local.doks_token
+  load_config_file = false
+}
+
+provider "helm" {
+  kubernetes {
+    host  = local.doks_endpoint
+    token = local.doks_token
+    cluster_ca_certificate = base64decode(
+      local.doks_ca_certificate
+    )
+  }
+}
+
