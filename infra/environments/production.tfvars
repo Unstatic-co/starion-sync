@@ -35,11 +35,26 @@ google_client_id    = "264150731939-feqpvu0c1t8nqdb0gim3kp0mop9eoc2o.apps.google
 
 # dest_db_uri = "" # temporary
 
+#k8s config
+redis_host = "redisdb-headless.default.svc.cluster.local"
+redis_port = 6379
+#domain
+letsencrypt_email               = "khoihoang@unstatic.co"
+letsencrypt_cluster_issuer_name = "backend-sync-letsencrypt-nginx"
+configurator_domain             = "sync-configurator.starion.io"
+webhook_trigger_domain          = "sync-webhook-trigger.starion.io"
+formsync_domain                 = "sync-form.starion.io"
+replicas_count                  = 1
+downloader_url                  = "http://downloader.backend-sync-app.svc.cluster.local"
+metadata_url                    = "http://metadata.backend-sync-app.svc.cluster.local"
+comparer_url                    = "http://comparer.backend-sync-app.svc.cluster.local"
+loader_url                      = "http://loader.backend-sync-app.svc.cluster.local"
+
 k8s_deployment_downloader = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "100m"
-    memory = "1024Mi"
+    memory = "512Mi"
   }
   requests = {
     cpu    = "1m"
@@ -48,10 +63,10 @@ k8s_deployment_downloader = {
 }
 
 k8s_deployment_comparer = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "100m"
-    memory = "512Mi"
+    memory = "256Mi"
   }
   requests = {
     cpu    = "1m"
@@ -59,10 +74,10 @@ k8s_deployment_comparer = {
   }
 }
 k8s_deployment_loader = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "100m"
-    memory = "512Mi"
+    memory = "256Mi"
   }
   requests = {
     cpu    = "1m"
@@ -70,10 +85,10 @@ k8s_deployment_loader = {
   }
 }
 k8s_deployment_metadata = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "100m"
-    memory = "512Mi"
+    memory = "256Mi"
   }
   requests = {
     cpu    = "1m"
@@ -82,7 +97,7 @@ k8s_deployment_metadata = {
 }
 
 k8s_deployment_configurator = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "500m"
     memory = "512Mi"
@@ -94,7 +109,7 @@ k8s_deployment_configurator = {
 }
 
 k8s_deployment_webhook_trigger = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "200m"
     memory = "256Mi"
@@ -106,10 +121,10 @@ k8s_deployment_webhook_trigger = {
 }
 
 k8s_deployment_formsync = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "200m"
-    memory = "512Mi"
+    memory = "256Mi"
   }
   requests = {
     cpu    = "100m"
@@ -118,7 +133,7 @@ k8s_deployment_formsync = {
 }
 
 k8s_deployment_cron_trigger = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "500m"
     memory = "512Mi"
@@ -130,10 +145,10 @@ k8s_deployment_cron_trigger = {
 }
 
 k8s_deployment_controller = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "500m"
-    memory = "1024Mi"
+    memory = "512Mi"
   }
   requests = {
     cpu    = "100m"
@@ -142,7 +157,7 @@ k8s_deployment_controller = {
 }
 
 k8s_deployment_worker = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "500m"
     memory = "512Mi"
@@ -154,7 +169,7 @@ k8s_deployment_worker = {
 }
 
 k8s_deployment_post_processor = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "500m"
     memory = "512Mi"
@@ -167,7 +182,7 @@ k8s_deployment_post_processor = {
 
 
 k8s_deployment_webhook = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "500m"
     memory = "256Mi"

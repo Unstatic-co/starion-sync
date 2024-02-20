@@ -30,8 +30,8 @@ locals {
   metadata_url      = var.metadata_url
 
   # public url : formsync, trigger, configurator
-  configurator_url         = var.is_production ? "https://${local.configurator_app_name}.fly.dev" : "https://${local.apps_app_name}.fly.dev"
-  webhook_trigger_base_url = "https://${local.webhook_trigger_app_name}.fly.dev"
+  configurator_url         = var.is_production ? "https://sync-configurator.starion.io" : "https://sync-configurator.starion-stagging.com"
+  webhook_trigger_base_url = var.is_production ? "https://sync-webhook-trigger.starion.io" : "https://sync-webhook-trigger.starion-stagging.com" # "https://${local.webhook_trigger_app_name}.fly.dev"
 }
 
 locals {
