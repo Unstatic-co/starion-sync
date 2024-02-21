@@ -53,20 +53,20 @@ loader_url                      = "http://loader.backend-sync-app.svc.cluster.lo
 k8s_deployment_downloader = {
   replicas = 1
   limits = {
-    cpu    = "100m"
+    cpu    = "500m"
     memory = "512Mi"
   }
   requests = {
     cpu    = "1m"
-    memory = "50Mi"
+    memory = "100Mi"
   }
 }
 
 k8s_deployment_comparer = {
   replicas = 1
   limits = {
-    cpu    = "100m"
-    memory = "256Mi"
+    cpu    = "400m"
+    memory = "512Mi"
   }
   requests = {
     cpu    = "1m"
@@ -88,7 +88,7 @@ k8s_deployment_metadata = {
   replicas = 1
   limits = {
     cpu    = "100m"
-    memory = "256Mi"
+    memory = "512Mi"
   }
   requests = {
     cpu    = "1m"
