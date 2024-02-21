@@ -76,7 +76,7 @@ k8s_deployment_comparer = {
 k8s_deployment_loader = {
   replicas = 1
   limits = {
-    cpu    = "100m"
+    cpu    = "400m"
     memory = "256Mi"
   }
   requests = {
@@ -87,7 +87,7 @@ k8s_deployment_loader = {
 k8s_deployment_metadata = {
   replicas = 1
   limits = {
-    cpu    = "100m"
+    cpu    = "500m"
     memory = "512Mi"
   }
   requests = {
@@ -99,7 +99,7 @@ k8s_deployment_metadata = {
 k8s_deployment_configurator = {
   replicas = 1
   limits = {
-    cpu    = "500m"
+    cpu    = "300m"
     memory = "512Mi"
   }
   requests = {
@@ -123,7 +123,7 @@ k8s_deployment_webhook_trigger = {
 k8s_deployment_formsync = {
   replicas = 1
   limits = {
-    cpu    = "200m"
+    cpu    = "300m"
     memory = "256Mi"
   }
   requests = {
@@ -135,7 +135,7 @@ k8s_deployment_formsync = {
 k8s_deployment_cron_trigger = {
   replicas = 1
   limits = {
-    cpu    = "500m"
+    cpu    = "300m"
     memory = "512Mi"
   }
   requests = {
@@ -147,7 +147,7 @@ k8s_deployment_cron_trigger = {
 k8s_deployment_controller = {
   replicas = 1
   limits = {
-    cpu    = "500m"
+    cpu    = "400m"
     memory = "512Mi"
   }
   requests = {
@@ -171,7 +171,7 @@ k8s_deployment_worker = {
 k8s_deployment_post_processor = {
   replicas = 1
   limits = {
-    cpu    = "500m"
+    cpu    = "200m"
     memory = "512Mi"
   }
   requests = {
@@ -184,7 +184,7 @@ k8s_deployment_post_processor = {
 k8s_deployment_webhook = {
   replicas = 1
   limits = {
-    cpu    = "500m"
+    cpu    = "300m"
     memory = "256Mi"
   }
   requests = {
