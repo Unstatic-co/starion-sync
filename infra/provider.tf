@@ -58,33 +58,52 @@ provider "upstash" {
 }
 
 provider "digitalocean" {
-  token = var.do_token
+  token = local.is_production ? var.do_token : null
 }
 
 data "digitalocean_kubernetes_cluster" "default_cluster" {
-  name = var.cluster_name
+  count = local.is_production ? 1 : 0
+  name  = var.cluster_name
 }
 
 locals {
-  doks_config         = data.digitalocean_kubernetes_cluster.default_cluster.kube_config[0].raw_config
-  doks_endpoint       = data.digitalocean_kubernetes_cluster.default_cluster.endpoint
-  doks_token          = data.digitalocean_kubernetes_cluster.default_cluster.kube_config[0].token
-  doks_ca_certificate = data.digitalocean_kubernetes_cluster.default_cluster.kube_config[0].cluster_ca_certificate
+  doks_config         = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].raw_config : null
+  doks_endpoint       = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].endpoint : var.K3S_ENDPOINT
+  doks_token          = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].token : null
+  doks_ca_certificate = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].cluster_ca_certificate : var.K3S_CA_CERTIFICATE
+  client_certificate  = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].client_certificate : var.K3S_CLIENT_CERTIFICATE
+  client_key          = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].client_key : var.K3S_CLIENT_KEY
 }
 
 provider "kubernetes" {
   host  = local.doks_endpoint
   token = local.doks_token
+  client_certificate = base64decode(
+    local.client_certificate
+  )
+  client_key = base64decode(
+    local.client_key
+  )
   cluster_ca_certificate = base64decode(
     local.doks_ca_certificate
   )
 }
 provider "kubectl" {
   host = local.doks_endpoint
+
   cluster_ca_certificate = base64decode(
     local.doks_ca_certificate
   )
-  token            = local.doks_token
+
+  token = local.doks_token
+
+  client_certificate = base64decode(
+    local.client_certificate
+  )
+  client_key = base64decode(
+    local.client_key
+  )
+
   load_config_file = false
 }
 
@@ -92,6 +111,14 @@ provider "helm" {
   kubernetes {
     host  = local.doks_endpoint
     token = local.doks_token
+
+    client_certificate = base64decode(
+      local.client_certificate
+    )
+    client_key = base64decode(
+      local.client_key
+    )
+
     cluster_ca_certificate = base64decode(
       local.doks_ca_certificate
     )
