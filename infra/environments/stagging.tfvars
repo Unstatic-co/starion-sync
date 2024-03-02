@@ -63,7 +63,7 @@ k8s_deployment_downloader = {
 }
 
 k8s_deployment_comparer = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "500m"
     memory = "512Mi"
