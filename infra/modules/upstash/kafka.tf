@@ -1,12 +1,12 @@
 resource "upstash_kafka_cluster" "starion-sync" {
-  cluster_name = "${var.project}-${var.environment}-kafka"
+  cluster_name = "${var.project}-${var.environment}-kafka-k3s"
   region       = var.kafka_region
   multizone    = false
 }
 
 resource "upstash_kafka_credential" "starion-sync" {
   cluster_id      = upstash_kafka_cluster.starion-sync.cluster_id
-  credential_name = "${var.project}-${var.environment}-kafka-credential"
+  credential_name = "${var.project}-${var.environment}-kafka-credential-k3s"
   topic           = "*"
   permissions     = "ALL"
 }

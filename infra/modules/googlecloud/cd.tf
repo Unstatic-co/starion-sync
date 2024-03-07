@@ -15,7 +15,7 @@ locals {
 }
 
 resource "google_cloudbuild_trigger" "starion_sync_deploy_image_builder" {
-  name     = "starion-sync-deploy-image"
+  name     = "starion-sync-deploy-image-k3s"
   location = var.gcp_region
 
   build {
@@ -55,7 +55,7 @@ data "google_service_account" "deploy_service_account" {
 }
 
 resource "google_cloudbuild_trigger" "starion_sync_deploy" {
-  name     = "${var.project}-deploy"
+  name     = "${var.project}-deploy-k3s"
   location = var.gcp_region
   filename = "infra/cloudbuild/${var.environment}.cloudbuild.yml"
 
