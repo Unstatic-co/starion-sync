@@ -37,7 +37,7 @@ declare -a SERVICES=(excel google-sheets)
 declare -a COMMON_BINARY_DEPENDENCIES=(generate-id get-csv-header get-xlsx-header find-and-fix-id-col get-and-upload-schema)
 declare -A SERVICE_BINARY_DEPENDENCIES=(
     [excel]="get-and-normalize-date-column update-id-column"
-    [google-sheets]="get-and-normalize-date-column update-id-column"
+    [google-sheets]="get-and-normalize-date-column update-id-column do-all"
 )
 
 function buildCommon() {

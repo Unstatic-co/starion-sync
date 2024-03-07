@@ -25,5 +25,6 @@ type FieldSchema struct {
 	Enum         []interface{} `json:"enum"`
 	Readonly     bool          `json:"readonly"`
 	Primary      bool          `json:"primary"`
+	Index 	  int           `json:"index"`
 	// Format       string        `json:"format"`
 }

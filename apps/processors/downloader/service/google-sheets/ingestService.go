@@ -176,7 +176,7 @@ func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
 	cmd := exec.CommandContext(
 		ctx,
 		"bash",
-		"./ingest-google-sheets.sh",
+		"./ingest-google-sheets-new.sh",
 		"--externalErrorFile", externalErrorFile,
 		"--spreadsheetId", s.spreadsheetId,
 		"--sheetId", s.sheetId,

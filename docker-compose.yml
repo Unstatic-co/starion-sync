@@ -230,10 +230,10 @@ services:
         delay: 3s
         max_attempts: 5
         window: 60s
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1024M
+      # resources:
+      # limits:
+      # cpus: '1'
+      # memory: 1024M
     platform: linux/amd64
     build:
       context: ./apps/processors/downloader
