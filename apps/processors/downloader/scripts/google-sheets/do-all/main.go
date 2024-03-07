@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"downloader/libs/schema"
 	"downloader/util"
 	"encoding/csv"
@@ -10,6 +11,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -18,9 +21,16 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/samber/lo"
+	"golang.org/x/oauth2"
 
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/writer"
+
+	"github.com/google/uuid"
+
+	"google.golang.org/api/googleapi"
+	"google.golang.org/api/option"
+	"google.golang.org/api/sheets/v4"
 )
 
 type MarshaledSchemaFile struct {
@@ -31,6 +41,21 @@ type MarshaledSchemaFileField struct {
 	Format string `json:"format"`
 	Enum []interface{} `json:"enum"`
 }
+
+type LineData struct {
+	Data []string
+	RowIndex int
+}
+
+type FixIdData struct {
+	RowId string
+	RowIndex int
+}
+type FixIdDataArray []FixIdData
+func (a FixIdDataArray) Len() int           { return len(a) }
+func (a FixIdDataArray) Less(i, j int) bool { return a[i].RowIndex < a[j].RowIndex }
+func (a FixIdDataArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+type UpdateIdData map[int][]string // map[firstRowNumber][]id
 
 func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.TableSchema, error) {
 	jsonFile, err := os.Open(schemaFilePath)
@@ -182,7 +207,7 @@ func main() {
 	// 	fmt.Println(err)
 	// }
 
-    const numWorkers = 1 // Adjust based on your CPU/core count
+    const numWorkers = 4 // Adjust based on your CPU/core count
 
 	fmt.Printf("csvFile: %s\n", *csvFile)
 
@@ -194,13 +219,6 @@ func main() {
     defer file.Close()
 
     reader := csv.NewReader(bufio.NewReader(file))
-	// reader.TrimLeadingSpace = true
-	// reader.ReuseRecord = true
-
-	// init chan
-    lines := make(chan []string, 10000) // Buffer to hold lines for processing
-    writeChan := make(chan []*string, 10000) // Buffer to hold lines for processing
-    var wg sync.WaitGroup
 
     // Read the CSV file and send lines to workers
     header, err := reader.Read()
@@ -219,13 +237,41 @@ func main() {
 	}
 	fieldSchemaMap := getIndexSchemaField(tableSchema)
 
+	// find id column index
+	var idColIndex int
+	isCreateIdColumn := false
+	if idField, ok := (*tableSchema)[schema.HashedPrimaryField]; ok {
+		idColIndex = idField.Index
+	} else {
+		isCreateIdColumn = true
+		maxFieldIndex := 0
+		for _, field := range (*tableSchema) {
+			if field.Index > maxFieldIndex {
+				maxFieldIndex = field.Index
+			}
+		}
+		idColIndex = maxFieldIndex + 1
+	}
+
+	// init chan
+    lines := make(chan *LineData, 10000) // Buffer to hold lines for processing
+    writeChan := make(chan []*string, 10000) // Buffer to hold lines for processing
+	fixIdChan := make(chan *FixIdData, 10000) // Buffer to hold lines for processing
+    var processWg sync.WaitGroup
+    var afterProcessWg sync.WaitGroup
+
     // Start workers
     for i := 0; i < numWorkers; i++ {
-        wg.Add(1)
-		go writeParquet(writeChan, fieldSchemaMap)
-        go processLines(lines, writeChan, &wg)
+        processWg.Add(1)
+        go processLines(lines, writeChan, fixIdChan, fieldSchemaMap, *tableSchema, &processWg)
     }
+	afterProcessWg.Add(1)
+	go fixIdColumn(fixIdChan, isCreateIdColumn, idColIndex, &afterProcessWg)
+	afterProcessWg.Add(1)
+	go writeParquet(writeChan, fieldSchemaMap, &afterProcessWg)
+
 	
+	rowIndex := 0
     for {
         record, err := reader.Read()
         if err == io.EOF {
@@ -236,38 +282,148 @@ func main() {
         }
 
 		// fmt.Println(record)
-        lines <- record // Send the record to a worker for processing
+		rowIndex++
+		line := LineData{
+			Data: record,
+			RowIndex: rowIndex,
+		}
+        lines <- &line // Send the record to a worker for processing
     }
     close(lines) // Close the channel to signal to the workers that there's no more work
-    wg.Wait()    // Wait for all workers to finish processing
+    processWg.Wait()    // Wait for all workers to finish processing
+	close(fixIdChan)
 	close(writeChan)
+	afterProcessWg.Wait()
 
 	elapsed := time.Since(start)
 	fmt.Println("Execution time:", elapsed)
 }
 
 // Worker to process lines
-func processLines(lines <-chan []string, writeChan chan<- []*string, wg *sync.WaitGroup) {
+func processLines(lines <-chan *LineData, writeChan chan<- []*string, fixIdChan chan<- *FixIdData, fieldSchemaMap map[int]schema.FieldSchema, tableSchema schema.TableSchema, wg *sync.WaitGroup) {
     defer wg.Done()
 
+	// find id column
+	var idColIndex int
+	isCreateIdColumn := false
+	if idField, ok := tableSchema[schema.HashedPrimaryField]; ok {
+		idColIndex = idField.Index
+	} else {
+		isCreateIdColumn = true
+		maxFieldIndex := 0
+		for _, field := range tableSchema {
+			if field.Index > maxFieldIndex {
+				maxFieldIndex = field.Index
+			}
+		}
+		idColIndex = maxFieldIndex + 1
+	}
+
     for line := range lines {
-		// fmt.Printf("line: %s", line)
-        // Process the line here
-        // This is where you'd typically parse the fields and do something with them
-		writeData := make([]*string, len(line))
-		for i, valueIterate := range line {
+		fieldCount := len(fieldSchemaMap)
+
+		writeData := make([]*string, fieldCount)
+		for i, valueIterate := range line.Data {
 			// fmt.Printf("valueIterate: %s\n", valueIterate)
 			valueRef := strings.TrimSpace(valueIterate)
 			writeData[i] = &valueRef
 			// fmt.Print(value, "\t")
 		}
 		writeChan <- writeData
+
+		if isCreateIdColumn {
+			fixId := FixIdData{
+				RowId: uuid.NewString(),
+				RowIndex: line.RowIndex,
+			}
+			fixIdChan <- &fixId
+		} else {
+			curId := line.Data[idColIndex]
+			if curId == "" || !util.IsValidUUID(curId) {
+				fixId := FixIdData{
+					RowId: uuid.NewString(),
+					RowIndex: line.RowIndex,
+				}
+				fixIdChan <- &fixId
+			}
+		}
 		// fmt.Println()
     }
 
 }
 
-func writeParquet(dataChan <-chan []*string, fieldSchemaMap map[int]schema.FieldSchema) {
+func fixIdColumn(fixIds chan *FixIdData, isCreateIdCol bool, idColIndex int, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	spreadsheetId := "1COvhrUlnPv_wMrCrCOWM-5-wuVm7Vrtmm6O0F_gNWxs"
+	sheetName := "Sheet1"
+	sheetIdInt, _ := strconv.Atoi("0")
+	ctx := context.Background()
+	token := oauth2.Token{
+		AccessToken: "",
+	}
+	tokenSource := oauth2.StaticTokenSource(&token)
+	sheetClient, err := sheets.NewService(ctx, option.WithTokenSource(tokenSource))
+	if err != nil {
+		log.Fatalln("Error when creating client to update id col", err)
+	}
+
+	// append dimension optionally
+	if isCreateIdCol {
+		res, err := sheetClient.Spreadsheets.Get(spreadsheetId).Ranges(util.FormatSheetNameInRange(sheetName)).IncludeGridData(false).Fields(googleapi.Field("sheets.properties.gridProperties.columnCount")).Do()
+		if err != nil {
+			log.Fatal("Error when getting column count", err)
+		}
+		columnCount := res.Sheets[0].Properties.GridProperties.ColumnCount
+		if columnCount < int64(idColIndex) {
+			_, err = sheetClient.Spreadsheets.BatchUpdate(spreadsheetId, &sheets.BatchUpdateSpreadsheetRequest{
+				Requests: []*sheets.Request{
+					{
+						InsertDimension: &sheets.InsertDimensionRequest{
+							InheritFromBefore: true,
+							Range: &sheets.DimensionRange{
+								SheetId:    int64(sheetIdInt),
+								Dimension:  "COLUMNS",
+								StartIndex: int64(idColIndex - 1),
+								EndIndex:   int64(idColIndex),
+							},
+						},
+					},
+				},
+			}).Do()
+			if err != nil {
+				log.Fatalln("Error when inserting column", err)
+			}
+		}
+
+		// title id column
+		fixIds <- &FixIdData{
+			RowId: "__StarionId",
+			RowIndex: 0,
+		}
+	}
+
+	batchSize := 5000
+	batchData := make([]FixIdData, 0, batchSize)
+
+	for data := range fixIds {
+		fmt.Printf("Fixing id: %s\n", data.RowIndex)
+		batchData = append(batchData, *data)
+		if len(batchData) == batchSize {
+			processBatchGoogleSheetsFixId(batchData, sheetClient, spreadsheetId, sheetName, idColIndex, batchSize)
+
+			// end batch
+			batchData = make([]FixIdData, 0, batchSize)
+		}
+    }
+
+	if len(batchData) > 0 {
+		processBatchGoogleSheetsFixId(batchData, sheetClient, spreadsheetId, sheetName, idColIndex, batchSize)
+	}
+}
+
+func writeParquet(dataChan <-chan []*string, fieldSchemaMap map[int]schema.FieldSchema, wg *sync.WaitGroup) {
+	defer wg.Done()
 	fmt.Printf("Start writing parquet\n")
 
 	// init parquet writer
@@ -277,12 +433,14 @@ func writeParquet(dataChan <-chan []*string, fieldSchemaMap map[int]schema.Field
 	}
 
 	fw, err := local.NewLocalFileWriter("test.parquet")
-	defer fw.Close()
 	if err != nil {
+		fmt.Printf("Can't open file: %s\n", err)
 		return;
 	}
+	defer fw.Close()
 	pw, err := writer.NewCSVWriter(pqSchema, fw, 4)
 	if err != nil {
+		fmt.Printf("Can't create csv writer: %s\n", err)
 		return;
 	}
 
@@ -292,12 +450,14 @@ func writeParquet(dataChan <-chan []*string, fieldSchemaMap map[int]schema.Field
 		}
 	}
 
+	fmt.Printf("Finish writing parquet\n")
+
 	// stop parquet writer
 	if err = pw.WriteStop(); err != nil {
 		log.Println("WriteStop error", err)
 	}
 
-	fmt.Printf("Finish writing parquet\n")
+	// fmt.Printf("Finish writing parquet\n")
 }
 
 func getHeaderIndex(row []string) map[string]int {
@@ -335,4 +495,55 @@ func inferBooleanType(enum []interface{}) bool {
 		return true
 	}
 	return false
+}
+
+func processBatchGoogleSheetsFixId(batchData []FixIdData, sheetClient *sheets.Service, spreadsheetId string, sheetName string, idColIndex int, batchSize int) {
+	sort.Sort(FixIdDataArray(batchData))
+	updateBatches := make(UpdateIdData)
+	prevRowIndex := batchData[0].RowIndex
+	curFirstRowIndex := batchData[0].RowIndex
+	var curUpdateBatchData = make([]string, 0, batchSize)
+	for i := 1; i < len(batchData); i++ {
+		fixIdData := batchData[i]
+		if prevRowIndex+1 == fixIdData.RowIndex {
+			curUpdateBatchData = append(curUpdateBatchData, fixIdData.RowId)
+		} else {
+			// end old update batch
+			updateBatches[curFirstRowIndex] = curUpdateBatchData
+			// start new update batch
+			curUpdateBatchData = make([]string, 0, batchSize)
+			curUpdateBatchData = append(curUpdateBatchData, fixIdData.RowId)
+			curFirstRowIndex = fixIdData.RowIndex
+		}
+		prevRowIndex = fixIdData.RowIndex
+	}
+
+	// do call update api
+	updateValues := generateUpdateIdGoogleSheetsData(updateBatches, sheetName, idColIndex)
+	_, err := sheetClient.Spreadsheets.Values.
+		BatchUpdate(spreadsheetId, &sheets.BatchUpdateValuesRequest{
+			ValueInputOption:        "RAW",
+			Data:                    updateValues,
+			IncludeValuesInResponse: false,
+		}).
+		Do()
+	if err != nil {
+		log.Fatalln("Error when updating id col", err)
+	}
+}
+
+func generateUpdateIdGoogleSheetsData(data UpdateIdData, sheetName string, idColIndex int) []*sheets.ValueRange {
+	result := make([]*sheets.ValueRange, len(data))
+	for firstRowNumber, values := range data {
+		formattedValues := make([][]interface{}, len(values))
+		for i, val := range values {
+			formattedValues[i] = []interface{}{val}
+		}
+		valueRange := fmt.Sprintf("%s!R%[2]dC%[3]d:R%[4]dC%[3]d", util.FormatSheetNameInRange(sheetName), firstRowNumber, idColIndex, firstRowNumber+len(values)-1)
+		result = append(result, &sheets.ValueRange{
+			Range:  valueRange,
+			Values: formattedValues,
+		})
+	}
+	return result
 }
