@@ -5,6 +5,7 @@ import (
 	"context"
 	"downloader/libs/schema"
 	"downloader/util"
+	"downloader/util/s3"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -25,8 +26,6 @@ import (
 
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/writer"
-
-	"github.com/google/uuid"
 
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
@@ -57,19 +56,342 @@ func (a FixIdDataArray) Less(i, j int) bool { return a[i].RowIndex < a[j].RowInd
 func (a FixIdDataArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 type UpdateIdData map[int][]string // map[firstRowNumber][]id
 
-func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.TableSchema, error) {
+type CommonInput struct {
+	SpreadsheetId *string
+	SheetId *string
+	SheetName *string
+	AccessToken *string
+	DataSourceId *string
+	SyncVersion *string
+}
+
+type S3Input struct {
+	S3Endpoint *string
+	S3Region *string
+	S3Bucket *string
+	S3AccessKey *string
+	S3SecretKey *string
+}
+
+var (
+	SchemaPrimaryField = &schema.FieldSchema{
+		Id: schema.HashedPrimaryField,
+		Name:         schema.PrimaryFieldName,
+		Type:         schema.String,
+		OriginalType: string(exceltype.String),
+		Nullable:     false,
+		Primary:      true,
+	}
+)
+
+func main() {
+	start := time.Now()
+
+	// xlsxFile := flag.String("xlsxFile", "", "Xlsx file")
+	csvFile := flag.String("csvFile", "", "Csv file")
+	schemaFile := flag.String("schemaFile", "", "Schema file")
+	spreadsheetId := flag.String("spreadsheetId", "", "Spread sheet id")
+	sheetId := flag.String("sheetId", "", "Sheet id")
+	sheetName := flag.String("sheetName", "", "Sheet name")
+	accessToken := flag.String("accessToken", "", "Access token")
+	dataSourceId := flag.String("dataSourceId", "", "data source id")
+	syncVersion := flag.String("syncVersion", "", "sync version")
+	s3Endpoint := flag.String("s3Endpoint", "", "s3 url")
+	s3Region := flag.String("s3Region", "", "s3 region")
+	s3Bucket := flag.String("s3Bucket", "", "s3 bucket")
+	s3AccessKey := flag.String("s3AccessKey", "", "s3 access key")
+	s3SecretKey := flag.String("s3SecretKey", "", "s3 secret key")
+
+	flag.Parse()
+
+	commonInput := CommonInput{
+		SpreadsheetId: spreadsheetId,
+		SheetId: sheetId,
+		SheetName: sheetName,
+		AccessToken: accessToken,
+		DataSourceId: dataSourceId,
+		SyncVersion: syncVersion,
+	}
+
+	s3Input := S3Input{
+		S3Endpoint: s3Endpoint,
+		S3Region: s3Region,
+		S3Bucket: s3Bucket,
+		S3AccessKey: s3AccessKey,
+		S3SecretKey: s3SecretKey,
+	}
+
+    const numWorkers = 4 // Adjust based on your CPU/core count
+
+    // Open the CSV file
+    file, err := os.Open(*csvFile)
+    if err != nil {
+        panic(err)
+    }
+    defer file.Close()
+
+    reader := csv.NewReader(bufio.NewReader(file))
+
+    // Read the CSV file and send lines to workers
+    header, err := reader.Read()
+	if err != nil {
+		log.Fatalf("Error reading CSV file: %s", err)
+	}
+	if len(header) == 0 {
+		fmt.Println("CSV file is empty")
+		return
+	}
+
+	headerIndexes := getHeaderIndex(header)
+	tableSchema, _, isMissedIdColumn, realIdColIndex := GetSchema(*schemaFile, headerIndexes)
+	
+	fieldSchemaMap := getIndexSchemaField(tableSchema) // used for iterate data
+	fmt.Println("isMissedIdColumn", isMissedIdColumn)
+
+	// init chan
+    lines := make(chan *LineData, 10000) // Buffer to hold lines for processing
+    writeChan := make(chan []*string, 10000) // Buffer to hold lines for processing
+	fixIdChan := make(chan *FixIdData, 10000) // Buffer to hold lines for processing
+    var processWg sync.WaitGroup
+    var afterProcessWg sync.WaitGroup
+
+	afterProcessWg.Add(1)
+	go fixIdColumn(fixIdChan, isMissedIdColumn, realIdColIndex, &commonInput, &afterProcessWg)
+	afterProcessWg.Add(1)
+	go writeAndUploadParquet(writeChan, fieldSchemaMap, &commonInput, &s3Input, &afterProcessWg)
+	afterProcessWg.Add(1)
+	go uploadSchema(tableSchema, s3.S3HandlerConfig{
+		Endpoint:  *s3Input.S3Endpoint,
+		Region:    *s3Input.S3Region,
+		AccessKey: *s3Input.S3AccessKey,
+		SecretKey: *s3Input.S3SecretKey,
+		Bucket:    *s3Input.S3Bucket,
+	}, *commonInput.DataSourceId, *commonInput.SyncVersion, &afterProcessWg)
+
+	if (isMissedIdColumn) {
+		fmt.Println("add id name fix")
+		// title id column
+		fixIdChan <- &FixIdData{
+			RowId: "__StarionId",
+			RowIndex: 0,
+		}
+		fmt.Println("finish add id name fix")
+	}
+
+    // Start workers
+    for i := 0; i < numWorkers; i++ {
+        processWg.Add(1)
+        go processLines(lines, writeChan, fixIdChan, fieldSchemaMap, *tableSchema, isMissedIdColumn, &processWg)
+    }
+
+	
+	rowIndex := 0
+    for {
+        record, err := reader.Read()
+        if err == io.EOF {
+            break
+        }
+        if err != nil {
+            panic(err)
+        }
+
+		rowIndex++
+		line := LineData{
+			Data: record,
+			RowIndex: rowIndex,
+		}
+        lines <- &line // Send the record to a worker for processing
+    }
+    close(lines) // Close the channel to signal to the workers that there's no more work
+    processWg.Wait()    // Wait for all workers to finish processing
+	close(fixIdChan)
+	close(writeChan)
+	afterProcessWg.Wait()
+
+	elapsed := time.Since(start)
+	fmt.Println("Execution time:", elapsed)
+}
+
+// Worker to process lines
+func processLines(lines <-chan *LineData, writeChan chan<- []*string, fixIdChan chan<- *FixIdData, fieldSchemaMap map[int]schema.FieldSchema, tableSchema schema.TableSchema, isCreatedIdCol bool, wg *sync.WaitGroup) {
+    defer wg.Done()
+
+	idColIndex := tableSchema[schema.HashedPrimaryField].Index
+
+    for line := range lines {
+		writeDataLen := len(tableSchema)
+
+		writeData := make([]*string, writeDataLen)
+		for i, valueIterate := range line.Data {
+			// fmt.Printf("valueIterate: %s\n", valueIterate)
+			valueRef := strings.TrimSpace(valueIterate)
+			writeData[i] = &valueRef
+			// fmt.Print(value, "\t")
+		}
+
+		if isCreatedIdCol {
+			fixId := FixIdData{
+				RowId: util.GenUUID(),
+				RowIndex: line.RowIndex,
+			}
+			writeData[idColIndex] = &fixId.RowId
+			fixIdChan <- &fixId
+		} else {
+			curId := line.Data[idColIndex]
+			if curId == "" || !util.IsValidUUID(curId) {
+				fixId := FixIdData{
+					RowId: util.GenUUID(),
+					RowIndex: line.RowIndex,
+				}
+				writeData[idColIndex] = &fixId.RowId
+				fixIdChan <- &fixId
+			}
+		}
+
+		writeChan <- writeData
+		// fmt.Println()
+    }
+
+}
+
+func fixIdColumn(fixIds chan *FixIdData, isCreateIdCol bool, idColIndex int, commonInput *CommonInput, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	fmt.Println("Start fixing id column")
+
+	// spreadsheetId := "1COvhrUlnPv_wMrCrCOWM-5-wuVm7Vrtmm6O0F_gNWxs"
+	// // spreadsheetId := "149x_Jq0plKjUzZr_gpzVBgM90jzzX_KmxH4TW4C8Pag"
+	// sheetName := "Sheet1"
+	// sheetIdInt, _ := strconv.Atoi("0")
+	spreadsheetId := *commonInput.SpreadsheetId
+	sheetName := *commonInput.SheetName
+	sheetIdInt, _ := strconv.Atoi(*commonInput.SheetId)
+	ctx := context.Background()
+	token := oauth2.Token{
+		// AccessToken: "ya29.a0Ad52N38oB4wnhxnCF1Vm8ZwPK-i80fCaKsKaslKWbc5caqgiURJTw4WY7x342FXYCYCE6Ld7ztY59Rnf3b6YpCw046p81DmdNbfkteh43TgE_Zrs7-5omJqvDKDkHJ1bvPHKS3Gs4ix2G13agHKubGnaDr18Vx9xSF8IMNgaCgYKAYMSARASFQHGX2MiiaW9GS6NW6ozsH1xozHDhQ0174",
+		AccessToken: *commonInput.AccessToken,
+	}
+	tokenSource := oauth2.StaticTokenSource(&token)
+	sheetClient, err := sheets.NewService(ctx, option.WithTokenSource(tokenSource))
+	if err != nil {
+		log.Fatalln("Error when creating client to update id col", err)
+	}
+
+	// append dimension optionally
+	if isCreateIdCol {
+		res, err := sheetClient.Spreadsheets.Get(spreadsheetId).Ranges(util.FormatSheetNameInRange(sheetName)).IncludeGridData(false).Fields(googleapi.Field("sheets.properties.gridProperties.columnCount")).Do()
+		if err != nil {
+			log.Fatal("Error when getting column count", err)
+		}
+		columnCount := res.Sheets[0].Properties.GridProperties.ColumnCount
+		if columnCount < int64(idColIndex) {
+			_, err = sheetClient.Spreadsheets.BatchUpdate(spreadsheetId, &sheets.BatchUpdateSpreadsheetRequest{
+				Requests: []*sheets.Request{
+					{
+						InsertDimension: &sheets.InsertDimensionRequest{
+							InheritFromBefore: true,
+							Range: &sheets.DimensionRange{
+								SheetId:    int64(sheetIdInt),
+								Dimension:  "COLUMNS",
+								StartIndex: int64(idColIndex - 1),
+								EndIndex:   int64(idColIndex),
+							},
+						},
+					},
+				},
+			}).Do()
+			if err != nil {
+				log.Fatalln("Error when inserting column", err)
+			}
+		}
+	}
+
+	batchSize := 40000
+	batchData := make([]FixIdData, 0, batchSize)
+	var batchGroup sync.WaitGroup
+
+	for data := range fixIds {
+		batchData = append(batchData, *data)
+		if len(batchData) == batchSize {
+			batchGroup.Add(1)
+			go processBatchGoogleSheetsFixId(batchData, sheetClient, spreadsheetId, sheetName, idColIndex, batchSize, &batchGroup)
+
+			// end batch
+			batchData = make([]FixIdData, 0, batchSize)
+		}
+    }
+
+	if len(batchData) > 0 {
+		batchGroup.Add(1)
+		go processBatchGoogleSheetsFixId(batchData, sheetClient, spreadsheetId, sheetName, idColIndex, batchSize, &batchGroup)
+	}
+
+	batchGroup.Wait()
+
+	fmt.Println("Finish fixing id column")
+}
+
+func writeAndUploadParquet(dataChan <-chan []*string, fieldSchemaMap map[int]schema.FieldSchema, commonInput *CommonInput, s3Config *S3Input, wg *sync.WaitGroup) {
+	defer wg.Done()
+	fmt.Printf("Start writing parquet\n")
+
+	// init parquet writer
+	pqSchema := make([]string, len(fieldSchemaMap))
+	for index, field := range fieldSchemaMap {
+		pqSchema[index] = fmt.Sprintf("name=%s, type=BYTE_ARRAY, convertedtype=UTF8", field.Id)
+	}
+
+	fw, err := local.NewLocalFileWriter("test.parquet")
+	if err != nil {
+		fmt.Printf("Can't open file: %s\n", err)
+		return;
+	}
+	defer fw.Close()
+	pw, err := writer.NewCSVWriter(pqSchema, fw, 4)
+	if err != nil {
+		fmt.Printf("Can't create csv writer: %s\n", err)
+		return;
+	}
+
+	for data := range dataChan {
+		if err := pw.WriteString(data); err != nil {
+			log.Println("WriteString error", err)
+		}
+	}
+
+	// stop parquet writer
+	if err = pw.WriteStop(); err != nil {
+		log.Println("WriteStop error", err)
+	}
+
+	fmt.Printf("Finish writing parquet\n")
+
+	wg.Add(1)
+	go uploadData("test.parquet", s3.S3HandlerConfig{
+		Endpoint:  *s3Config.S3Endpoint,
+		Region:    *s3Config.S3Region,
+		AccessKey: *s3Config.S3AccessKey,
+		SecretKey: *s3Config.S3SecretKey,
+		Bucket:    *s3Config.S3Bucket,
+	}, *commonInput.DataSourceId, *commonInput.SyncVersion, wg)
+	fmt.Println("Finish uploading parquet")
+}
+
+func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.TableSchema, []int, bool, int) {
+	var emptyColIndexes []int
+	isMissedIdCol := true
+	var realIdColIndex int
+
 	jsonFile, err := os.Open(schemaFilePath)
     if err != nil {
-        fmt.Println("Error opening JSON file:", err)
-        return nil, err
+        log.Fatalln("Error opening JSON file:", err)
     }
     defer jsonFile.Close()
 
     // Read the file content
     byteValue, err := io.ReadAll(jsonFile)
     if err != nil {
-        fmt.Println("Error reading JSON file:", err)
-        return nil, err
+		log.Fatalln()
     }
 
     // Use jsoniter to unmarshal the byte value into the struct
@@ -77,8 +399,7 @@ func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.Tab
 	var schemaFile MarshaledSchemaFile
     err = json.Unmarshal(byteValue, &schemaFile)
     if err != nil {
-        fmt.Println("Error unmarshalling JSON:", err)
-        return nil, err
+		log.Fatalln("Error unmarshalling JSON:", err)
     }
 
 	tableSchema := make(schema.TableSchema, len(schemaFile.Properties))
@@ -86,16 +407,13 @@ func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.Tab
 	for fieldName, field := range schemaFile.Properties {
 		var fieldSchema schema.FieldSchema
 		hashedFieldName := util.HashFieldName(fieldName)
+		realFieldIndex := headerIndexes[fieldName]
 
 		if hashedFieldName == schema.HashedPrimaryField {
-			fieldSchema = schema.FieldSchema{
-				Name:         schema.PrimaryFieldName,
-				Type:         schema.String,
-				OriginalType: string(exceltype.String),
-				Nullable:     false,
-				Primary:      true,
-				Index: headerIndexes[fieldName],
-			}
+			fieldSchema = *SchemaPrimaryField
+			fieldSchema.Index = realFieldIndex
+			isMissedIdCol = false
+			realIdColIndex = realFieldIndex
 		} else {
 			detectedType := schema.String
 			var originalType exceltype.ExcelDataType
@@ -142,322 +460,35 @@ func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.Tab
 			}
 
 			fieldSchema = schema.FieldSchema{
+				Id: 		 hashedFieldName,
 				Name:         fieldName,
 				Type:         detectedType,
 				OriginalType: string(originalType),
 				Nullable:     true,
 				Primary:      false,
-				Index: headerIndexes[fieldName],
+				Index: realFieldIndex,
 			}
 		}
 		
 		tableSchema[hashedFieldName] = fieldSchema
 	}
 
-	return &tableSchema, nil
-}
-
-func main() {
-	start := time.Now()
-
-	// xlsxFile := flag.String("xlsxFile", "", "Xlsx file")
-	csvFile := flag.String("csvFile", "", "Csv file")
-	schemaFile := flag.String("schemaFile", "", "Schema file")
-
-	flag.Parse()
-
-	// f, err := excelize.OpenFile("Date.xlsx")
-	// // f, err := excelize.OpenFile("10k row.xlsx")
-	// if err != nil {
-		// fmt.Println(err)
-		// return
-	// }
-	// defer func() {
-		// // Close the spreadsheet.
-		// if err := f.Close(); err != nil {
-			// fmt.Println(err)
-		// }
-	// }()
-
-	// // Get all the rows in the Sheet1.
-	// // rows, err := f.Rows("Trang tính1")
-	// rows, err := f.Rows("Sheet1")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// fmt.Println("Start reading rows")
-	// for rows.Next() {
-	// 	row, err := rows.Columns(excelize.Options{
-	// 		RawCellValue: false,
-	// 		LongDatePattern: "2006-01-02T15:04:05Z07:00",
-	// 		ShortDatePattern: "2006-01-02",
-	// 	})
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 	}
-	// 	for _, colCell := range row {
-	// 		fmt.Print(colCell, "\t")
-	// 	}
-	// 	fmt.Println()
-	// }
-
-	// // Close the stream
-	// if err = rows.Close(); err != nil {
-	// 	fmt.Println(err)
-	// }
-
-    const numWorkers = 4 // Adjust based on your CPU/core count
-
-	fmt.Printf("csvFile: %s\n", *csvFile)
-
-    // Open the CSV file
-    file, err := os.Open(*csvFile)
-    if err != nil {
-        panic(err)
-    }
-    defer file.Close()
-
-    reader := csv.NewReader(bufio.NewReader(file))
-
-    // Read the CSV file and send lines to workers
-    header, err := reader.Read()
-	if err != nil {
-		log.Fatalf("Error reading CSV file: %s", err)
-	}
-	if len(header) == 0 {
-		fmt.Println("CSV file is empty")
-		return
-	}
-	headerIndexes := getHeaderIndex(header)
-
-	tableSchema, err := GetSchema(*schemaFile, headerIndexes)
-	if err != nil {
-		log.Fatalf("Error getting schema: %s", err)
-	}
-	fieldSchemaMap := getIndexSchemaField(tableSchema)
-
-	// find id column index
-	var idColIndex int
-	isCreateIdColumn := false
-	if idField, ok := (*tableSchema)[schema.HashedPrimaryField]; ok {
-		idColIndex = idField.Index
-	} else {
-		isCreateIdColumn = true
-		maxFieldIndex := 0
-		for _, field := range (*tableSchema) {
-			if field.Index > maxFieldIndex {
-				maxFieldIndex = field.Index
-			}
-		}
-		idColIndex = maxFieldIndex + 1
-	}
-
-	// init chan
-    lines := make(chan *LineData, 10000) // Buffer to hold lines for processing
-    writeChan := make(chan []*string, 10000) // Buffer to hold lines for processing
-	fixIdChan := make(chan *FixIdData, 10000) // Buffer to hold lines for processing
-    var processWg sync.WaitGroup
-    var afterProcessWg sync.WaitGroup
-
-    // Start workers
-    for i := 0; i < numWorkers; i++ {
-        processWg.Add(1)
-        go processLines(lines, writeChan, fixIdChan, fieldSchemaMap, *tableSchema, &processWg)
-    }
-	afterProcessWg.Add(1)
-	go fixIdColumn(fixIdChan, isCreateIdColumn, idColIndex, &afterProcessWg)
-	afterProcessWg.Add(1)
-	go writeParquet(writeChan, fieldSchemaMap, &afterProcessWg)
-
-	
-	rowIndex := 0
-    for {
-        record, err := reader.Read()
-        if err == io.EOF {
-            break
-        }
-        if err != nil {
-            panic(err)
-        }
-
-		// fmt.Println(record)
-		rowIndex++
-		line := LineData{
-			Data: record,
-			RowIndex: rowIndex,
-		}
-        lines <- &line // Send the record to a worker for processing
-    }
-    close(lines) // Close the channel to signal to the workers that there's no more work
-    processWg.Wait()    // Wait for all workers to finish processing
-	close(fixIdChan)
-	close(writeChan)
-	afterProcessWg.Wait()
-
-	elapsed := time.Since(start)
-	fmt.Println("Execution time:", elapsed)
-}
-
-// Worker to process lines
-func processLines(lines <-chan *LineData, writeChan chan<- []*string, fixIdChan chan<- *FixIdData, fieldSchemaMap map[int]schema.FieldSchema, tableSchema schema.TableSchema, wg *sync.WaitGroup) {
-    defer wg.Done()
-
-	// find id column
-	var idColIndex int
-	isCreateIdColumn := false
-	if idField, ok := tableSchema[schema.HashedPrimaryField]; ok {
-		idColIndex = idField.Index
-	} else {
-		isCreateIdColumn = true
+	if isMissedIdCol {
+		// assign primary field with real index
 		maxFieldIndex := 0
 		for _, field := range tableSchema {
 			if field.Index > maxFieldIndex {
 				maxFieldIndex = field.Index
 			}
 		}
-		idColIndex = maxFieldIndex + 1
+		realIdColIndex = maxFieldIndex + 1
+
+		newSchemaField := *SchemaPrimaryField
+		newSchemaField.Index = realIdColIndex
+		tableSchema[schema.HashedPrimaryField] = newSchemaField
 	}
 
-    for line := range lines {
-		fieldCount := len(fieldSchemaMap)
-
-		writeData := make([]*string, fieldCount)
-		for i, valueIterate := range line.Data {
-			// fmt.Printf("valueIterate: %s\n", valueIterate)
-			valueRef := strings.TrimSpace(valueIterate)
-			writeData[i] = &valueRef
-			// fmt.Print(value, "\t")
-		}
-		writeChan <- writeData
-
-		if isCreateIdColumn {
-			fixId := FixIdData{
-				RowId: uuid.NewString(),
-				RowIndex: line.RowIndex,
-			}
-			fixIdChan <- &fixId
-		} else {
-			curId := line.Data[idColIndex]
-			if curId == "" || !util.IsValidUUID(curId) {
-				fixId := FixIdData{
-					RowId: uuid.NewString(),
-					RowIndex: line.RowIndex,
-				}
-				fixIdChan <- &fixId
-			}
-		}
-		// fmt.Println()
-    }
-
-}
-
-func fixIdColumn(fixIds chan *FixIdData, isCreateIdCol bool, idColIndex int, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	spreadsheetId := "1COvhrUlnPv_wMrCrCOWM-5-wuVm7Vrtmm6O0F_gNWxs"
-	sheetName := "Sheet1"
-	sheetIdInt, _ := strconv.Atoi("0")
-	ctx := context.Background()
-	token := oauth2.Token{
-		AccessToken: "",
-	}
-	tokenSource := oauth2.StaticTokenSource(&token)
-	sheetClient, err := sheets.NewService(ctx, option.WithTokenSource(tokenSource))
-	if err != nil {
-		log.Fatalln("Error when creating client to update id col", err)
-	}
-
-	// append dimension optionally
-	if isCreateIdCol {
-		res, err := sheetClient.Spreadsheets.Get(spreadsheetId).Ranges(util.FormatSheetNameInRange(sheetName)).IncludeGridData(false).Fields(googleapi.Field("sheets.properties.gridProperties.columnCount")).Do()
-		if err != nil {
-			log.Fatal("Error when getting column count", err)
-		}
-		columnCount := res.Sheets[0].Properties.GridProperties.ColumnCount
-		if columnCount < int64(idColIndex) {
-			_, err = sheetClient.Spreadsheets.BatchUpdate(spreadsheetId, &sheets.BatchUpdateSpreadsheetRequest{
-				Requests: []*sheets.Request{
-					{
-						InsertDimension: &sheets.InsertDimensionRequest{
-							InheritFromBefore: true,
-							Range: &sheets.DimensionRange{
-								SheetId:    int64(sheetIdInt),
-								Dimension:  "COLUMNS",
-								StartIndex: int64(idColIndex - 1),
-								EndIndex:   int64(idColIndex),
-							},
-						},
-					},
-				},
-			}).Do()
-			if err != nil {
-				log.Fatalln("Error when inserting column", err)
-			}
-		}
-
-		// title id column
-		fixIds <- &FixIdData{
-			RowId: "__StarionId",
-			RowIndex: 0,
-		}
-	}
-
-	batchSize := 5000
-	batchData := make([]FixIdData, 0, batchSize)
-
-	for data := range fixIds {
-		fmt.Printf("Fixing id: %s\n", data.RowIndex)
-		batchData = append(batchData, *data)
-		if len(batchData) == batchSize {
-			processBatchGoogleSheetsFixId(batchData, sheetClient, spreadsheetId, sheetName, idColIndex, batchSize)
-
-			// end batch
-			batchData = make([]FixIdData, 0, batchSize)
-		}
-    }
-
-	if len(batchData) > 0 {
-		processBatchGoogleSheetsFixId(batchData, sheetClient, spreadsheetId, sheetName, idColIndex, batchSize)
-	}
-}
-
-func writeParquet(dataChan <-chan []*string, fieldSchemaMap map[int]schema.FieldSchema, wg *sync.WaitGroup) {
-	defer wg.Done()
-	fmt.Printf("Start writing parquet\n")
-
-	// init parquet writer
-	pqSchema := make([]string, len(fieldSchemaMap))
-	for index, field := range fieldSchemaMap {
-		pqSchema[index] = fmt.Sprintf("name=%s, type=BYTE_ARRAY, convertedtype=UTF8", field.Name)
-	}
-
-	fw, err := local.NewLocalFileWriter("test.parquet")
-	if err != nil {
-		fmt.Printf("Can't open file: %s\n", err)
-		return;
-	}
-	defer fw.Close()
-	pw, err := writer.NewCSVWriter(pqSchema, fw, 4)
-	if err != nil {
-		fmt.Printf("Can't create csv writer: %s\n", err)
-		return;
-	}
-
-	for data := range dataChan {
-		if err := pw.WriteString(data); err != nil {
-			log.Println("WriteString error", err)
-		}
-	}
-
-	fmt.Printf("Finish writing parquet\n")
-
-	// stop parquet writer
-	if err = pw.WriteStop(); err != nil {
-		log.Println("WriteStop error", err)
-	}
-
-	// fmt.Printf("Finish writing parquet\n")
+	return &tableSchema, emptyColIndexes, isMissedIdCol, realIdColIndex
 }
 
 func getHeaderIndex(row []string) map[string]int {
@@ -497,12 +528,19 @@ func inferBooleanType(enum []interface{}) bool {
 	return false
 }
 
-func processBatchGoogleSheetsFixId(batchData []FixIdData, sheetClient *sheets.Service, spreadsheetId string, sheetName string, idColIndex int, batchSize int) {
+func processBatchGoogleSheetsFixId(batchData []FixIdData, sheetClient *sheets.Service, spreadsheetId string, sheetName string, idColIndex int, batchSize int, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	fmt.Println("start processBatchGoogleSheetsFixId")
+
 	sort.Sort(FixIdDataArray(batchData))
+
 	updateBatches := make(UpdateIdData)
 	prevRowIndex := batchData[0].RowIndex
 	curFirstRowIndex := batchData[0].RowIndex
 	var curUpdateBatchData = make([]string, 0, batchSize)
+	curUpdateBatchData = append(curUpdateBatchData, batchData[0].RowId)
+
 	for i := 1; i < len(batchData); i++ {
 		fixIdData := batchData[i]
 		if prevRowIndex+1 == fixIdData.RowIndex {
@@ -517,9 +555,13 @@ func processBatchGoogleSheetsFixId(batchData []FixIdData, sheetClient *sheets.Se
 		}
 		prevRowIndex = fixIdData.RowIndex
 	}
+	if len(curUpdateBatchData) > 0 {
+		updateBatches[curFirstRowIndex] = curUpdateBatchData
+	}
 
 	// do call update api
 	updateValues := generateUpdateIdGoogleSheetsData(updateBatches, sheetName, idColIndex)
+	fmt.Printf("updateValues: %+v\n", updateValues)
 	_, err := sheetClient.Spreadsheets.Values.
 		BatchUpdate(spreadsheetId, &sheets.BatchUpdateValuesRequest{
 			ValueInputOption:        "RAW",
@@ -533,17 +575,54 @@ func processBatchGoogleSheetsFixId(batchData []FixIdData, sheetClient *sheets.Se
 }
 
 func generateUpdateIdGoogleSheetsData(data UpdateIdData, sheetName string, idColIndex int) []*sheets.ValueRange {
+	idColIndex++
 	result := make([]*sheets.ValueRange, len(data))
 	for firstRowNumber, values := range data {
 		formattedValues := make([][]interface{}, len(values))
 		for i, val := range values {
 			formattedValues[i] = []interface{}{val}
 		}
-		valueRange := fmt.Sprintf("%s!R%[2]dC%[3]d:R%[4]dC%[3]d", util.FormatSheetNameInRange(sheetName), firstRowNumber, idColIndex, firstRowNumber+len(values)-1)
+		valueRange := fmt.Sprintf("%s!R%[2]dC%[3]d:R%[4]dC%[3]d", util.FormatSheetNameInRange(sheetName), firstRowNumber+1, idColIndex, firstRowNumber+len(values))
 		result = append(result, &sheets.ValueRange{
 			Range:  valueRange,
 			Values: formattedValues,
 		})
 	}
 	return result
+}
+
+func uploadSchema(schema *schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string, wg *sync.WaitGroup) error {
+	defer wg.Done()
+
+	schemaJson, err := jsoniter.Marshal(*schema)
+	if err != nil {
+		log.Fatalf("Error when marshalling schema: %+v\n", err)
+	}
+	handler, err := s3.NewHandlerWithConfig(&s3Config)
+	if err != nil {
+		log.Fatalf("Error when initializing s3 handler: %+v\n", err)
+	}
+	schemaFileKey := fmt.Sprintf("schema/%s-%s.json", dataSourceId, syncVersion)
+	err = handler.UploadFileWithBytes(schemaFileKey, schemaJson, nil)
+	if err != nil {
+		log.Fatalf("Error when uploading schema to s3: %+v\n", err)
+		return err
+	}
+	return nil
+}
+
+func uploadData(dataFilePath string, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string, wg *sync.WaitGroup) error {
+	defer wg.Done()
+	
+	handler, err := s3.NewHandlerWithConfig(&s3Config)
+	if err != nil {
+		log.Fatalf("Error when initializing s3 handler: %+v\n", err)
+	}
+	dataFileKey := fmt.Sprintf("data/%s-%s.parquet", dataSourceId, syncVersion)
+	err = handler.UploadFile(dataFileKey, dataFilePath)
+	if err != nil {
+		log.Fatalf("Error when uploading data to s3: %+v\n", err)
+		return err
+	}
+	return nil
 }

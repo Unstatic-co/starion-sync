@@ -53,7 +53,6 @@ func NewHandler(bucket string) (*S3Handler, error) {
 }
 
 func NewHandlerWithConfig(config *S3HandlerConfig) (*S3Handler, error) {
-	fmt.Println("NewHandlerWithConfig", config)
 	sess, err := session.NewSession(&aws.Config{
 		Endpoint:         aws.String(config.Endpoint),
 		Region:           aws.String(config.Region),

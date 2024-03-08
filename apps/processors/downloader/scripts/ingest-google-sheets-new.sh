@@ -283,4 +283,15 @@ schema_file=$TEMP_DIR/schema.json
 
 ./google-sheets/do-all \
     --csvFile "$original_csv_file" \
-    --schemaFile "$schema_file"
+    --schemaFile "$schema_file" \
+    --spreadsheetId "$spreadsheet_id" \
+    --sheetId "$sheet_id" \
+    --sheetName "$sheet_name" \
+    --accessToken "$access_token" \
+    --dataSourceId "$data_source_id" \
+    --syncVersion "$sync_version" \
+    --s3Endpoint "$s3_endpoint" \
+    --s3Region "$s3_region" \
+    --s3Bucket "$s3_bucket" \
+    --s3AccessKey "$s3_access_key" \
+    --s3SecretKey "$s3_secret_key"

@@ -18,6 +18,7 @@ const (
 type TableSchema map[string]FieldSchema
 
 type FieldSchema struct {
+	Id		   string        
 	Name         string        `json:"name"`
 	Type         DataType      `json:"type"`
 	OriginalType string        `json:"originalType"`
@@ -25,6 +26,6 @@ type FieldSchema struct {
 	Enum         []interface{} `json:"enum"`
 	Readonly     bool          `json:"readonly"`
 	Primary      bool          `json:"primary"`
-	Index 	  int           `json:"index"`
+	Index 	  int           
 	// Format       string        `json:"format"`
 }
