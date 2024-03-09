@@ -12,6 +12,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -63,6 +65,7 @@ type CommonInput struct {
 	AccessToken *string
 	DataSourceId *string
 	SyncVersion *string
+	TimeZone *string
 }
 
 type S3Input struct {
@@ -82,6 +85,21 @@ var (
 		Nullable:     false,
 		Primary:      true,
 	}
+
+	ExcelErrorValues = map[string]bool{
+		"#NULL!":  true,
+		"#DIV/0!": true,
+		"#VALUE!": true,
+		"#REF!":   true,
+		"#NAME?":  true,
+		"#NUM!":   true,
+		"#N/A":    true,
+		"#ERROR!": true,
+	}
+)
+
+const (
+	ErrorValue = "__Error"
 )
 
 func main() {
@@ -89,13 +107,13 @@ func main() {
 
 	// xlsxFile := flag.String("xlsxFile", "", "Xlsx file")
 	csvFile := flag.String("csvFile", "", "Csv file")
-	schemaFile := flag.String("schemaFile", "", "Schema file")
 	spreadsheetId := flag.String("spreadsheetId", "", "Spread sheet id")
 	sheetId := flag.String("sheetId", "", "Sheet id")
 	sheetName := flag.String("sheetName", "", "Sheet name")
 	accessToken := flag.String("accessToken", "", "Access token")
 	dataSourceId := flag.String("dataSourceId", "", "data source id")
 	syncVersion := flag.String("syncVersion", "", "sync version")
+	timeZone := flag.String("timeZone", "UTC", "Timezone of worksheet")
 	s3Endpoint := flag.String("s3Endpoint", "", "s3 url")
 	s3Region := flag.String("s3Region", "", "s3 region")
 	s3Bucket := flag.String("s3Bucket", "", "s3 bucket")
@@ -111,6 +129,7 @@ func main() {
 		AccessToken: accessToken,
 		DataSourceId: dataSourceId,
 		SyncVersion: syncVersion,
+		TimeZone: timeZone,
 	}
 
 	s3Input := S3Input{
@@ -121,32 +140,67 @@ func main() {
 		S3SecretKey: s3SecretKey,
 	}
 
-    const numWorkers = 4 // Adjust based on your CPU/core count
-
     // Open the CSV file
-    file, err := os.Open(*csvFile)
+    firstFile, err := os.Open(*csvFile)
     if err != nil {
         panic(err)
     }
-    defer file.Close()
+    defer firstFile.Close()
 
-    reader := csv.NewReader(bufio.NewReader(file))
+    reader := csv.NewReader(bufio.NewReader(firstFile))
 
-    // Read the CSV file and send lines to workers
-    header, err := reader.Read()
+    // Check the file
+    headers, err := reader.Read()
 	if err != nil {
 		log.Fatalf("Error reading CSV file: %s", err)
 	}
-	if len(header) == 0 {
-		fmt.Println("CSV file is empty")
-		return
+	if len(headers) == 0 {
+		log.Fatalf("Empty header")
+	}
+	realIdColIndex := -1
+	isMissedIdColumn := false
+	selectedColIndexes := make([]string, 0)
+	for index, header := range headers {
+		header := strings.TrimSpace(header)
+		if header != "" {
+			if header == "__StarionId" {
+				realIdColIndex = index
+			}
+			selectedColIndexes = append(selectedColIndexes, strconv.Itoa(index+1))
+		}
+	}
+	if realIdColIndex == -1 {
+		isMissedIdColumn = true
+		realIdColIndex = len(headers)
+	}
+	fmt.Println("realIdColIndex", realIdColIndex)
+	if len(selectedColIndexes) < len(headers) {
+		fmt.Println("selectedColIndexes", selectedColIndexes)
+		// Trim the file (select only non-empty columns)
+		runCommandTrimFile(selectedColIndexes, *csvFile, "file.csv")
+		firstFile.Close()
+		// open new file
+		newFile, err := os.Open("file.csv")
+		if err != nil {
+			panic(err)
+		}
+		defer newFile.Close()
+		// open new reader and re-read headers
+		reader = csv.NewReader(bufio.NewReader(newFile))
+		headers, err = reader.Read()
+		if err != nil {
+			log.Fatalf("Error reading new CSV file: %s", err)
+		}
+		*csvFile = "file.csv"
 	}
 
-	headerIndexes := getHeaderIndex(header)
-	tableSchema, _, isMissedIdColumn, realIdColIndex := GetSchema(*schemaFile, headerIndexes)
-	
+	// infer schema
+	runCommandInferSchema(*csvFile, "schema.json")
+
+	headerIndexes := getHeaderIndex(headers)
+	tableSchema := GetSchema("schema.json", headerIndexes)
+
 	fieldSchemaMap := getIndexSchemaField(tableSchema) // used for iterate data
-	fmt.Println("isMissedIdColumn", isMissedIdColumn)
 
 	// init chan
     lines := make(chan *LineData, 10000) // Buffer to hold lines for processing
@@ -178,10 +232,11 @@ func main() {
 		fmt.Println("finish add id name fix")
 	}
 
-    // Start workers
+    // Start process workers
+    numWorkers := runtime.NumCPU() // Adjust based on your CPU/core count
     for i := 0; i < numWorkers; i++ {
         processWg.Add(1)
-        go processLines(lines, writeChan, fixIdChan, fieldSchemaMap, *tableSchema, isMissedIdColumn, &processWg)
+        go processLines(lines, writeChan, fixIdChan, fieldSchemaMap, *tableSchema, isMissedIdColumn, &commonInput, &processWg)
     }
 
 	
@@ -213,22 +268,56 @@ func main() {
 }
 
 // Worker to process lines
-func processLines(lines <-chan *LineData, writeChan chan<- []*string, fixIdChan chan<- *FixIdData, fieldSchemaMap map[int]schema.FieldSchema, tableSchema schema.TableSchema, isCreatedIdCol bool, wg *sync.WaitGroup) {
+func processLines(lines <-chan *LineData, writeChan chan<- []*string, fixIdChan chan<- *FixIdData, fieldSchemaMap map[int]schema.FieldSchema, tableSchema schema.TableSchema, isCreatedIdCol bool, commonInput *CommonInput, wg *sync.WaitGroup) {
     defer wg.Done()
+	
+	location, err := time.LoadLocation(*commonInput.TimeZone)
+    if err != nil {
+		log.Fatalf("Error when loading location: %+v\n", err)
+    }
 
 	idColIndex := tableSchema[schema.HashedPrimaryField].Index
+	emptyValue := ""
 
     for line := range lines {
 		writeDataLen := len(tableSchema)
-
 		writeData := make([]*string, writeDataLen)
-		for i, valueIterate := range line.Data {
-			// fmt.Printf("valueIterate: %s\n", valueIterate)
-			valueRef := strings.TrimSpace(valueIterate)
-			writeData[i] = &valueRef
-			// fmt.Print(value, "\t")
+
+		// TODO: process line values
+		for index, valueIterate := range line.Data {
+			// ignore empty value
+			if valueIterate == "" {
+				writeData[index] = &emptyValue
+				continue
+			}
+
+			// error value
+			if valueIterate[0] == '#' {
+				if _, ok := ExcelErrorValues[valueIterate]; ok {
+					value := ErrorValue
+					writeData[index] = &value
+				}
+				continue
+			}
+
+			fieldType := fieldSchemaMap[index].Type
+			// parse date
+			if fieldType == schema.Date {
+				// remove Z at the end of date for correct parsing
+				if valueIterate[len(valueIterate)-1] == 'Z' {
+					valueIterate = valueIterate[:len(valueIterate)-1]
+				}
+				value := parseDate(strings.TrimSpace(valueIterate), location)
+				writeData[index] = &value
+				continue
+			}
+			
+			// normal value
+			value := strings.TrimSpace(valueIterate)
+			writeData[index] = &value
 		}
 
+		// TODO: process id column
 		if isCreatedIdCol {
 			fixId := FixIdData{
 				RowId: util.GenUUID(),
@@ -249,7 +338,6 @@ func processLines(lines <-chan *LineData, writeChan chan<- []*string, fixIdChan 
 		}
 
 		writeChan <- writeData
-		// fmt.Println()
     }
 
 }
@@ -259,10 +347,6 @@ func fixIdColumn(fixIds chan *FixIdData, isCreateIdCol bool, idColIndex int, com
 
 	fmt.Println("Start fixing id column")
 
-	// spreadsheetId := "1COvhrUlnPv_wMrCrCOWM-5-wuVm7Vrtmm6O0F_gNWxs"
-	// // spreadsheetId := "149x_Jq0plKjUzZr_gpzVBgM90jzzX_KmxH4TW4C8Pag"
-	// sheetName := "Sheet1"
-	// sheetIdInt, _ := strconv.Atoi("0")
 	spreadsheetId := *commonInput.SpreadsheetId
 	sheetName := *commonInput.SheetName
 	sheetIdInt, _ := strconv.Atoi(*commonInput.SheetId)
@@ -377,10 +461,8 @@ func writeAndUploadParquet(dataChan <-chan []*string, fieldSchemaMap map[int]sch
 	fmt.Println("Finish uploading parquet")
 }
 
-func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.TableSchema, []int, bool, int) {
-	var emptyColIndexes []int
+func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.TableSchema) {
 	isMissedIdCol := true
-	var realIdColIndex int
 
 	jsonFile, err := os.Open(schemaFilePath)
     if err != nil {
@@ -413,7 +495,6 @@ func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.Tab
 			fieldSchema = *SchemaPrimaryField
 			fieldSchema.Index = realFieldIndex
 			isMissedIdCol = false
-			realIdColIndex = realFieldIndex
 		} else {
 			detectedType := schema.String
 			var originalType exceltype.ExcelDataType
@@ -474,21 +555,19 @@ func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.Tab
 	}
 
 	if isMissedIdCol {
-		// assign primary field with real index
+		// assign primary field with index
 		maxFieldIndex := 0
 		for _, field := range tableSchema {
 			if field.Index > maxFieldIndex {
 				maxFieldIndex = field.Index
 			}
 		}
-		realIdColIndex = maxFieldIndex + 1
 
 		newSchemaField := *SchemaPrimaryField
-		newSchemaField.Index = realIdColIndex
 		tableSchema[schema.HashedPrimaryField] = newSchemaField
 	}
 
-	return &tableSchema, emptyColIndexes, isMissedIdCol, realIdColIndex
+	return &tableSchema
 }
 
 func getHeaderIndex(row []string) map[string]int {
@@ -625,4 +704,60 @@ func uploadData(dataFilePath string, s3Config s3.S3HandlerConfig, dataSourceId s
 		return err
 	}
 	return nil
+}
+
+func parseDate(dateStr string, location *time.Location) string {
+    dateLayout := "2006-01-02"
+    dateTimeLayout := "2006-01-02T15:04:05"
+	outputLayout := "2006-01-02T15:04:05.999Z"
+
+	fmt.Println("dateStr", dateStr)
+
+    if t, err := time.ParseInLocation(dateLayout, dateStr, location); err == nil {
+		return t.UTC().Format(outputLayout)
+    }
+
+    if t, err := time.ParseInLocation(dateTimeLayout, dateStr, location); err == nil {
+        return t.UTC().Format(outputLayout)
+    } else {
+		log.Fatalf("Cannot parse date: %+v", err)
+	}
+
+	return ErrorValue
+}
+
+func runCommandTrimFile(selectedColIndexes []string, csvFilePath string, outputFilePath string) {
+	cmd := exec.Command(
+		"/usr/local/bin/qsv",
+		"select", strings.Join(selectedColIndexes, ","),
+		"-o", outputFilePath,
+		csvFilePath,
+	)
+	err := cmd.Run()
+	if err != nil {
+		log.Fatalf("Error when running command: %+v", err)
+	}
+}
+
+func runCommandInferSchema(csvFilePath string, outputFilePath string) {
+	outFile, err := os.Create(outputFilePath)
+	if err != nil {
+		log.Fatalf("Error when creating output file: %+v", err)
+	}
+	defer outFile.Close()
+
+	cmd := exec.Command(
+		"/usr/local/bin/qsv",
+		"schema",
+		"--dates-whitelist", "all",
+		"--enum-threshold", "0",
+		"--strict-dates",
+		"--stdout",
+		csvFilePath,
+	)
+	cmd.Stdout = outFile
+	err = cmd.Run()
+	if err != nil {
+		log.Fatalf("Error when running command: %+v", err)
+	}
 }

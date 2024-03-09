@@ -269,27 +269,28 @@ fi
 ### Convert
 info-log "Converting file to csv..."
 original_csv_file=$TEMP_DIR/original.csv
-converted_csv_file=$TEMP_DIR/converted_csv.csv
-OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=AUTO duckdb :memory: \
-    "install spatial; load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$xlsx_sheet_name')) TO '$converted_csv_file' (HEADER FALSE, DELIMITER ',');"
+# converted_csv_file=$TEMP_DIR/converted_csv.csv
+"$QSV" excel --flexible --date-format "%Y-%m-%dT%H:%M:%SZ" -s "$xlsx_sheet_name" -o "$original_csv_file" "$original_file"
+# OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=AUTO duckdb :memory: \
+    # "install spatial; load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$xlsx_sheet_name')) TO '$converted_csv_file' (HEADER FALSE, DELIMITER ',', DATEFORMAT '%c', TIMESTAMPFORMAT '%c');"
 
-trimmed_ghost_cells="$TEMP_DIR/ghost-cells.csv"
-maxColIndex=$(./get-xlsx-header --file "$original_file" --sheetName "$xlsx_sheet_name" --showMaxIndex)
-"$QSV" select "1-$((maxColIndex+1))" <(tac "$converted_csv_file" | awk '/[^,]/ {found=1} found' | tac) -o "$trimmed_ghost_cells"
-"$QSV" cat rows -n <(echo "$xlsx_header") "$trimmed_ghost_cells" -o "$original_csv_file"
+# trimmed_ghost_cells="$TEMP_DIR/ghost-cells.csv"
+# maxColIndex=$(./get-xlsx-header --file "$original_file" --sheetName "$xlsx_sheet_name" --showMaxIndex)
+# "$QSV" select "1-$((maxColIndex+1))" <(tac "$converted_csv_file" | awk '/[^,]/ {found=1} found' | tac) -o "$trimmed_ghost_cells"
+# "$QSV" cat rows -n <(echo "$xlsx_header") "$trimmed_ghost_cells" -o "$original_csv_file"
 
-schema_file=$TEMP_DIR/schema.json
-"$QSV" schema --dates-whitelist all --enum-threshold 0 --strict-dates --stdout "$original_csv_file" >"$schema_file"
+# schema_file=$TEMP_DIR/schema.json
+# "$QSV" schema --dates-whitelist all --enum-threshold 0 --strict-dates --stdout "$original_csv_file" >"$schema_file"
 
 ./google-sheets/do-all \
     --csvFile "$original_csv_file" \
-    --schemaFile "$schema_file" \
     --spreadsheetId "$spreadsheet_id" \
     --sheetId "$sheet_id" \
     --sheetName "$sheet_name" \
     --accessToken "$access_token" \
     --dataSourceId "$data_source_id" \
     --syncVersion "$sync_version" \
+    --timeZone "$time_zone" \
     --s3Endpoint "$s3_endpoint" \
     --s3Region "$s3_region" \
     --s3Bucket "$s3_bucket" \
