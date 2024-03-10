@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"downloader/libs/schema"
+	google_sheets "downloader/service/google-sheets"
 	"downloader/util"
 	"downloader/util/s3"
 	"encoding/csv"
@@ -74,6 +75,7 @@ type S3Input struct {
 	S3Bucket *string
 	S3AccessKey *string
 	S3SecretKey *string
+	S3Ssl *bool
 }
 
 var (
@@ -96,6 +98,8 @@ var (
 		"#N/A":    true,
 		"#ERROR!": true,
 	}
+
+	errorMutex sync.Mutex
 )
 
 const (
@@ -105,8 +109,9 @@ const (
 func main() {
 	start := time.Now()
 
-	// xlsxFile := flag.String("xlsxFile", "", "Xlsx file")
-	csvFile := flag.String("csvFile", "", "Csv file")
+	xlsxFile := flag.String("xlsxFile", "", "Xlsx file")
+	xlsxSheetName := flag.String("xlsxSheetName", "", "Xlsx sheet name")
+	// csvFile := flag.String("csvFile", "", "Csv file")
 	spreadsheetId := flag.String("spreadsheetId", "", "Spread sheet id")
 	sheetId := flag.String("sheetId", "", "Sheet id")
 	sheetName := flag.String("sheetName", "", "Sheet name")
@@ -119,6 +124,7 @@ func main() {
 	s3Bucket := flag.String("s3Bucket", "", "s3 bucket")
 	s3AccessKey := flag.String("s3AccessKey", "", "s3 access key")
 	s3SecretKey := flag.String("s3SecretKey", "", "s3 secret key")
+	s3Ssl := flag.Bool("s3Ssl", false, "s3 ssl")
 
 	flag.Parse()
 
@@ -138,10 +144,24 @@ func main() {
 		S3Bucket: s3Bucket,
 		S3AccessKey: s3AccessKey,
 		S3SecretKey: s3SecretKey,
+		S3Ssl: s3Ssl,
 	}
 
+	emitErrorAndExit(1, "test error ne", true)
+
+	// Create temp dir
+    tempDir, err := os.MkdirTemp("", "temp")
+	if err != nil {
+		log.Fatalf("Error when creating temp dir: %+v\n", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Convert xlsx to csv
+	csvFile := tempDir + "/converted.csv"
+	runCommandConvertXlsxToCsv(*xlsxFile, *xlsxSheetName, csvFile)
+
     // Open the CSV file
-    firstFile, err := os.Open(*csvFile)
+    firstFile, err := os.Open(csvFile)
     if err != nil {
         panic(err)
     }
@@ -176,11 +196,12 @@ func main() {
 	fmt.Println("realIdColIndex", realIdColIndex)
 	if len(selectedColIndexes) < len(headers) {
 		fmt.Println("selectedColIndexes", selectedColIndexes)
+		trimmedFilePath:= tempDir + "/trimmed.csv"
 		// Trim the file (select only non-empty columns)
-		runCommandTrimFile(selectedColIndexes, *csvFile, "file.csv")
+		runCommandTrimFile(selectedColIndexes, csvFile, trimmedFilePath)
 		firstFile.Close()
 		// open new file
-		newFile, err := os.Open("file.csv")
+		newFile, err := os.Open(trimmedFilePath)
 		if err != nil {
 			panic(err)
 		}
@@ -191,14 +212,15 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error reading new CSV file: %s", err)
 		}
-		*csvFile = "file.csv"
+		csvFile = trimmedFilePath
 	}
 
 	// infer schema
-	runCommandInferSchema(*csvFile, "schema.json")
+	schemaFilePath := tempDir + "/schema.json"
+	runCommandInferSchema(csvFile, schemaFilePath)
 
 	headerIndexes := getHeaderIndex(headers)
-	tableSchema := GetSchema("schema.json", headerIndexes)
+	tableSchema := GetSchema(schemaFilePath, headerIndexes)
 
 	fieldSchemaMap := getIndexSchemaField(tableSchema) // used for iterate data
 
@@ -220,6 +242,7 @@ func main() {
 		AccessKey: *s3Input.S3AccessKey,
 		SecretKey: *s3Input.S3SecretKey,
 		Bucket:    *s3Input.S3Bucket,
+		SSl: *s3Input.S3Ssl,
 	}, *commonInput.DataSourceId, *commonInput.SyncVersion, &afterProcessWg)
 
 	if (isMissedIdColumn) {
@@ -279,8 +302,8 @@ func processLines(lines <-chan *LineData, writeChan chan<- []*string, fixIdChan 
 	idColIndex := tableSchema[schema.HashedPrimaryField].Index
 	emptyValue := ""
 
+	writeDataLen := len(tableSchema)
     for line := range lines {
-		writeDataLen := len(tableSchema)
 		writeData := make([]*string, writeDataLen)
 
 		// TODO: process line values
@@ -326,7 +349,7 @@ func processLines(lines <-chan *LineData, writeChan chan<- []*string, fixIdChan 
 			writeData[idColIndex] = &fixId.RowId
 			fixIdChan <- &fixId
 		} else {
-			curId := line.Data[idColIndex]
+			curId := strings.TrimSpace(line.Data[idColIndex])
 			if curId == "" || !util.IsValidUUID(curId) {
 				fixId := FixIdData{
 					RowId: util.GenUUID(),
@@ -352,7 +375,6 @@ func fixIdColumn(fixIds chan *FixIdData, isCreateIdCol bool, idColIndex int, com
 	sheetIdInt, _ := strconv.Atoi(*commonInput.SheetId)
 	ctx := context.Background()
 	token := oauth2.Token{
-		// AccessToken: "ya29.a0Ad52N38oB4wnhxnCF1Vm8ZwPK-i80fCaKsKaslKWbc5caqgiURJTw4WY7x342FXYCYCE6Ld7ztY59Rnf3b6YpCw046p81DmdNbfkteh43TgE_Zrs7-5omJqvDKDkHJ1bvPHKS3Gs4ix2G13agHKubGnaDr18Vx9xSF8IMNgaCgYKAYMSARASFQHGX2MiiaW9GS6NW6ozsH1xozHDhQ0174",
 		AccessToken: *commonInput.AccessToken,
 	}
 	tokenSource := oauth2.StaticTokenSource(&token)
@@ -457,6 +479,7 @@ func writeAndUploadParquet(dataChan <-chan []*string, fieldSchemaMap map[int]sch
 		AccessKey: *s3Config.S3AccessKey,
 		SecretKey: *s3Config.S3SecretKey,
 		Bucket:    *s3Config.S3Bucket,
+		SSl: *s3Config.S3Ssl,
 	}, *commonInput.DataSourceId, *commonInput.SyncVersion, wg)
 	fmt.Println("Finish uploading parquet")
 }
@@ -564,6 +587,7 @@ func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.Tab
 		}
 
 		newSchemaField := *SchemaPrimaryField
+		newSchemaField.Index = maxFieldIndex + 1
 		tableSchema[schema.HashedPrimaryField] = newSchemaField
 	}
 
@@ -640,7 +664,6 @@ func processBatchGoogleSheetsFixId(batchData []FixIdData, sheetClient *sheets.Se
 
 	// do call update api
 	updateValues := generateUpdateIdGoogleSheetsData(updateBatches, sheetName, idColIndex)
-	fmt.Printf("updateValues: %+v\n", updateValues)
 	_, err := sheetClient.Spreadsheets.Values.
 		BatchUpdate(spreadsheetId, &sheets.BatchUpdateValuesRequest{
 			ValueInputOption:        "RAW",
@@ -711,8 +734,6 @@ func parseDate(dateStr string, location *time.Location) string {
     dateTimeLayout := "2006-01-02T15:04:05"
 	outputLayout := "2006-01-02T15:04:05.999Z"
 
-	fmt.Println("dateStr", dateStr)
-
     if t, err := time.ParseInLocation(dateLayout, dateStr, location); err == nil {
 		return t.UTC().Format(outputLayout)
     }
@@ -724,6 +745,20 @@ func parseDate(dateStr string, location *time.Location) string {
 	}
 
 	return ErrorValue
+}
+
+func runCommandConvertXlsxToCsv(xlsxFilePath string, sheetName string, outputFilePath string) {
+	cmd := exec.Command(
+		"/usr/local/bin/qsv",
+		"excel", "--flexible", "--date-format", "%Y-%m-%dT%H:%M:%SZ",
+		"-s", sheetName,
+		"-o", outputFilePath,
+		xlsxFilePath,
+	)
+	err := cmd.Run()
+	if err != nil {
+		log.Fatalf("Error when running command: %+v", err)
+	}
 }
 
 func runCommandTrimFile(selectedColIndexes []string, csvFilePath string, outputFilePath string) {
@@ -760,4 +795,16 @@ func runCommandInferSchema(csvFilePath string, outputFilePath string) {
 	if err != nil {
 		log.Fatalf("Error when running command: %+v", err)
 	}
+}
+
+func emitErrorAndExit(code int, message string, isExternal bool) {
+	errorMutex.Lock()
+	err := google_sheets.IngestError{
+		Code: 	 code,
+		Msg: 	 message,
+		IsExternal: isExternal,
+	}
+	errJson, _ := jsoniter.Marshal(err)
+    os.Stderr.Write(errJson)
+	os.Exit(1)
 }

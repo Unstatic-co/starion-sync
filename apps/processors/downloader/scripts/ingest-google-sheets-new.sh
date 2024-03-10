@@ -254,23 +254,23 @@ fi
 original_file="$spreadsheet_file"
 # download-google-sheets-file "$original_file" "$download_url"
 
-xlsx_header=$(./get-xlsx-header --file "$original_file" --sheetName "$xlsx_sheet_name" --showHeaders)
-debug-log "Xlsx header: $xlsx_header"
-if [[ -z "$xlsx_header" ]]; then
-    emit-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
-else
-    # check id col duplicate
-    id_col_count=$(echo "$xlsx_header" | tr ',' '\n' | grep -c "^$ID_COL_NAME$") || true
-    if [[ "$id_col_count" -gt 1 ]]; then
-        emit-external-error "$ID_COL_DUPLICATED_ERROR" "The id column ($ID_COL_NAME) is duplicated"
-    fi
-fi
+# xlsx_header=$(./get-xlsx-header --file "$original_file" --sheetName "$xlsx_sheet_name" --showHeaders)
+# debug-log "Xlsx header: $xlsx_header"
+# if [[ -z "$xlsx_header" ]]; then
+    # emit-external-error "$SHEET_EMPTY_ERROR" "Sheet is empty or missing header row"
+# else
+    # # check id col duplicate
+    # id_col_count=$(echo "$xlsx_header" | tr ',' '\n' | grep -c "^$ID_COL_NAME$") || true
+    # if [[ "$id_col_count" -gt 1 ]]; then
+        # emit-external-error "$ID_COL_DUPLICATED_ERROR" "The id column ($ID_COL_NAME) is duplicated"
+    # fi
+# fi
 
 ### Convert
 info-log "Converting file to csv..."
 original_csv_file=$TEMP_DIR/original.csv
 # converted_csv_file=$TEMP_DIR/converted_csv.csv
-"$QSV" excel --flexible --date-format "%Y-%m-%dT%H:%M:%SZ" -s "$xlsx_sheet_name" -o "$original_csv_file" "$original_file"
+# "$QSV" excel --flexible --date-format "%Y-%m-%dT%H:%M:%SZ" -s "$xlsx_sheet_name" -o "$original_csv_file" "$original_file"
 # OGR_XLSX_HEADERS=FORCE OGR_XLSX_FIELD_TYPES=AUTO duckdb :memory: \
     # "install spatial; load spatial; COPY (SELECT * FROM st_read('$original_file', layer='$xlsx_sheet_name')) TO '$converted_csv_file' (HEADER FALSE, DELIMITER ',', DATEFORMAT '%c', TIMESTAMPFORMAT '%c');"
 
@@ -283,7 +283,8 @@ original_csv_file=$TEMP_DIR/original.csv
 # "$QSV" schema --dates-whitelist all --enum-threshold 0 --strict-dates --stdout "$original_csv_file" >"$schema_file"
 
 ./google-sheets/do-all \
-    --csvFile "$original_csv_file" \
+    --xlsxFile "$original_file" \
+    --xlsxSheetName "$xlsx_sheet_name" \
     --spreadsheetId "$spreadsheet_id" \
     --sheetId "$sheet_id" \
     --sheetName "$sheet_name" \
