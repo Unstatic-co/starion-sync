@@ -86,11 +86,18 @@ variable "do_region" {
   type = string
 }
 
-
-variable "redis_password" { # stagging
+variable "redis_host" {
+  type = string
+}
+variable "redis_port" {
+  type = string
+}
+variable "redis_password" {
   type      = string
   sensitive = true
-  default   = null
+}
+variable "redis_db" {
+  type = string
 }
 
 variable "mongodb_user" { # stagging

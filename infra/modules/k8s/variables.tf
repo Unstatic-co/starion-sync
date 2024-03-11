@@ -83,11 +83,6 @@ variable "GOOGLE_CREDENTIALS" {
   sensitive = true
 }
 
-variable "redis_password" { # stagging
-  type      = string
-  sensitive = true
-}
-
 variable "mongodb_host" { # stagging
   type      = string
   sensitive = true
@@ -153,6 +148,16 @@ variable "redis_host" {
 }
 variable "redis_port" {
   type = string
+}
+variable "redis_password" {
+  type      = string
+  sensitive = true
+}
+variable "redis_db" {
+  type = string
+}
+variable "redis_tls_enabled" {
+  type = bool
 }
 
 variable "kafka_sasl_username" {

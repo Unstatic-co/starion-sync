@@ -24,6 +24,10 @@ postgres_user            = "admin"
 dest_db_schema = "next"
 formsync_db_schema = "next"
 
+redis_host=redis-do-user-4642503-0.c.db.ondigitalocean.com
+redis_port=25061
+redis_db = 0
+
 orchestrator_namespace   = "starion-sync-production.gin8b"
 orchestrator_tls_enabled = true
 # broker_uris          = ""
@@ -39,9 +43,6 @@ google_client_id    = "264150731939-feqpvu0c1t8nqdb0gim3kp0mop9eoc2o.apps.google
 
 # dest_db_uri = "" # temporary
 
-#k8s config
-redis_host = "redisdb-headless.default.svc.cluster.local"
-redis_port = 6379
 #domain
 letsencrypt_email               = "khoihoang@unstatic.co"
 letsencrypt_cluster_issuer_name = "backend-sync-letsencrypt-nginx"

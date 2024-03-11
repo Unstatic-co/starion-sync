@@ -5,6 +5,10 @@ locals {
   db_stagging_uri     = "mongodb://root${var.mongodb_user}:rootpassword${var.mongodb_password}@mongodb-replicaset-0.mongodb-replicaset-headless.default.svc.cluster.local:27017/starion-sync?directConnection=true&authSource=admin"      # stagging
   metadata_db_stagging_uri = "mongodb://root${var.mongodb_user}:rootpassword${var.mongodb_password}@mongodb-replicaset-0.mongodb-replicaset-headless.default.svc.cluster.local:27017/starion-form-sync?directConnection=true&authSource=admin" # stagging
   broker_uri               = "${module.upstash.kafka_uri}:9092"
+  redis_host        = !local.is_production ? "redisdb-headless.default.svc.cluster.local" : var.redis_host
+  redis_port        = !local.is_production ? "6379" : var.redis_port
+  redis_password    = !local.is_production ? var.redis_password : var.redis_password
+  redis_tls_enabled = !local.is_production ? "false" : "true"
 }
 
 module "digitalocean" {
@@ -182,9 +186,11 @@ module "k8s" {
   formsync_db_uri = var.formsync_db_uri
   formsync_db_schema = var.formsync_db_schema
 
-  redis_host                    = module.digitalocean.redis_host
-  redis_port                    = module.digitalocean.redis_port
-  redis_password                = local.is_production ? module.digitalocean.redis_password : var.redis_password
+  redis_host                    = local.redis_host
+  redis_port                    = local.redis_port
+  redis_password                = local.redis_password
+  redis_db = var.redis_db
+  redis_tls_enabled = local.redis_tls_enabled
 
   s3_endpoint     = module.cloudflare.s3_endpoint
   s3_region       = var.s3_region

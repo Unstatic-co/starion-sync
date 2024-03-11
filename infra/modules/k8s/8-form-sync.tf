@@ -21,10 +21,11 @@ locals {
     DB_SCHEMA = var.formsync_db_schema
     DB_TLS_ENABLED          = "true"
     METADATA_DB_URI         = var.metadata_db_uri
-    REDIS_HOST              = local.redis_host
-    REDIS_PORT              = local.redis_port
-    REDIS_PASSWORD          = local.redis_password
-    REDIS_TLS_ENABLED       = local.redis_tls_enabled
+    REDIS_HOST               = var.redis_host
+    REDIS_PORT               = var.redis_port
+    REDIS_PASSWORD           = var.redis_password
+    REDIS_DB = var.redis_db
+    REDIS_TLS_ENABLED        = var.redis_tls_enabled
     METADATA_HOST_URL       = var.metadata_url
     STARION_SYNC_BASE_URL   = local.configurator_url
     WEBHOOK_PUBLIC_KEY      = var.webhook_public_key

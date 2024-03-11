@@ -16,10 +16,7 @@ locals {
 }
 
 locals {
-  redis_host        = !var.is_production ? "redisdb-headless.default.svc.cluster.local" : var.redis_host
-  redis_port        = !var.is_production ? "6379" : var.redis_port
-  redis_password    = !var.is_production ? var.redis_password : var.redis_password
-  redis_tls_enabled = !var.is_production ? "false" : "true"
+  
   downloader_url    = var.downloader_url
   comparer_url      = var.comparer_url
   loader_url        = var.loader_url

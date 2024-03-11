@@ -23,10 +23,11 @@ locals {
     KAFKA_SASL_ENABLED      = "true"
     KAFKA_SASL_USERNAME     = var.kafka_sasl_username
     KAFKA_SASL_PASSWORD     = var.kafka_sasl_password
-    REDIS_HOST              = local.redis_host
-    REDIS_PORT              = local.redis_port
-    REDIS_PASSWORD          = local.redis_password
-    REDIS_TLS_ENABLED       = local.redis_tls_enabled
+    REDIS_HOST               = var.redis_host
+    REDIS_PORT               = var.redis_port
+    REDIS_PASSWORD           = var.redis_password
+    REDIS_DB = var.redis_db
+    REDIS_TLS_ENABLED        = var.redis_tls_enabled
     TRIGGER_REBUILD         = "true"
   }
 }
