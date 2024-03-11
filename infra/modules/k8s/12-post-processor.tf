@@ -17,7 +17,7 @@ locals {
     LOG_LEVEL                             = var.is_production ? "info" : "debug"
     BROKER_URIS                           = var.broker_uris
     DB_TYPE                               = "mongodb"
-    DB_URI                                = local.db_uri
+    DB_URI                                = var.db_uri
     BROKER_TYPE                           = "kafka"
     KAFKA_CLIENT_ID                       = "post-processor"
     KAFKA_CONSUMER_GROUP_ID               = "post-processor-consumer"

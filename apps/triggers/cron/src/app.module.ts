@@ -38,13 +38,14 @@ import { TriggerModule } from './modules/trigger/trigger.module';
         const redisConfig = configService.get<RedisConfig>(
           `${ConfigName.REDIS}`,
         );
-        const { host, port, password, tls } = redisConfig;
+        const { host, port, password, db, tls } = redisConfig;
         return {
           redis: {
             host,
             port,
             password,
             tls: tls ? {} : undefined,
+            db,
           },
         } as BullRootModuleOptions;
       },

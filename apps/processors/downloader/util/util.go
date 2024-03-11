@@ -14,6 +14,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 
+	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -109,4 +110,14 @@ func ConvertS3URLToHost(inputURL string) (string, error) {
 	}
 
 	return parsedURL.Host, nil
+}
+
+
+func IsValidUUID(u string) bool {
+	_, err := uuid.Parse(u)
+	return err == nil
+}
+
+func GenUUID() string {
+	return uuid.New().String()
 }

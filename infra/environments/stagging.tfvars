@@ -21,6 +21,12 @@ upstash_kafka_region          = "us-east-1"
 
 mongodb_user             = "admin"
 postgres_user            = "admin"
+
+dest_db_schema = "next"
+formsync_db_schema = "next"
+
+redis_db                = 0
+
 orchestrator_namespace   = "starion-sync-stagging.gin8b"
 orchestrator_tls_enabled = true
 # broker_uris          = ""
@@ -34,9 +40,6 @@ webhook_public_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ
 microsoft_client_id = "4bca9f40-7c40-48bb-9d25-faff5dfa926d"
 google_client_id    = "547922925132-naqkb1pboc8ua54cj5gar0p43t030q70.apps.googleusercontent.com"
 
-#k8s config
-redis_host = "redisdb-headless.default.svc.cluster.local"
-redis_port = 6379
 #domain
 letsencrypt_email               = "khoihoang@unstatic.co"
 letsencrypt_cluster_issuer_name = "backend-sync-letsencrypt-nginx"

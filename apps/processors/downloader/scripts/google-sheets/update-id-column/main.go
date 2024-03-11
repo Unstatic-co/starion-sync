@@ -40,9 +40,10 @@ func handleGoogleApiError(err error, exErrFile string) {
 	log.Println("Google api error: ", err)
 	if googleapiErr, ok := err.(*googleapi.Error); ok {
 		sheetErr := google_sheets.WrapSpreadSheetApiError(googleapiErr)
-		unmarshalErr := util.UnmarsalJsonFile(exErrFile, &google_sheets.DownloadExternalError{
+		unmarshalErr := util.UnmarsalJsonFile(exErrFile, &google_sheets.IngestError{
 			Code: sheetErr.Code,
 			Msg:  sheetErr.Msg,
+			IsExternal: true,
 		})
 		if unmarshalErr != nil {
 			log.Fatalln("Error when unmarsal external file", err)

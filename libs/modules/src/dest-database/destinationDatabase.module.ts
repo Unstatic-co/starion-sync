@@ -18,7 +18,7 @@ import { InjectTokens } from '../inject-tokens';
 @Module({})
 export class DestinationDatabaseModule {
   static async forRoot(): Promise<DynamicModule> {
-    const { type, host, port, user, password, database, uri } =
+    const { type, host, port, user, password, database, uri, schema } =
       destinationDatabaseConfig;
     switch (type) {
       case DatabaseType.MONGODB:
@@ -52,6 +52,7 @@ export class DestinationDatabaseModule {
           entities: [],
           synchronize: true,
           name: connectionName,
+          schema,
         });
       default:
         throw new Error('Database type not supported');

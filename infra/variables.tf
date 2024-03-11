@@ -86,11 +86,18 @@ variable "do_region" {
   type = string
 }
 
-
-variable "redis_password" { # stagging
+variable "redis_host" {
+  type = string
+}
+variable "redis_port" {
+  type = string
+}
+variable "redis_password" {
   type      = string
   sensitive = true
-  default   = null
+}
+variable "redis_db" {
+  type = string
 }
 
 variable "mongodb_user" { # stagging
@@ -117,10 +124,31 @@ variable "postgres_password" { # stagging
   default   = null
 }
 
-variable "dest_db_uri" { # staging (temporary)
+variable "db_uri" { // production - mongo
+  type      = string
+  sensitive = true
+}
+
+variable "dest_db_uri" { # stagging + production - postgres
   type      = string
   sensitive = true
   default   = null
+}
+variable "dest_db_schema" {
+  type = string
+}
+
+variable "metadata_db_uri" { // production - mongo
+  type      = string
+  sensitive = true
+}
+
+variable "formsync_db_uri" { // stagging + production - postgres
+  type      = string
+  sensitive = true
+}
+variable "formsync_db_schema" {
+  type = string
 }
 
 variable "orchestrator_address" {

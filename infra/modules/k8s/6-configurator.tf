@@ -17,8 +17,9 @@ locals {
     LOG_LEVEL                      = var.is_production ? "info" : "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
-    DB_URI                         = local.db_uri
-    DEST_DB_URI                    = local.dest_db_uri
+    DB_URI                         = var.db_uri
+    DEST_DB_URI                    = var.dest_db_uri
+    DEST_DB_SCHEMA = var.dest_db_schema
     BROKER_TYPE                    = "kafka"
     KAFKA_CLIENT_ID                = "configurator"
     KAFKA_CONSUMER_GROUP_ID        = "configurator-consumer"
@@ -26,10 +27,6 @@ locals {
     KAFKA_SASL_ENABLED             = "true"
     KAFKA_SASL_USERNAME            = var.kafka_sasl_username
     KAFKA_SASL_PASSWORD            = var.kafka_sasl_password
-    REDIS_HOST                     = local.redis_host
-    REDIS_PORT                     = local.redis_port
-    REDIS_PASSWORD                 = local.redis_password
-    REDIS_TLS_ENABLED              = local.redis_tls_enabled
     ORCHESTRATOR_ADDRESS           = var.orchestrator_address
     ORCHESTRATOR_NAMESPACE         = var.orchestrator_namespace
     ORCHESTRATOR_WORKER_TASKQUEUE  = "configurator"

@@ -1,6 +1,7 @@
 package google_sheets
 
 import (
+	"bytes"
 	"context"
 	"downloader/pkg/config"
 	"downloader/pkg/e"
@@ -14,13 +15,9 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/drive/v3"
 
+	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 )
-
-type DownloadExternalError struct {
-	Code int    `json:"code"`
-	Msg  string `json:"msg"`
-}
 
 var defaultScopes []string = []string{
 	drive.DriveMetadataScope,
@@ -65,6 +62,12 @@ type GoogleSheetsIngestService struct {
 
 	// loger
 	logger *log.Entry
+}
+
+type IngestError struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	IsExternal bool `json:"isExternal"`
 }
 
 func NewIngestService(params GoogleSheetsIngestServiceInitParams) *GoogleSheetsIngestService {
@@ -159,62 +162,45 @@ func (s *GoogleSheetsIngestService) Setup(ctx context.Context) error {
 
 func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
 
-	var debugParam string
-	if config.AppConfig.IsProduction {
-		debugParam = "off"
-	} else {
-		debugParam = "on"
-	}
-
-	externalErrorFile, err := util.CreateTempFileWithContent("ext", "json", "{}")
-	if err != nil {
-		return fmt.Errorf("Cannot generate temp file: %w", err)
-	}
-	s3Host, _ := util.ConvertS3URLToHost(config.AppConfig.S3Endpoint)
-	defer util.DeleteFile(externalErrorFile)
-
 	cmd := exec.CommandContext(
 		ctx,
-		"bash",
-		"./ingest-google-sheets.sh",
-		"--externalErrorFile", externalErrorFile,
+		"./google-sheets/do-all",
+		"--xlsxFile", s.spreadsheetFilePath,
+		"--xlsxSheetName", s.xlsxSheetName,
 		"--spreadsheetId", s.spreadsheetId,
 		"--sheetId", s.sheetId,
 		"--sheetName", s.sheetName,
-		"--xlsxSheetName", s.xlsxSheetName,
-		"--sheetIndex", fmt.Sprintf("%d", s.sheetIndex+1),
-		"--spreadsheetFile", s.spreadsheetFilePath,
-		"--timezone", s.timeZone,
+		// "--sheetIndex", fmt.Sprintf("%d", s.sheetIndex+1),
 		"--accessToken", s.accessToken,
 		"--dataSourceId", s.dataSourceId,
 		"--syncVersion", fmt.Sprintf("%d", s.syncVersion),
+		"--timeZone", s.timeZone,
 		"--s3Endpoint", config.AppConfig.S3Endpoint,
-		"--s3Host", s3Host,
 		"--s3Region", config.AppConfig.S3Region,
 		"--s3Bucket", config.AppConfig.S3DiffDataBucket,
 		"--s3AccessKey", config.AppConfig.S3AccessKey,
 		"--s3SecretKey", config.AppConfig.S3SecretKey,
 		"--s3Ssl", strconv.FormatBool(config.AppConfig.S3Ssl),
-		"--debug", debugParam,
+		// "--debug", debugParam,
 	)
 
 	outputWriter := s.logger.WriterLevel(log.InfoLevel)
-	errorWriter := s.logger.WriterLevel(log.ErrorLevel)
 	defer outputWriter.Close()
-	defer errorWriter.Close()
+	var stderr bytes.Buffer
 	cmd.Stdout = outputWriter
-	cmd.Stderr = errorWriter
+	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
 		log.Debug("Error when running ingest script: ", err)
 		// check external error
-		var externalError DownloadExternalError
-		marshalErr := util.MarshalJsonFile(externalErrorFile, &externalError)
+		var ingestError IngestError
+		marshalErr := jsoniter.Unmarshal(stderr.Bytes(), &ingestError)
 		if marshalErr != nil {
-			return fmt.Errorf("Cannot read external error file: %w", err)
+			return fmt.Errorf("Cannot read error from stderr: %w", err)
 		}
-		if externalError.Code != 0 {
-			return e.NewExternalErrorWithDescription(externalError.Code, externalError.Msg, "External error when running ingest script")
+		log.Debug("Ingest error: ", ingestError.Msg)
+		if ingestError.IsExternal {
+			return e.NewExternalErrorWithDescription(ingestError.Code, ingestError.Msg, "External error when running ingest script")
 		}
 
 		return err
@@ -224,6 +210,6 @@ func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
 }
 
 func (source *GoogleSheetsIngestService) Close(ctx context.Context) error {
-	util.DeleteFile(source.spreadsheetFilePath)
+	go util.DeleteFile(source.spreadsheetFilePath)
 	return nil
 }

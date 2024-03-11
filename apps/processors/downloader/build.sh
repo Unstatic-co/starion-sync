@@ -34,10 +34,13 @@ DIR="$(realpath "$CURRENT_DIR"/..)"
 mkdir -p "$OUT_DIR"
 
 declare -a SERVICES=(excel google-sheets)
-declare -a COMMON_BINARY_DEPENDENCIES=(generate-id get-csv-header get-xlsx-header find-and-fix-id-col get-and-upload-schema)
+# declare -a COMMON_BINARY_DEPENDENCIES=(generate-id get-csv-header get-xlsx-header find-and-fix-id-col get-and-upload-schema)
+declare -a COMMON_BINARY_DEPENDENCIES=()
 declare -A SERVICE_BINARY_DEPENDENCIES=(
-    [excel]="get-and-normalize-date-column update-id-column"
-    [google-sheets]="get-and-normalize-date-column update-id-column"
+    # [excel]="get-and-normalize-date-column update-id-column do-all"
+    # [google-sheets]="get-and-normalize-date-column update-id-column do-all"
+    [excel]="do-all"
+    [google-sheets]="do-all"
 )
 
 function buildCommon() {

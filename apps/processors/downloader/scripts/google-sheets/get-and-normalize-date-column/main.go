@@ -134,9 +134,10 @@ func GetValuesOfGoogleSheetsColumns(
 	if err != nil {
 		if googleapiErr, ok := err.(*googleapi.Error); ok {
 			sheetErr := google_sheets.WrapSpreadSheetApiError(googleapiErr)
-			unmarshalErr := util.UnmarsalJsonFile(exErrFile, &google_sheets.DownloadExternalError{
+			unmarshalErr := util.UnmarsalJsonFile(exErrFile, &google_sheets.IngestError{
 				Code: sheetErr.Code,
 				Msg:  sheetErr.Msg,
+				IsExternal: true,
 			})
 			if unmarshalErr != nil {
 				return nil, fmt.Errorf("Error when unmarsal external file: %w", err)

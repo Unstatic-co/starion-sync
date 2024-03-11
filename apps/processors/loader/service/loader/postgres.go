@@ -82,13 +82,14 @@ func getPostgresDbConnection() (*sql.DB, error) {
 			connStr := config.AppConfig.DbUri
 			if connStr == "" {
 				connStr = fmt.Sprintf(
-					"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+					"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s search_path=%s",
 					config.AppConfig.DbHost,
 					config.AppConfig.DbPort,
 					config.AppConfig.DbUser,
 					config.AppConfig.DbPassword,
 					config.AppConfig.DbName,
 					config.AppConfig.DbSslMode,
+					config.AppConfig.DbSchema,
 				)
 			}
 			db, err := sql.Open("postgres", connStr)

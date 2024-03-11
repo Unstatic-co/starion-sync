@@ -17,8 +17,8 @@ locals {
     LOG_LEVEL                = var.is_production ? "info" : "debug"
     PORT                     = "8080"
     DB_TYPE                  = "mongodb"
-    DB_URI                   = local.db_uri
-    DEST_DB_URI              = local.dest_db_uri
+    DB_URI                   = var.db_uri
+    DEST_DB_URI              = var.dest_db_uri
     BROKER_TYPE              = "kafka"
     BROKER_URIS              = var.broker_uris
     KAFKA_CLIENT_ID          = "webhook-trigger"
@@ -27,10 +27,11 @@ locals {
     KAFKA_SASL_ENABLED       = "true"
     KAFKA_SASL_USERNAME      = var.kafka_sasl_username
     KAFKA_SASL_PASSWORD      = var.kafka_sasl_password
-    REDIS_HOST               = local.redis_host
-    REDIS_PORT               = local.redis_port
-    REDIS_PASSWORD           = local.redis_password
-    REDIS_TLS_ENABLED        = local.redis_tls_enabled
+    REDIS_HOST               = var.redis_host
+    REDIS_PORT               = var.redis_port
+    REDIS_PASSWORD           = var.redis_password
+    REDIS_DB = var.redis_db
+    REDIS_TLS_ENABLED        = var.redis_tls_enabled
     GOOGLE_CLIENT_ID         = var.google_client_id
     GOOGLE_CLIENT_SECRET     = var.google_client_secret
     WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url

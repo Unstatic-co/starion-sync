@@ -50,12 +50,6 @@ variable "gcp_deploy_service_account_id" {
   type = string
 }
 
-variable "metadata_db_uri" {
-  type      = string
-  sensitive = true
-}
-
-
 variable "s3_endpoint" {
   type = string
 }
@@ -89,11 +83,6 @@ variable "GOOGLE_CREDENTIALS" {
   sensitive = true
 }
 
-variable "redis_password" { # stagging
-  type      = string
-  sensitive = true
-}
-
 variable "mongodb_host" { # stagging
   type      = string
   sensitive = true
@@ -121,9 +110,30 @@ variable "postgres_password" { # stagging
   sensitive = true
 }
 
-variable "dest_db_uri" { # staging (temporary)
+variable "db_uri" { // production - mongo
   type      = string
   sensitive = true
+}
+
+variable "dest_db_uri" { // stagging + production - postgres
+  type      = string
+  sensitive = true
+}
+variable "dest_db_schema" {
+  type = string
+}
+
+variable "metadata_db_uri" { // production - mongo
+  type      = string
+  sensitive = true
+}
+
+variable "formsync_db_uri" { // stagging + production - postgres
+  type      = string
+  sensitive = true
+}
+variable "formsync_db_schema" {
+  type = string
 }
 
 # flyio k8s variables
@@ -133,16 +143,21 @@ variable "broker_uris" {
   sensitive = true
 }
 
-variable "db_uri" { # production
-  type      = string
-  sensitive = true
-}
-
 variable "redis_host" {
   type = string
 }
 variable "redis_port" {
   type = string
+}
+variable "redis_password" {
+  type      = string
+  sensitive = true
+}
+variable "redis_db" {
+  type = string
+}
+variable "redis_tls_enabled" {
+  type = bool
 }
 
 variable "kafka_sasl_username" {

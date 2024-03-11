@@ -11,7 +11,7 @@ import { TriggerController } from './trigger.controller';
   imports: [
     BullModule.registerQueue({
       name: QUEUES.CRON_TRIGGER,
-      defaultJobOptions: { removeOnComplete: true, removeOnFail: true }
+      defaultJobOptions: { removeOnComplete: true, removeOnFail: true },
     }),
     RepositoryModule.registerAsync(),
     forwardRef(() => BrokerModule),
@@ -20,4 +20,4 @@ import { TriggerController } from './trigger.controller';
   providers: [TriggerService, CronTriggerProcessor],
   exports: [TriggerService],
 })
-export class TriggerModule { }
+export class TriggerModule {}
