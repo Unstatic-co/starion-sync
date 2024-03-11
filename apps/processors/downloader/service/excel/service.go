@@ -347,7 +347,7 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 		var downloadError DownloadError
 		marshalErr := jsoniter.Unmarshal(stderr.Bytes(), &downloadError)
 		if marshalErr != nil {
-			return fmt.Errorf("Cannot read error from stderr: %w", err)
+			return fmt.Errorf("Cannot read error from stderr: %w", marshalErr)
 		}
 		log.Debug("Download error: ", downloadError.Msg)
 		if downloadError.IsExternal {

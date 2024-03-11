@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"downloader/libs/schema"
-	"downloader/pkg/e"
 	"downloader/service/excel"
 	"downloader/util"
 	"downloader/util/s3"
@@ -216,11 +215,11 @@ func main() {
 	}
 
 	// infer schema
-	schemaFilePath := tempDir + "/schema.json"
-	runCommandInferSchema(csvFile, schemaFilePath)
+	// schemaFilePath := tempDir + "/schema.json"
+	schemaBytes := runCommandInferSchema(csvFile)
 
 	headerIndexes := getHeaderIndex(headers)
-	tableSchema := GetSchema(schemaFilePath, headerIndexes)
+	tableSchema := GetSchema(schemaBytes, headerIndexes)
 
 	fieldSchemaMap := getIndexSchemaField(tableSchema) // used for iterate data
 
@@ -234,7 +233,7 @@ func main() {
 	afterProcessWg.Add(1)
 	go fixIdColumn(fixIdChan, isMissedIdColumn, realIdColIndex, &commonInput, &afterProcessWg)
 	afterProcessWg.Add(1)
-	go writeAndUploadParquet(writeChan, fieldSchemaMap, &commonInput, &s3Input, &afterProcessWg)
+	go writeAndUploadParquet(writeChan, fieldSchemaMap, tempDir, &commonInput, &s3Input, &afterProcessWg)
 	afterProcessWg.Add(1)
 	go uploadSchema(tableSchema, s3.S3HandlerConfig{
 		Endpoint:  *s3Input.S3Endpoint,
@@ -393,7 +392,7 @@ func fixIdColumn(fixIds chan *FixIdData, isCreateIdCol bool, idColIndex int, com
 	fmt.Println("Finish fixing id column")
 }
 
-func writeAndUploadParquet(dataChan <-chan []*string, fieldSchemaMap map[int]schema.FieldSchema, commonInput *CommonInput, s3Config *S3Input, wg *sync.WaitGroup) {
+func writeAndUploadParquet(dataChan <-chan []*string, fieldSchemaMap map[int]schema.FieldSchema, tempDirPath string, commonInput *CommonInput, s3Config *S3Input, wg *sync.WaitGroup) {
 	defer wg.Done()
 	fmt.Printf("Start writing parquet\n")
 
@@ -403,7 +402,8 @@ func writeAndUploadParquet(dataChan <-chan []*string, fieldSchemaMap map[int]sch
 		pqSchema[index] = fmt.Sprintf("name=%s, type=BYTE_ARRAY, convertedtype=UTF8", field.Id)
 	}
 
-	fw, err := local.NewLocalFileWriter("test.parquet")
+	parquetFilePath := tempDirPath + "/data.parquet"
+	fw, err := local.NewLocalFileWriter(parquetFilePath)
 	if err != nil {
 		emitErrorAndExit(0, fmt.Sprintf("Can't create local file writer: %s", err), false)
 	}
@@ -426,38 +426,37 @@ func writeAndUploadParquet(dataChan <-chan []*string, fieldSchemaMap map[int]sch
 
 	fmt.Printf("Finish writing parquet\n")
 
-	wg.Add(1)
-	go uploadData("test.parquet", s3.S3HandlerConfig{
+	uploadData(parquetFilePath, s3.S3HandlerConfig{
 		Endpoint:  *s3Config.S3Endpoint,
 		Region:    *s3Config.S3Region,
 		AccessKey: *s3Config.S3AccessKey,
 		SecretKey: *s3Config.S3SecretKey,
 		Bucket:    *s3Config.S3Bucket,
 		SSl: *s3Config.S3Ssl,
-	}, *commonInput.DataSourceId, *commonInput.SyncVersion, wg)
+	}, *commonInput.DataSourceId, *commonInput.SyncVersion)
 
-	fmt.Println("Finish uploading parquet")
+	fmt.Printf("Finish uploading parquet\n")
 }
 
-func GetSchema(schemaFilePath string, headerIndexes map[string]int) (*schema.TableSchema) {
+func GetSchema(schemaBytes []byte, headerIndexes map[string]int) (*schema.TableSchema) {
 	isMissedIdCol := true
 
-	jsonFile, err := os.Open(schemaFilePath)
-    if err != nil {
-		emitErrorAndExit(0, fmt.Sprintf("Error opening schema file: %s", err), false)
-    }
-    defer jsonFile.Close()
+	// jsonFile, err := os.Open(schemaFilePath)
+    // if err != nil {
+		// emitErrorAndExit(0, fmt.Sprintf("Error opening schema file: %s", err), false)
+    // }
+    // defer jsonFile.Close()
 
-    // Read the file content
-    byteValue, err := io.ReadAll(jsonFile)
-    if err != nil {
-		emitErrorAndExit(0, fmt.Sprintf("Error reading schema file: %s", err), false)
-    }
+    // // Read the file content
+    // byteValue, err := io.ReadAll(jsonFile)
+    // if err != nil {
+		// emitErrorAndExit(0, fmt.Sprintf("Error reading schema file: %s", err), false)
+    // }
 
     // Use jsoniter to unmarshal the byte value into the struct
     var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	var schemaFile MarshaledSchemaFile
-    err = json.Unmarshal(byteValue, &schemaFile)
+    err := json.Unmarshal(schemaBytes, &schemaFile)
     if err != nil {
 		emitErrorAndExit(0, fmt.Sprintf("Error unmarshalling schema file: %s", err), false)
     }
@@ -639,8 +638,10 @@ func generateExcelUpdateIdData(data UpdateIdData, sheetName string, idColIndex i
 	return result
 }
 
-func uploadSchema(schema *schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string, wg *sync.WaitGroup) error {
+func uploadSchema(schema *schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string, wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	fmt.Printf("Uploading schema\n")
 
 	schemaJson, err := jsoniter.Marshal(*schema)
 	if err != nil {
@@ -655,12 +656,11 @@ func uploadSchema(schema *schema.TableSchema, s3Config s3.S3HandlerConfig, dataS
 	if err != nil {
 		emitErrorAndExit(0, fmt.Sprintf("Error when uploading schema to s3: %+v", err), false)
 	}
-	return nil
+
+	fmt.Printf("Finish uploading schema\n")
 }
 
-func uploadData(dataFilePath string, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	
+func uploadData(dataFilePath string, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string) error {
 	handler, err := s3.NewHandlerWithConfig(&s3Config)
 	if err != nil {
 		emitErrorAndExit(0, fmt.Sprintf("Error when initializing s3 handler: %+v", err), false)
@@ -716,12 +716,13 @@ func runCommandTrimFile(selectedColIndexes []string, csvFilePath string, outputF
 	}
 }
 
-func runCommandInferSchema(csvFilePath string, outputFilePath string) {
-	outFile, err := os.Create(outputFilePath)
-	if err != nil {
-		emitErrorAndExit(0, fmt.Sprintf("Error creating schema file: %+v", err), false)
-	}
-	defer outFile.Close()
+func runCommandInferSchema(csvFilePath string) []byte {
+	// outFile, err := os.Create(outputFilePath)
+	// if err != nil {
+		// emitErrorAndExit(0, fmt.Sprintf("Error creating schema file: %+v", err), false)
+	// }
+	// defer outFile.Close()
+	var result bytes.Buffer
 
 	cmd := exec.Command(
 		"/usr/local/bin/qsv",
@@ -732,11 +733,13 @@ func runCommandInferSchema(csvFilePath string, outputFilePath string) {
 		"--stdout",
 		csvFilePath,
 	)
-	cmd.Stdout = outFile
-	err = cmd.Run()
+	cmd.Stdout = &result
+	err := cmd.Run()
 	if err != nil {
 		emitErrorAndExit(0, fmt.Sprintf("Error when running infer schema command: %+v", err), false)
 	}
+
+	return result.Bytes()
 }
 
 func emitErrorAndExit(code int, message string, isExternal bool) {
@@ -765,7 +768,8 @@ func convertToA1Notation(row, column int) string {
 	return result
 }
 
-func updateExcelIdColumn(rangeAddress string, data []byte, commonInput *CommonInput, wg *sync.WaitGroup, errors chan<- error) {
+func updateExcelIdColumn(rangeAddress string, data []byte, commonInput *CommonInput, wg *sync.WaitGroup) {
+	defer wg.Done()
 	fmt.Println("Updating range: ", rangeAddress)
 
 	var url string
@@ -774,61 +778,41 @@ func updateExcelIdColumn(rangeAddress string, data []byte, commonInput *CommonIn
 	} else {
 		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/drives/%s/items/%s/workbook/worksheets/%s/range(address='%s')?$select=address", *commonInput.DriveId, *commonInput.WorkbookId, *commonInput.SheetId, rangeAddress)
 	}
-	defer wg.Done()
 	req, err := http.NewRequest("PATCH", url, bytes.NewReader(data))
 	if err != nil {
-		errors <- err
-		return
+		emitErrorAndExit(0, fmt.Sprintf("Error when creating request: %s", err), false)
 	}
 	req.Header.Set("Authorization", "Bearer " + *commonInput.AccessToken)
 	req.Header.Set("workbook-session-id", *commonInput.SessionId)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		errors <- err
-		return
+		emitErrorAndExit(0, fmt.Sprintf("Error when updating excel id column: %s", err), false)
 	}
 
 	defer resp.Body.Close()
 	responseBody, err := io.ReadAll(resp.Body)
 
 	if err != nil {
-		errors <- fmt.Errorf("Error reading response body from excel update id column: %w", err)
-		return
+		emitErrorAndExit(0, fmt.Sprintf("Error reading response body from excel update id column: %s", err), false)
 	}
 
 	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
 		var errRes excel.ErrorResponse
 		err := jsoniter.Unmarshal(responseBody, &errRes)
 		if err != nil {
-			errors <- fmt.Errorf("Error unmarshalling: %w", err)
-			return
+			emitErrorAndExit(0, fmt.Sprintf("Error unmarshalling: %s", err), false)
 		}
-		errors <- excel.WrapWorksheetApiError(resp.StatusCode, errRes.Error.Msg)
-		return
+		externalErr := excel.WrapWorksheetApiError(resp.StatusCode, errRes.Error.Msg)
+		emitErrorAndExit(externalErr.Code, externalErr.Msg, true)
 	}
 }
 
 func updateExcelIdColumns(data map[string][]byte, commonInput *CommonInput) {
 	var wg sync.WaitGroup
-	errors := make(chan error, len(data))
 	for rangeAddress, json := range data {
 		wg.Add(1)
-		go updateExcelIdColumn(rangeAddress, json, commonInput, &wg, errors)
+		go updateExcelIdColumn(rangeAddress, json, commonInput, &wg)
 	}
-
 	wg.Wait()
-	close(errors)
-
-	if len(errors) > 0 {
-		var internalErr error
-		for err := range errors {
-			if err, ok := err.(*e.ExternalError); ok {
-				emitErrorAndExit(err.Code, err.Msg, true)
-			} else if internalErr == nil {
-				internalErr = err
-			}
-		}
-		emitErrorAndExit(0, fmt.Sprintf("Error when updating id column: %v", internalErr), false)
-	}
 }
