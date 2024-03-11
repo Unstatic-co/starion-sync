@@ -16,11 +16,13 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
-type DownloadExternalError struct {
+type DownloadError struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
+	IsExternal bool `json:"isExternal"`
 }
 
 type MicrosoftExcelServiceInitParams struct {
@@ -60,6 +62,9 @@ type MicrosoftExcelService struct {
 
 	// client
 	httpClient http.Client
+
+	// resource
+	workbookFilePath string
 
 	// loger
 	logger *log.Entry
@@ -138,7 +143,6 @@ func (s *MicrosoftExcelService) CreateSessionId(persistChanges bool) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("Session id: ", response.Id)
 
 	s.sessionId = response.Id
 	return nil
@@ -227,6 +231,63 @@ func (s *MicrosoftExcelService) GetWorksheetInfo() error {
 	return nil
 }
 
+func (s *MicrosoftExcelService) DownloadXlsxFile() error {
+	s.logger.Debug("Downloading xlsx file")
+
+	filePath, err := util.GenerateTempFileName(s.workbookId, "xlsx", false)
+	if err != nil {
+		return err
+	}
+
+	var url string
+	if s.driveId == "" {
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/me/drive/items/%s/content", s.workbookId)
+	} else {
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/drives/%s/items/%s/content", s.driveId, s.workbookId)
+	}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.accessToken))
+	req.Header.Set("workbook-session-id", s.sessionId)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// handle error
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		var errRes ErrorResponse
+		responseBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		err = jsoniter.Unmarshal(responseBody, &errRes)
+		if err != nil {
+			return fmt.Errorf("Error unmarshalling: %w", err)
+		}
+		return WrapWorksheetApiError(resp.StatusCode, errRes.Error.Msg)
+	}
+
+	// Save downloaded file
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	s.workbookFilePath = filePath
+
+	return nil
+}
+
 func (source *MicrosoftExcelService) Setup(ctx context.Context) error {
 	return nil
 }
@@ -236,66 +297,61 @@ func (source *MicrosoftExcelService) Download(ctx context.Context) error {
 		source.logger.Error("Error creating session id", err)
 		return err
 	}
-	if err := source.GetWorksheetInfo(); err != nil {
-		source.logger.Error("Error getting worksheet info", err)
+
+	group, _ := errgroup.WithContext(ctx)
+	group.Go(func() error {
+		if err := source.GetWorksheetInfo(); err != nil {
+			source.logger.Error("Error getting worksheet info", err)
+			return err
+		}
+		return nil
+	})
+	group.Go(source.DownloadXlsxFile)
+	err := group.Wait()
+	if err != nil {
 		return err
 	}
 
-	var debugParam string
-	if config.AppConfig.IsProduction {
-		debugParam = "off"
-	} else {
-		debugParam = "on"
-	}
-
-	externalErrorFile, err := util.CreateTempFileWithContent("ext", "json", "{}")
-	if err != nil {
-		return fmt.Errorf("Cannot generate temp file: %w", err)
-	}
-	defer util.DeleteFile(externalErrorFile)
-	s3Host, _ := util.ConvertS3URLToHost(config.AppConfig.S3Endpoint)
-
 	cmd := exec.CommandContext(
 		ctx,
-		"bash",
-		"./download-excel.sh",
-		"--externalErrorFile", externalErrorFile,
+		"./excel/do-all",
+		"--xlsxFile", source.workbookFilePath,
+		"--xlsxSheetName", source.worksheetName,
 		"--driveId", source.driveId,
 		"--workbookId", source.workbookId,
-		"--worksheetId", source.worksheetId,
-		"--worksheetName", source.worksheetName,
+		"--sheetId", source.worksheetId,
+		"--sheetName", source.worksheetName,
+		// "--sheetIndex", fmt.Sprintf("%d", s.sheetIndex+1),
 		"--accessToken", source.accessToken,
-		"--sessionId", source.sessionId,
 		"--dataSourceId", source.dataSourceId,
 		"--syncVersion", fmt.Sprintf("%d", source.syncVersion),
-		"--timezone", source.timezone,
+		"--timeZone", source.timezone,
 		"--s3Endpoint", config.AppConfig.S3Endpoint,
-		"--s3Host", s3Host,
 		"--s3Region", config.AppConfig.S3Region,
 		"--s3Bucket", config.AppConfig.S3DiffDataBucket,
 		"--s3AccessKey", config.AppConfig.S3AccessKey,
 		"--s3SecretKey", config.AppConfig.S3SecretKey,
 		"--s3Ssl", strconv.FormatBool(config.AppConfig.S3Ssl),
-		"--debug", debugParam,
+		// "--debug", debugParam,
 	)
 
 	outputWriter := source.logger.WriterLevel(log.InfoLevel)
-	errorWriter := source.logger.WriterLevel(log.ErrorLevel)
 	defer outputWriter.Close()
-	defer errorWriter.Close()
+	var stderr bytes.Buffer
 	cmd.Stdout = outputWriter
-	cmd.Stderr = errorWriter
+	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
+		log.Debug("Error when running download script: ", err)
 		// check external error
-		log.Println("Check external error")
-		var externalError DownloadExternalError
-		marshalErr := util.MarshalJsonFile(externalErrorFile, &externalError)
+		var downloadError DownloadError
+		marshalErr := jsoniter.Unmarshal(stderr.Bytes(), &downloadError)
 		if marshalErr != nil {
-			fmt.Errorf("Cannot read external error file: %w", err)
+			return fmt.Errorf("Cannot read error from stderr: %w", err)
 		}
-		if externalError.Code != 0 {
-			return e.NewExternalErrorWithDescription(externalError.Code, externalError.Msg, "External error when running download script")
+		log.Debug("Download error: ", downloadError.Msg)
+		if downloadError.IsExternal {
+			return e.NewExternalErrorWithDescription(downloadError.Code, downloadError.Msg, "External error when running ingest script")
 		}
 
 		return err
@@ -310,5 +366,6 @@ func (source *MicrosoftExcelService) Close(ctx context.Context) error {
 			source.logger.Warn("Error close session", err)
 		}
 	}()
+	go util.DeleteFile(source.workbookFilePath)
 	return nil
 }

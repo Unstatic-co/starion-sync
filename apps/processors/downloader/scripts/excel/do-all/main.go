@@ -2,15 +2,17 @@ package main
 
 import (
 	"bufio"
-	"context"
+	"bytes"
 	"downloader/libs/schema"
-	google_sheets "downloader/service/google-sheets"
+	"downloader/pkg/e"
+	"downloader/service/excel"
 	"downloader/util"
 	"downloader/util/s3"
 	"encoding/csv"
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -24,14 +26,9 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/samber/lo"
-	"golang.org/x/oauth2"
 
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/writer"
-
-	"google.golang.org/api/googleapi"
-	"google.golang.org/api/option"
-	"google.golang.org/api/sheets/v4"
 )
 
 type MarshaledSchemaFile struct {
@@ -59,7 +56,9 @@ func (a FixIdDataArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 type UpdateIdData map[int][]string // map[firstRowNumber][]id
 
 type CommonInput struct {
-	SpreadsheetId *string
+	SessionId *string
+	DriveId *string
+	WorkbookId *string
 	SheetId *string
 	SheetName *string
 	AccessToken *string
@@ -111,7 +110,9 @@ func main() {
 	xlsxFile := flag.String("xlsxFile", "", "Xlsx file")
 	xlsxSheetName := flag.String("xlsxSheetName", "", "Xlsx sheet name")
 	// csvFile := flag.String("csvFile", "", "Csv file")
-	spreadsheetId := flag.String("spreadsheetId", "", "Spread sheet id")
+	sessionId := flag.String("sessionId", "", "Session id")
+	driveId := flag.String("driveId", "", "Drive id")
+	workbookId := flag.String("workbookId", "", "Spread sheet id")
 	sheetId := flag.String("sheetId", "", "Sheet id")
 	sheetName := flag.String("sheetName", "", "Sheet name")
 	accessToken := flag.String("accessToken", "", "Access token")
@@ -128,7 +129,9 @@ func main() {
 	flag.Parse()
 
 	commonInput := CommonInput{
-		SpreadsheetId: spreadsheetId,
+		SessionId: sessionId,
+		DriveId: driveId,
+		WorkbookId: workbookId,
 		SheetId: sheetId,
 		SheetName: sheetName,
 		AccessToken: accessToken,
@@ -282,7 +285,7 @@ func main() {
 	afterProcessWg.Wait()
 
 	elapsed := time.Since(start)
-	fmt.Println("Ingest execution time:", elapsed)
+	fmt.Println("Download execution time:", elapsed)
 }
 
 // Worker to process lines
@@ -365,48 +368,6 @@ func fixIdColumn(fixIds chan *FixIdData, isCreateIdCol bool, idColIndex int, com
 
 	fmt.Println("Start fixing id column")
 
-	spreadsheetId := *commonInput.SpreadsheetId
-	sheetName := *commonInput.SheetName
-	sheetIdInt, _ := strconv.Atoi(*commonInput.SheetId)
-	ctx := context.Background()
-	token := oauth2.Token{
-		AccessToken: *commonInput.AccessToken,
-	}
-	tokenSource := oauth2.StaticTokenSource(&token)
-	sheetClient, err := sheets.NewService(ctx, option.WithTokenSource(tokenSource))
-	if err != nil {
-		emitErrorAndExit(0, fmt.Sprintf("Error when creating client to update id col: %s", err), false)
-	}
-
-	// append dimension optionally
-	if isCreateIdCol {
-		res, err := sheetClient.Spreadsheets.Get(spreadsheetId).Ranges(util.FormatSheetNameInRange(sheetName)).IncludeGridData(false).Fields(googleapi.Field("sheets.properties.gridProperties.columnCount")).Do()
-		if err != nil {
-			handleGoogleApiError(err)
-		}
-		columnCount := res.Sheets[0].Properties.GridProperties.ColumnCount
-		if columnCount < int64(idColIndex) {
-			_, err = sheetClient.Spreadsheets.BatchUpdate(spreadsheetId, &sheets.BatchUpdateSpreadsheetRequest{
-				Requests: []*sheets.Request{
-					{
-						InsertDimension: &sheets.InsertDimensionRequest{
-							InheritFromBefore: true,
-							Range: &sheets.DimensionRange{
-								SheetId:    int64(sheetIdInt),
-								Dimension:  "COLUMNS",
-								StartIndex: int64(idColIndex - 1),
-								EndIndex:   int64(idColIndex),
-							},
-						},
-					},
-				},
-			}).Do()
-			if err != nil {
-				handleGoogleApiError(err)
-			}
-		}
-	}
-
 	batchSize := 40000
 	batchData := make([]FixIdData, 0, batchSize)
 	var batchGroup sync.WaitGroup
@@ -415,7 +376,7 @@ func fixIdColumn(fixIds chan *FixIdData, isCreateIdCol bool, idColIndex int, com
 		batchData = append(batchData, *data)
 		if len(batchData) == batchSize {
 			batchGroup.Add(1)
-			go processBatchGoogleSheetsFixId(batchData, sheetClient, spreadsheetId, sheetName, idColIndex, batchSize, &batchGroup)
+			go processBatchExcelFixId(batchData, idColIndex, batchSize, commonInput, &batchGroup)
 
 			// end batch
 			batchData = make([]FixIdData, 0, batchSize)
@@ -424,7 +385,7 @@ func fixIdColumn(fixIds chan *FixIdData, isCreateIdCol bool, idColIndex int, com
 
 	if len(batchData) > 0 {
 		batchGroup.Add(1)
-		go processBatchGoogleSheetsFixId(batchData, sheetClient, spreadsheetId, sheetName, idColIndex, batchSize, &batchGroup)
+		go processBatchExcelFixId(batchData, idColIndex, batchSize, commonInput, &batchGroup)
 	}
 
 	batchGroup.Wait()
@@ -621,7 +582,7 @@ func inferBooleanType(enum []interface{}) bool {
 	return false
 }
 
-func processBatchGoogleSheetsFixId(batchData []FixIdData, sheetClient *sheets.Service, spreadsheetId string, sheetName string, idColIndex int, batchSize int, wg *sync.WaitGroup) {
+func processBatchExcelFixId(batchData []FixIdData, idColIndex int, batchSize int, commonInput *CommonInput, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	sort.Sort(FixIdDataArray(batchData))
@@ -651,32 +612,29 @@ func processBatchGoogleSheetsFixId(batchData []FixIdData, sheetClient *sheets.Se
 	}
 
 	// do call update api
-	updateValues := generateUpdateIdGoogleSheetsData(updateBatches, sheetName, idColIndex)
-	_, err := sheetClient.Spreadsheets.Values.
-		BatchUpdate(spreadsheetId, &sheets.BatchUpdateValuesRequest{
-			ValueInputOption:        "RAW",
-			Data:                    updateValues,
-			IncludeValuesInResponse: false,
-		}).
-		Do()
-	if err != nil {
-		handleGoogleApiError(err)
-	}
+	updateData := generateExcelUpdateIdData(updateBatches, *commonInput.SheetName, idColIndex)
+	updateExcelIdColumns(updateData, commonInput)
 }
 
-func generateUpdateIdGoogleSheetsData(data UpdateIdData, sheetName string, idColIndex int) []*sheets.ValueRange {
+func generateExcelUpdateIdData(data UpdateIdData, sheetName string, idColIndex int) map[string][]byte {
 	idColIndex++
-	result := make([]*sheets.ValueRange, len(data))
+	result := make(map[string][]byte)
 	for firstRowNumber, values := range data {
-		formattedValues := make([][]interface{}, len(values))
+		formattedValues := make([][]string, len(values))
 		for i, val := range values {
-			formattedValues[i] = []interface{}{val}
+			formattedValues[i] = []string{val}
 		}
-		valueRange := fmt.Sprintf("%s!R%[2]dC%[3]d:R%[4]dC%[3]d", util.FormatSheetNameInRange(sheetName), firstRowNumber+1, idColIndex, firstRowNumber+len(values))
-		result = append(result, &sheets.ValueRange{
-			Range:  valueRange,
+		rangeAddress := convertToA1Notation(firstRowNumber+1, idColIndex) + ":" + convertToA1Notation(firstRowNumber+len(values), idColIndex)
+		json := struct {
+			Values [][]string `json:"values"`
+		}{
 			Values: formattedValues,
-		})
+		}
+		jsonByte, err := jsoniter.Marshal(json)
+		if err != nil {
+			emitErrorAndExit(0, fmt.Sprintf("Error marshal json batch data: %s", err), false)
+		}
+		result[rangeAddress] = jsonByte
 	}
 	return result
 }
@@ -783,7 +741,7 @@ func runCommandInferSchema(csvFilePath string, outputFilePath string) {
 
 func emitErrorAndExit(code int, message string, isExternal bool) {
 	errorMutex.Lock()
-	err := google_sheets.IngestError{
+	err := excel.DownloadError{
 		Code: 	 code,
 		Msg: 	 message,
 		IsExternal: isExternal,
@@ -793,11 +751,84 @@ func emitErrorAndExit(code int, message string, isExternal bool) {
 	os.Exit(1)
 }
 
-func handleGoogleApiError(err error) {
-	if googleapiErr, ok := err.(*googleapi.Error); ok {
-		sheetErr := google_sheets.WrapSpreadSheetApiError(googleapiErr)
-		emitErrorAndExit(sheetErr.Code, sheetErr.Msg, true)
+func convertToA1Notation(row, column int) string {
+	columnStr := ""
+	unit := (column - 1) % 26
+	columnStr = string('A'+unit) + columnStr
+	for column > 26 {
+		column = (column - 1) / 26
+		unit = (column - 1) % 26
+		columnStr = string('A'+unit) + columnStr
+	}
+	rowStr := strconv.Itoa(row)
+	result := columnStr + rowStr
+	return result
+}
+
+func updateExcelIdColumn(rangeAddress string, data []byte, commonInput *CommonInput, wg *sync.WaitGroup, errors chan<- error) {
+	fmt.Println("Updating range: ", rangeAddress)
+
+	var url string
+	if *commonInput.DriveId == "" {
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/me/drive/items/%s/workbook/worksheets/%s/range(address='%s')?$select=address", *commonInput.WorkbookId, *commonInput.SheetId, rangeAddress)
 	} else {
-		emitErrorAndExit(0, fmt.Sprintf("Error when parsing google api error - %v", err), false)
+		url = fmt.Sprintf("https://graph.microsoft.com/v1.0/drives/%s/items/%s/workbook/worksheets/%s/range(address='%s')?$select=address", *commonInput.DriveId, *commonInput.WorkbookId, *commonInput.SheetId, rangeAddress)
+	}
+	defer wg.Done()
+	req, err := http.NewRequest("PATCH", url, bytes.NewReader(data))
+	if err != nil {
+		errors <- err
+		return
+	}
+	req.Header.Set("Authorization", "Bearer " + *commonInput.AccessToken)
+	req.Header.Set("workbook-session-id", *commonInput.SessionId)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		errors <- err
+		return
+	}
+
+	defer resp.Body.Close()
+	responseBody, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		errors <- fmt.Errorf("Error reading response body from excel update id column: %w", err)
+		return
+	}
+
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		var errRes excel.ErrorResponse
+		err := jsoniter.Unmarshal(responseBody, &errRes)
+		if err != nil {
+			errors <- fmt.Errorf("Error unmarshalling: %w", err)
+			return
+		}
+		errors <- excel.WrapWorksheetApiError(resp.StatusCode, errRes.Error.Msg)
+		return
+	}
+}
+
+func updateExcelIdColumns(data map[string][]byte, commonInput *CommonInput) {
+	var wg sync.WaitGroup
+	errors := make(chan error, len(data))
+	for rangeAddress, json := range data {
+		wg.Add(1)
+		go updateExcelIdColumn(rangeAddress, json, commonInput, &wg, errors)
+	}
+
+	wg.Wait()
+	close(errors)
+
+	if len(errors) > 0 {
+		var internalErr error
+		for err := range errors {
+			if err, ok := err.(*e.ExternalError); ok {
+				emitErrorAndExit(err.Code, err.Msg, true)
+			} else if internalErr == nil {
+				internalErr = err
+			}
+		}
+		emitErrorAndExit(0, fmt.Sprintf("Error when updating id column: %v", internalErr), false)
 	}
 }

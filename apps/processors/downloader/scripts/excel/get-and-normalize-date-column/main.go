@@ -179,9 +179,10 @@ func GetValuesOfExcelColumnsConcurrently(service *MicrosoftExcelService, columns
 		var internalErr error
 		for _, err := range errors {
 			if err, ok := err.(*e.ExternalError); ok {
-				unmarshalErr := util.UnmarsalJsonFile(exErrorFile, &excel.DownloadExternalError{
+				unmarshalErr := util.UnmarsalJsonFile(exErrorFile, &excel.DownloadError{
 					Code: err.Code,
 					Msg:  err.Msg,
+					IsExternal: true,
 				})
 				if unmarshalErr != nil {
 					return nil, fmt.Errorf("Error when unmarsal external err file: %w", unmarshalErr)

@@ -162,20 +162,6 @@ func (s *GoogleSheetsIngestService) Setup(ctx context.Context) error {
 
 func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
 
-	// var debugParam string
-	// if config.AppConfig.IsProduction {
-		// debugParam = "off"
-	// } else {
-		// debugParam = "on"
-	// }
-
-	externalErrorFile, err := util.CreateTempFileWithContent("ext", "json", "{}")
-	if err != nil {
-		return fmt.Errorf("Cannot generate temp file: %w", err)
-	}
-	// s3Host, _ := util.ConvertS3URLToHost(config.AppConfig.S3Endpoint)
-	defer util.DeleteFile(externalErrorFile)
-
 	cmd := exec.CommandContext(
 		ctx,
 		"./google-sheets/do-all",
@@ -212,6 +198,7 @@ func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
 		if marshalErr != nil {
 			return fmt.Errorf("Cannot read error from stderr: %w", err)
 		}
+		log.Debug("Ingest error: ", ingestError.Msg)
 		if ingestError.IsExternal {
 			return e.NewExternalErrorWithDescription(ingestError.Code, ingestError.Msg, "External error when running ingest script")
 		}
@@ -223,6 +210,6 @@ func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
 }
 
 func (source *GoogleSheetsIngestService) Close(ctx context.Context) error {
-	util.DeleteFile(source.spreadsheetFilePath)
+	go util.DeleteFile(source.spreadsheetFilePath)
 	return nil
 }
