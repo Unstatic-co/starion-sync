@@ -43,12 +43,13 @@ import { WebhookModule } from './modules/webhook/webhook.module';
         const redisConfig = configService.get<RedisConfig>(
           `${ConfigName.REDIS}`,
         );
-        const { host, port, password, tls } = redisConfig;
+        const { host, port, password, db, tls } = redisConfig;
         return {
           redis: {
             host,
             port,
             password,
+            db,
             tls: tls ? {} : undefined,
           },
         } as BullRootModuleOptions;

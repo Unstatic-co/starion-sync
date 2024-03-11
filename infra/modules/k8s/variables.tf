@@ -50,12 +50,6 @@ variable "gcp_deploy_service_account_id" {
   type = string
 }
 
-variable "metadata_db_uri" {
-  type      = string
-  sensitive = true
-}
-
-
 variable "s3_endpoint" {
   type = string
 }
@@ -121,19 +115,35 @@ variable "postgres_password" { # stagging
   sensitive = true
 }
 
-variable "dest_db_uri" { # staging (temporary)
+variable "db_uri" { // production - mongo
   type      = string
   sensitive = true
+}
+
+variable "dest_db_uri" { // stagging + production - postgres
+  type      = string
+  sensitive = true
+}
+variable "dest_db_schema" {
+  type = string
+}
+
+variable "metadata_db_uri" { // production - mongo
+  type      = string
+  sensitive = true
+}
+
+variable "formsync_db_uri" { // stagging + production - postgres
+  type      = string
+  sensitive = true
+}
+variable "formsync_db_schema" {
+  type = string
 }
 
 # flyio k8s variables
 
 variable "broker_uris" {
-  type      = string
-  sensitive = true
-}
-
-variable "db_uri" { # production
   type      = string
   sensitive = true
 }

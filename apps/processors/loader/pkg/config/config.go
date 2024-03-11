@@ -36,6 +36,7 @@ type IAppConfig struct {
 	DbUser     string `env:"DB_USER" envDefault:"admin"`
 	DbPassword string `env:"DB_PASSWORD" envDefault:"abc123456"`
 	DbName     string `env:"DB_NAME" envDefault:"starion-sync"`
+	DbSchema string `env:"DB_SCHEMA" envDefault:"public"` // for postgres
 	DbSslMode  string `env:"DB_SSL_MODE" envDefault:"disable"`
 
 	// Postgres loader

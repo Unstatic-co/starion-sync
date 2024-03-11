@@ -9,6 +9,7 @@ export interface DatabaseConfig {
   database?: string;
   uri?: string;
   tlsEnabled?: boolean;
+  schema?: string;
 
   metadataDbUri: string;
 }
@@ -21,6 +22,7 @@ export const databaseConfig: DatabaseConfig = {
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   tlsEnabled: process.env.DB_TLS_ENABLED === 'true',
+  schema: process.env.DB_SCHEMA || 'public',
   metadataDbUri:
     process.env.METADATA_DB_URI ||
     'mongodb://admin:abc123456@localhost:27017/starion-form-sync?authSource=admin',

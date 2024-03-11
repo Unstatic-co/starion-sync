@@ -16,6 +16,7 @@ locals {
     API_KEYS            = join(",", var.processor_api_keys)
     DB_TYPE             = "postgres"
     DB_URI              = var.dest_db_uri
+    DB_SCHEMA = var.dest_db_schema
     S3_ENDPOINT         = var.s3_endpoint
     S3_REGION           = var.s3_region
     S3_DIFF_DATA_BUCKET = var.s3_bucket

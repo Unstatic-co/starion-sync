@@ -48,7 +48,7 @@ import { redisStore } from 'cache-manager-redis-yet';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const dbConfig = configService.get<DatabaseConfig>(ConfigName.DATABASE);
-        const { uri, database, tlsEnabled } = dbConfig;
+        const { uri, database, tlsEnabled, schema } = dbConfig;
         return {
           type: 'postgres',
           url: uri,
@@ -60,6 +60,7 @@ import { redisStore } from 'cache-manager-redis-yet';
             : false,
           entities: entities,
           synchronize: true,
+          schema,
         };
       },
       inject: [ConfigService],
@@ -85,18 +86,19 @@ import { redisStore } from 'cache-manager-redis-yet';
         const redisConfig = configService.get<RedisConfig>(
           `${ConfigName.REDIS}`,
         );
-        const { host, port, password, tls } = redisConfig;
+        const { host, port, password, db, tls } = redisConfig;
         const store = await redisStore({
           socket: {
             host,
             port: Number(port),
             tls,
+            db,
             connectTimeout: 10000,
             disableOfflineQueue: false,
             reconnectStrategy: (retries) => Math.min(retries * 50, 5000),
           },
           password,
-          database: 0,
+          database: db,
           pingInterval: 1000 * 60 * 2,
           disableOfflineQueue: true,
           // legacyMode: true,
@@ -128,12 +130,13 @@ import { redisStore } from 'cache-manager-redis-yet';
         const redisConfig = configService.get<RedisConfig>(
           `${ConfigName.REDIS}`,
         );
-        const { host, port, password, tls } = redisConfig;
+        const { host, port, password, db, tls } = redisConfig;
         return {
           redis: {
             host,
             port,
             password,
+            db,
             tls: tls ? {} : undefined,
           },
         } as BullRootModuleOptions;

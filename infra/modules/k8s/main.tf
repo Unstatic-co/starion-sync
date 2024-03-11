@@ -16,10 +16,6 @@ locals {
 }
 
 locals {
-  db_uri            = !var.is_production ? "mongodb://root${var.mongodb_user}:rootpassword${var.mongodb_password}@mongodb-replicaset-0.mongodb-replicaset-headless.default.svc.cluster.local:27017/starion-sync?directConnection=true&replicaSet=rs0&authSource=admin" : var.db_uri
-  metadata_db_uri   = !var.is_production ? "mongodb://root${var.mongodb_user}:rootpassword${var.mongodb_password}@mongodb-replicaset-0.mongodb-replicaset-headless.default.svc.cluster.local:27017/starion-form-sync?directConnection=true&replicaSet=rs0&authSource=admin" : var.db_uri
-  dest_db_uri       = var.is_production ? var.dest_db_uri : var.dest_db_uri
-  formsync_db_uri   = var.is_production ? var.dest_db_uri : var.dest_db_uri
   redis_host        = !var.is_production ? "redisdb-headless.default.svc.cluster.local" : var.redis_host
   redis_port        = !var.is_production ? "6379" : var.redis_port
   redis_password    = !var.is_production ? var.redis_password : var.redis_password

@@ -14,8 +14,7 @@ locals {
     NODE_ENV                = var.environment
     LOG_LEVEL               = var.is_production ? "info" : "debug"
     DB_TYPE                 = "mongodb"
-    DB_URI                  = local.db_uri
-    DEST_DB_URI             = local.dest_db_uri
+    DB_URI                  = var.db_uri
     BROKER_TYPE             = "kafka"
     BROKER_URIS             = var.broker_uris
     KAFKA_CLIENT_ID         = "cron-trigger"

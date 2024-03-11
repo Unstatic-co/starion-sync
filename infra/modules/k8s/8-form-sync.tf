@@ -17,10 +17,10 @@ locals {
     PORT                    = "8080"
     LOG_LEVEL               = var.is_production ? "debug" : "debug"
     API_KEYS                = join(",", var.api_keys)
-    DB_URI                  = local.formsync_db_uri
+    DB_URI                  = var.formsync_db_uri
+    DB_SCHEMA = var.formsync_db_schema
     DB_TLS_ENABLED          = "true"
-    DB_NAME                 = "starion-form-sync"
-    METADATA_DB_URI         = local.metadata_db_uri
+    METADATA_DB_URI         = var.metadata_db_uri
     REDIS_HOST              = local.redis_host
     REDIS_PORT              = local.redis_port
     REDIS_PASSWORD          = local.redis_password

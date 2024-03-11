@@ -1,6 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { ConfigName } from './config.enum';
-import { DatabaseConfig, DatabaseType } from './database.config';
+import { DatabaseType } from './database.config';
 
 export interface DestinationDatabaseConfig {
   type: DatabaseType;
@@ -10,9 +10,10 @@ export interface DestinationDatabaseConfig {
   password?: string;
   database?: string;
   uri?: string;
+  schema?: string; // for postgres
 }
 
-export const destinationDatabaseConfig: DatabaseConfig = {
+export const destinationDatabaseConfig: DestinationDatabaseConfig = {
   type: (process.env.DEST_DB_TYPE as DatabaseType) || DatabaseType.POSTGRES,
   uri: process.env.DEST_DB_URI,
   host: process.env.DEST_DB_HOST || 'postgresql',
@@ -20,6 +21,7 @@ export const destinationDatabaseConfig: DatabaseConfig = {
   user: process.env.DEST_DB_USER || 'admin',
   password: process.env.DEST_DB_PASSWORD || 'abc123456',
   database: process.env.DEST_DB_NAME || 'starion-sync',
+  schema: process.env.DEST_DB_SCHEMA || 'public',
 };
 
 export const destinationDatabaseConfigRegister = registerAs(

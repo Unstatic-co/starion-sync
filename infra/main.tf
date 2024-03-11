@@ -1,10 +1,10 @@
 
 locals {
-  postgres_stagging_uri    = local.is_production ? null : "postgres://${var.postgres_user}:${var.postgres_password}@starion-sync-stagging-postgres.fly.dev:5432/starion-sync?sslmode=disable"                                                                               # stagging
-  mongodb_stagging_uri     = local.is_production ? null : "mongodb://root${var.mongodb_user}:rootpassword${var.mongodb_password}@mongodb-replicaset-0.mongodb-replicaset-headless.default.svc.cluster.local:27017/starion-sync?directConnection=true&authSource=admin"      # stagging
-  metadata_db_stagging_uri = local.is_production ? null : "mongodb://root${var.mongodb_user}:rootpassword${var.mongodb_password}@mongodb-replicaset-0.mongodb-replicaset-headless.default.svc.cluster.local:27017/starion-form-sync?directConnection=true&authSource=admin" # stagging
-  broker_uri               = "${module.upstash.kafka_uri}:9092"
   is_production            = var.environment == "production" ? true : false
+  formsync_stagging_uri    = "postgres://${var.postgres_user}:${var.postgres_password}@starion-sync-stagging-postgres.fly.dev:5432/starion-form-sync?sslmode=disable"                                                                               # stagging
+  db_stagging_uri     = "mongodb://root${var.mongodb_user}:rootpassword${var.mongodb_password}@mongodb-replicaset-0.mongodb-replicaset-headless.default.svc.cluster.local:27017/starion-sync?directConnection=true&authSource=admin"      # stagging
+  metadata_db_stagging_uri = "mongodb://root${var.mongodb_user}:rootpassword${var.mongodb_password}@mongodb-replicaset-0.mongodb-replicaset-headless.default.svc.cluster.local:27017/starion-form-sync?directConnection=true&authSource=admin" # stagging
+  broker_uri               = "${module.upstash.kafka_uri}:9092"
 }
 
 module "digitalocean" {
@@ -174,13 +174,18 @@ module "k8s" {
   orchestrator_client_key       = var.orchestrator_client_key
   orchestrator_namespace        = var.orchestrator_namespace
   orchestrator_tls_enabled      = var.orchestrator_tls_enabled
-  db_uri                        = local.is_production ? module.digitalocean.mongodb_uri : local.postgres_stagging_uri
+
+  db_uri                        = local.is_production ? var.db_uri : local.db_stagging_uri
+  dest_db_uri     =  var.dest_db_uri
+  dest_db_schema = var.dest_db_schema
+  metadata_db_uri = local.is_production ? var.metadata_db_uri : local.metadata_db_stagging_uri
+  formsync_db_uri = var.formsync_db_uri
+  formsync_db_schema = var.formsync_db_schema
+
   redis_host                    = module.digitalocean.redis_host
   redis_port                    = module.digitalocean.redis_port
   redis_password                = local.is_production ? module.digitalocean.redis_password : var.redis_password
 
-  metadata_db_uri = local.is_production ? module.digitalocean.mongodb_uri : local.metadata_db_stagging_uri
-  dest_db_uri     = local.is_production ? module.digitalocean.postgres_uri : var.dest_db_uri
   s3_endpoint     = module.cloudflare.s3_endpoint
   s3_region       = var.s3_region
   s3_bucket       = module.cloudflare.s3_bucket_name

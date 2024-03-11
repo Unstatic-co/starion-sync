@@ -1,4 +1,4 @@
-version: "3.9"
+version: '3.9'
 services:
   main:
     depends_on:
@@ -29,6 +29,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
       - DB_TLS_ENABLED=${DB_TLS_ENABLED}
+      - DB_SCHEMA=${DB_SCHEMA}
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}

@@ -21,6 +21,10 @@ upstash_kafka_region          = "us-east-1"
 
 mongodb_user             = "admin"
 postgres_user            = "admin"
+
+dest_db_schema = "next"
+formsync_db_schema = "next"
+
 orchestrator_namespace   = "starion-sync-stagging.gin8b"
 orchestrator_tls_enabled = true
 # broker_uris          = ""

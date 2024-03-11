@@ -17,8 +17,8 @@ locals {
     LOG_LEVEL                = var.is_production ? "info" : "debug"
     PORT                     = "8080"
     DB_TYPE                  = "mongodb"
-    DB_URI                   = local.db_uri
-    DEST_DB_URI              = local.dest_db_uri
+    DB_URI                   = var.db_uri
+    DEST_DB_URI              = var.dest_db_uri
     BROKER_TYPE              = "kafka"
     BROKER_URIS              = var.broker_uris
     KAFKA_CLIENT_ID          = "webhook-trigger"
