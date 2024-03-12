@@ -196,7 +196,7 @@ func (s *GoogleSheetsIngestService) Run(ctx context.Context) error {
 		var ingestError IngestError
 		marshalErr := jsoniter.Unmarshal(stderr.Bytes(), &ingestError)
 		if marshalErr != nil {
-			return fmt.Errorf("Cannot read error from stderr: %w", err)
+			return fmt.Errorf("Cannot read error from stderr: %w", marshalErr)
 		}
 		log.Debug("Ingest error: ", ingestError.Msg)
 		if ingestError.IsExternal {

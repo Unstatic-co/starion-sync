@@ -104,6 +104,9 @@ var (
 
 const (
 	ErrorValue = "__Error"
+	DateLayout = "2006-01-02"
+    DateTimeLayout = "2006-01-02T15:04:05"
+	DateOutputLayout = "2006-01-02T15:04:05.999Z"
 )
 
 func main() {
@@ -181,7 +184,7 @@ func main() {
 	for index, header := range headers {
 		header := strings.TrimSpace(header)
 		if header != "" {
-			if header == "__StarionId" {
+			if header == schema.OriginalPrimaryFieldName {
 				realIdColIndex = index
 			}
 			selectedColIndexes = append(selectedColIndexes, strconv.Itoa(index+1))
@@ -192,33 +195,34 @@ func main() {
 		realIdColIndex = len(headers)
 	}
 	fmt.Println("realIdColIndex", realIdColIndex)
+
 	if len(selectedColIndexes) < len(headers) {
 		fmt.Println("selectedColIndexes", selectedColIndexes)
 		trimmedFilePath:= tempDir + "/trimmed.csv"
 		// Trim the file (select only non-empty columns)
 		runCommandTrimFile(selectedColIndexes, csvFile, trimmedFilePath)
 		firstFile.Close()
-		// open new file
-		newFile, err := os.Open(trimmedFilePath)
+		// Assign reader, filePath to the new (trimmed) file
+		trimmedFile, err := os.Open(trimmedFilePath)
 		if err != nil {
-			emitErrorAndExit(0, fmt.Sprintf("Error opening new CSV file: %s", err), false)
+			emitErrorAndExit(0, fmt.Sprintf("Error opening CSV file: %s", err), false)
 		}
-		defer newFile.Close()
-		// open new reader and re-read headers
-		reader = csv.NewReader(bufio.NewReader(newFile))
-		headers, err = reader.Read()
-		if err != nil {
-			emitErrorAndExit(0, fmt.Sprintf("Error reading new CSV file: %s", err), false)
-		}
+		defer trimmedFile.Close()
+		reader = csv.NewReader(bufio.NewReader(trimmedFile))
+		reader.Read() // Skip the header row
 		csvFile = trimmedFilePath
 	}
+
+	headers = normalizedHeaderForCsvFile(csvFile, tempDir)
 
 	// infer schema
 	// schemaFilePath := tempDir + "/schema.json"
 	schemaBytes := runCommandInferSchema(csvFile)
 
 	headerIndexes := getHeaderIndex(headers)
+	fmt.Println("headerIndexes", headerIndexes)
 	tableSchema := GetSchema(schemaBytes, headerIndexes)
+	fmt.Println("tableSchema", tableSchema)
 
 	fieldSchemaMap := getIndexSchemaField(tableSchema) // used for iterate data
 
@@ -246,7 +250,7 @@ func main() {
 	if (isMissedIdColumn) {
 		// title id column
 		fixIdChan <- &FixIdData{
-			RowId: "__StarionId",
+			RowId: schema.OriginalPrimaryFieldName,
 			RowIndex: 0,
 		}
 	}
@@ -500,13 +504,15 @@ func GetSchema(schemaBytes []byte, headerIndexes map[string]int) (*schema.TableS
     if err != nil {
 		emitErrorAndExit(0, fmt.Sprintf("Error unmarshalling schema file: %s", err), false)
     }
+	fmt.Println("schemaFile", schemaFile)
 
 	tableSchema := make(schema.TableSchema, len(schemaFile.Properties))
 
 	for fieldName, field := range schemaFile.Properties {
 		var fieldSchema schema.FieldSchema
-		hashedFieldName := util.HashFieldName(fieldName)
+
 		realFieldIndex := headerIndexes[fieldName]
+		hashedFieldName := util.HashFieldName(fieldName)
 
 		if hashedFieldName == schema.HashedPrimaryField {
 			fieldSchema = *SchemaPrimaryField
@@ -585,11 +591,11 @@ func GetSchema(schemaBytes []byte, headerIndexes map[string]int) (*schema.TableS
 }
 
 func getHeaderIndex(row []string) map[string]int {
-	header := make(map[string]int, len(row))
-	for index, value := range row {
-		header[value] = index
+	headers := make(map[string]int, len(row))
+	for index, fieldName := range row {
+		headers[fieldName] = index
 	}
-	return header
+	return headers
 }
 
 func getIndexSchemaField(ischema *schema.TableSchema) map[int]schema.FieldSchema {
@@ -681,8 +687,10 @@ func generateUpdateIdGoogleSheetsData(data UpdateIdData, sheetName string, idCol
 	return result
 }
 
-func uploadSchema(schema *schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string, wg *sync.WaitGroup) error {
+func uploadSchema(schema *schema.TableSchema, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string, wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	fmt.Println("Start uploading schema")
 
 	schemaJson, err := jsoniter.Marshal(*schema)
 	if err != nil {
@@ -697,7 +705,8 @@ func uploadSchema(schema *schema.TableSchema, s3Config s3.S3HandlerConfig, dataS
 	if err != nil {
 		emitErrorAndExit(0, fmt.Sprintf("Error when uploading schema to s3: %+v", err), false)
 	}
-	return nil
+
+	fmt.Println("Finish uploading schema")
 }
 
 func uploadData(dataFilePath string, s3Config s3.S3HandlerConfig, dataSourceId string, syncVersion string) error {
@@ -714,16 +723,12 @@ func uploadData(dataFilePath string, s3Config s3.S3HandlerConfig, dataSourceId s
 }
 
 func parseDate(dateStr string, location *time.Location) string {
-    dateLayout := "2006-01-02"
-    dateTimeLayout := "2006-01-02T15:04:05"
-	outputLayout := "2006-01-02T15:04:05.999Z"
-
-    if t, err := time.ParseInLocation(dateLayout, dateStr, location); err == nil {
-		return t.UTC().Format(outputLayout)
+    if t, err := time.ParseInLocation(DateLayout, dateStr, location); err == nil {
+		return t.UTC().Format(DateOutputLayout)
     }
 
-    if t, err := time.ParseInLocation(dateTimeLayout, dateStr, location); err == nil {
-        return t.UTC().Format(outputLayout)
+    if t, err := time.ParseInLocation(DateTimeLayout, dateStr, location); err == nil {
+        return t.UTC().Format(DateOutputLayout)
     }
 
 	return ErrorValue
@@ -732,7 +737,7 @@ func parseDate(dateStr string, location *time.Location) string {
 func runCommandConvertXlsxToCsv(xlsxFilePath string, sheetName string, outputFilePath string) {
 	cmd := exec.Command(
 		"/usr/local/bin/qsv",
-		"excel", "--flexible", "--date-format", "%Y-%m-%dT%H:%M:%SZ",
+		"excel", "--flexible", "--trim", "--date-format", "%Y-%m-%dT%H:%M:%SZ",
 		"-s", sheetName,
 		"-o", outputFilePath,
 		xlsxFilePath,
@@ -801,4 +806,78 @@ func handleGoogleApiError(err error) {
 	} else {
 		emitErrorAndExit(0, fmt.Sprintf("Error when parsing google api error - %v", err), false)
 	}
+}
+
+func normalizedHeaderForCsvFile(csvFilePath string, csvFileDir string) []string {
+	originalFile, err := os.Open(csvFilePath)
+	if err != nil {
+		emitErrorAndExit(0, fmt.Sprintf("Error opening CSV file: %s", err), false)
+	}
+	defer originalFile.Close()
+
+	// Create a temporary file
+	tempFile, err := os.CreateTemp(csvFileDir, "header")
+	if err != nil {
+		emitErrorAndExit(0, fmt.Sprintf("Error creating temp file: %s", err), false)
+	}
+	defer tempFile.Close()
+
+	reader := bufio.NewReader(originalFile)
+
+	firstRowBytes, err := reader.ReadBytes('\n')
+	csvReader := csv.NewReader(bytes.NewReader(firstRowBytes))
+	headers, err := csvReader.Read()
+	if err != nil && err != io.EOF {
+		emitErrorAndExit(0, fmt.Sprintf("Error reading CSV file: %s", err), false)
+	}
+
+	// TODO: dedupe header
+	existedFieldName := make(map[string]bool)
+	newHeaders := make([]string, len(headers))
+	isShouldModify := false
+	for index, originalFieldName := range headers {
+		fieldName := originalFieldName
+		if _, exists := existedFieldName[fieldName]; exists {
+			if fieldName == schema.OriginalPrimaryFieldName {
+				emitErrorAndExit(0, fmt.Sprintf("Primary field name %s is duplicated", fieldName), true)
+			}
+			isShouldModify = true
+			dedupe_number := 1
+			for {
+				newName := fmt.Sprintf("%s (%d)", fieldName, dedupe_number)
+				if _, exists := existedFieldName[newName]; !exists {
+					fieldName = newName
+					break
+				}
+				dedupe_number += 1
+			}
+		}
+		existedFieldName[fieldName] = true
+		fmt.Printf("fieldName: %s\n", fieldName)
+		newHeaders[index] = fieldName
+	}
+
+	if !isShouldModify {
+		return newHeaders
+	}
+
+	// Write the new header
+	_, err = tempFile.WriteString(strings.Join(newHeaders, ",") + "\n")
+	if err != nil {
+		emitErrorAndExit(0, fmt.Sprintf("Error writing to temp file: %s", err), false)
+	}
+
+	// Write the rest of the file
+	_, err = io.Copy(tempFile, reader)
+	if err != nil {
+		emitErrorAndExit(0, fmt.Sprintf("Error writing to temp file: %s", err), false)
+	}
+
+	// replace original file with temp file
+	err = os.Rename(tempFile.Name(), csvFilePath)
+	if err != nil {
+		emitErrorAndExit(0, fmt.Sprintf("Error replacing original file with temp file: %s", err), false)
+	}
+
+	return newHeaders
 }
