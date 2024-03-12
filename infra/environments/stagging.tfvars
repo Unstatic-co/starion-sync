@@ -25,6 +25,8 @@ postgres_user            = "admin"
 dest_db_schema = "next"
 formsync_db_schema = "next"
 
+redis_host = "" // internal k8s
+redis_port = "" // internal k8s
 redis_db                = 0
 
 orchestrator_namespace   = "starion-sync-stagging.gin8b"

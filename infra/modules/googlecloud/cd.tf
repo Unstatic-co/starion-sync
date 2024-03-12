@@ -57,7 +57,7 @@ data "google_service_account" "deploy_service_account" {
 resource "google_cloudbuild_trigger" "starion_sync_deploy" {
   name     = "${var.project}-deploy"
   location = var.gcp_region
-  filename = "infra/cloudbuild/${var.environment}.cloudbuild.yml"
+  filename = "infra/cloudbuild/cloudbuild.yml"
 
   // If this is set on a build, it will become pending when it is run, 
   // and will need to be explicitly approved to start.
@@ -78,7 +78,7 @@ resource "google_cloudbuild_trigger" "starion_sync_deploy" {
     # branch = "${var.environment}|test-build-${var.environment}"
     # }
     push {
-      branch = "${var.github_branch}|${var.environment}|test-build-${var.environment}"
+      branch = "^(${var.github_branch}|${var.environment}|test-build-${var.environment})$"
     }
   }
 

@@ -35,7 +35,7 @@ availableSecrets:
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_DEST_DB_URI/versions/latest
       env: 'DEST_DB_URI'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_METADATA_DB_URI/versions/latest
-      env: 'MEATADATA_DB_URI'
+      env: 'METADATA_DB_URI'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_FORMSYNC_DB_URI/versions/latest
       env: 'FORMSYNC_DB_URI'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_ORCHESTRATOR_ADDRESS/versions/latest
