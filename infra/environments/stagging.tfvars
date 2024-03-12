@@ -22,9 +22,11 @@ upstash_kafka_region          = "us-east-1"
 mongodb_user             = "admin"
 postgres_user            = "admin"
 
-dest_db_schema = "next"
-formsync_db_schema = "next"
+dest_db_schema = "public"
+formsync_db_schema = "public"
 
+redis_host = "" // internal k8s
+redis_port = "" // internal k8s
 redis_db                = 0
 
 orchestrator_namespace   = "starion-sync-stagging.gin8b"

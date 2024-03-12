@@ -101,6 +101,10 @@ var (
 
 const (
 	ErrorValue = "__Error"
+    DateLayout = "2006-01-02"
+    DateTimeLayout = "2006-01-02T15:04:05"
+	DateOutputLayout = "2006-01-02T15:04:05.999Z"
+
 )
 
 func main() {
@@ -182,7 +186,7 @@ func main() {
 	for index, header := range headers {
 		header := strings.TrimSpace(header)
 		if header != "" {
-			if header == "__StarionId" {
+			if header == schema.OriginalPrimaryFieldName {
 				realIdColIndex = index
 			}
 			selectedColIndexes = append(selectedColIndexes, strconv.Itoa(index+1))
@@ -193,26 +197,24 @@ func main() {
 		realIdColIndex = len(headers)
 	}
 	fmt.Println("realIdColIndex", realIdColIndex)
+
 	if len(selectedColIndexes) < len(headers) {
-		fmt.Println("selectedColIndexes", selectedColIndexes)
 		trimmedFilePath:= tempDir + "/trimmed.csv"
 		// Trim the file (select only non-empty columns)
 		runCommandTrimFile(selectedColIndexes, csvFile, trimmedFilePath)
 		firstFile.Close()
-		// open new file
-		newFile, err := os.Open(trimmedFilePath)
+		// Assign reader, filePath to the new (trimmed) file
+		trimmedFile, err := os.Open(trimmedFilePath)
 		if err != nil {
-			emitErrorAndExit(0, fmt.Sprintf("Error opening new CSV file: %s", err), false)
+			emitErrorAndExit(0, fmt.Sprintf("Error opening CSV file: %s", err), false)
 		}
-		defer newFile.Close()
-		// open new reader and re-read headers
-		reader = csv.NewReader(bufio.NewReader(newFile))
-		headers, err = reader.Read()
-		if err != nil {
-			emitErrorAndExit(0, fmt.Sprintf("Error reading new CSV file: %s", err), false)
-		}
+		defer trimmedFile.Close()
+		reader = csv.NewReader(bufio.NewReader(trimmedFile))
+		reader.Read() // Skip the header row
 		csvFile = trimmedFilePath
 	}
+
+	headers = normalizedHeaderForCsvFile(csvFile, tempDir)
 
 	// infer schema
 	// schemaFilePath := tempDir + "/schema.json"
@@ -247,7 +249,7 @@ func main() {
 	if (isMissedIdColumn) {
 		// title id column
 		fixIdChan <- &FixIdData{
-			RowId: "__StarionId",
+			RowId: schema.OriginalPrimaryFieldName,
 			RowIndex: 0,
 		}
 	}
@@ -674,16 +676,12 @@ func uploadData(dataFilePath string, s3Config s3.S3HandlerConfig, dataSourceId s
 }
 
 func parseDate(dateStr string, location *time.Location) string {
-    dateLayout := "2006-01-02"
-    dateTimeLayout := "2006-01-02T15:04:05"
-	outputLayout := "2006-01-02T15:04:05.999Z"
-
-    if t, err := time.ParseInLocation(dateLayout, dateStr, location); err == nil {
-		return t.UTC().Format(outputLayout)
+    if t, err := time.ParseInLocation(DateLayout, dateStr, location); err == nil {
+		return t.UTC().Format(DateOutputLayout)
     }
 
-    if t, err := time.ParseInLocation(dateTimeLayout, dateStr, location); err == nil {
-        return t.UTC().Format(outputLayout)
+    if t, err := time.ParseInLocation(DateTimeLayout, dateStr, location); err == nil {
+        return t.UTC().Format(DateOutputLayout)
     }
 
 	return ErrorValue
@@ -815,4 +813,71 @@ func updateExcelIdColumns(data map[string][]byte, commonInput *CommonInput) {
 		go updateExcelIdColumn(rangeAddress, json, commonInput, &wg)
 	}
 	wg.Wait()
+}
+
+func normalizedHeaderForCsvFile(csvFilePath string, csvFileDir string) []string {
+	originalFile, err := os.Open(csvFilePath)
+	if err != nil {
+		emitErrorAndExit(0, fmt.Sprintf("Error opening CSV file: %s", err), false)
+	}
+	defer originalFile.Close()
+
+	// Create a temporary file
+	tempFile, err := os.CreateTemp(csvFileDir, "header")
+	if err != nil {
+		emitErrorAndExit(0, fmt.Sprintf("Error creating temp file: %s", err), false)
+	}
+	defer tempFile.Close()
+
+	reader := bufio.NewReader(originalFile)
+
+	firstRowBytes, err := reader.ReadBytes('\n')
+	csvReader := csv.NewReader(bytes.NewReader(firstRowBytes))
+	headers, err := csvReader.Read()
+	if err != nil && err != io.EOF {
+		emitErrorAndExit(0, fmt.Sprintf("Error reading CSV file: %s", err), false)
+	}
+
+	// TODO: dedupe header
+	existedFieldName := make(map[string]bool)
+	newHeaders := make([]string, len(headers))
+	for index, originalFieldName := range headers {
+		fieldName := strings.TrimSpace(originalFieldName)
+		if _, exists := existedFieldName[fieldName]; exists {
+			if fieldName == schema.OriginalPrimaryFieldName {
+				emitErrorAndExit(0, fmt.Sprintf("Primary field name %s is duplicated", fieldName), true)
+			}
+			dedupe_number := 1
+			for {
+				newName := fmt.Sprintf("%s (%d)", fieldName, dedupe_number)
+				if _, exists := existedFieldName[newName]; !exists {
+					fieldName = newName
+					break
+				}
+				dedupe_number += 1
+			}
+		}
+		existedFieldName[fieldName] = true
+		newHeaders[index] = fieldName
+	}
+
+	// Write the new header
+	_, err = tempFile.WriteString(strings.Join(newHeaders, ",") + "\n")
+	if err != nil {
+		emitErrorAndExit(0, fmt.Sprintf("Error writing to temp file: %s", err), false)
+	}
+
+	// Write the rest of the file
+	_, err = io.Copy(tempFile, reader)
+	if err != nil {
+		emitErrorAndExit(0, fmt.Sprintf("Error writing to temp file: %s", err), false)
+	}
+
+	// replace original file with temp file
+	err = os.Rename(tempFile.Name(), csvFilePath)
+	if err != nil {
+		emitErrorAndExit(0, fmt.Sprintf("Error replacing original file with temp file: %s", err), false)
+	}
+
+	return newHeaders
 }
