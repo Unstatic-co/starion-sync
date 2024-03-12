@@ -199,7 +199,6 @@ func main() {
 	fmt.Println("realIdColIndex", realIdColIndex)
 
 	if len(selectedColIndexes) < len(headers) {
-		fmt.Println("selectedColIndexes", selectedColIndexes)
 		trimmedFilePath:= tempDir + "/trimmed.csv"
 		// Trim the file (select only non-empty columns)
 		runCommandTrimFile(selectedColIndexes, csvFile, trimmedFilePath)
@@ -859,7 +858,6 @@ func normalizedHeaderForCsvFile(csvFilePath string, csvFileDir string) []string 
 			}
 		}
 		existedFieldName[fieldName] = true
-		fmt.Printf("fieldName: %s\n", fieldName)
 		newHeaders[index] = fieldName
 	}
 

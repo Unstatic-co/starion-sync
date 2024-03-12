@@ -197,7 +197,6 @@ func main() {
 	fmt.Println("realIdColIndex", realIdColIndex)
 
 	if len(selectedColIndexes) < len(headers) {
-		fmt.Println("selectedColIndexes", selectedColIndexes)
 		trimmedFilePath:= tempDir + "/trimmed.csv"
 		// Trim the file (select only non-empty columns)
 		runCommandTrimFile(selectedColIndexes, csvFile, trimmedFilePath)
@@ -220,9 +219,7 @@ func main() {
 	schemaBytes := runCommandInferSchema(csvFile)
 
 	headerIndexes := getHeaderIndex(headers)
-	fmt.Println("headerIndexes", headerIndexes)
 	tableSchema := GetSchema(schemaBytes, headerIndexes)
-	fmt.Println("tableSchema", tableSchema)
 
 	fieldSchemaMap := getIndexSchemaField(tableSchema) // used for iterate data
 
@@ -504,7 +501,6 @@ func GetSchema(schemaBytes []byte, headerIndexes map[string]int) (*schema.TableS
     if err != nil {
 		emitErrorAndExit(0, fmt.Sprintf("Error unmarshalling schema file: %s", err), false)
     }
-	fmt.Println("schemaFile", schemaFile)
 
 	tableSchema := make(schema.TableSchema, len(schemaFile.Properties))
 
@@ -853,7 +849,6 @@ func normalizedHeaderForCsvFile(csvFilePath string, csvFileDir string) []string 
 			}
 		}
 		existedFieldName[fieldName] = true
-		fmt.Printf("fieldName: %s\n", fieldName)
 		newHeaders[index] = fieldName
 	}
 
