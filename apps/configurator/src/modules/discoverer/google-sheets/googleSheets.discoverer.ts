@@ -28,23 +28,21 @@ export class GoogleSheetsDiscoverer implements DataDiscoverer {
   public async checkDataSource(
     config: GoogleSheetsDataSourceConfig,
   ): Promise<void> {
-    const { auth, sheetId } = config;
-    const [, sheets] = await Promise.all([
-      this.googleService.validateToken(auth?.refreshToken),
-      this.discoverProvider(config),
-    ]);
-
-    const sheet = sheets.find(
-      (discoveredSheet) => discoveredSheet.id === sheetId,
-    );
-    if (!sheet) {
-      throw new ExternalError(
-        ERROR_CODE.SHEET_NOT_FOUND,
-        "Sheet doesn't exist",
-      );
-    }
-
-    await this.checkEmpty(sheet.title, config);
+    // const { auth, sheetId } = config;
+    // const [, sheets] = await Promise.all([
+    // this.googleService.validateToken(auth?.refreshToken),
+    // this.discoverProvider(config),
+    // ]);
+    // const sheet = sheets.find(
+    // (discoveredSheet) => discoveredSheet.id === sheetId,
+    // );
+    // if (!sheet) {
+    // throw new ExternalError(
+    // ERROR_CODE.SHEET_NOT_FOUND,
+    // "Sheet doesn't exist",
+    // );
+    // }
+    // await this.checkEmpty(sheet.title, config);
   }
 
   public async discoverProvider(

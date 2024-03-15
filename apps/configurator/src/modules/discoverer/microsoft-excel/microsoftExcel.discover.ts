@@ -27,43 +27,43 @@ export class MicrosoftExcelDiscoverer implements DataDiscoverer {
   ) {}
 
   public async checkDataSource(config: ExcelDataSourceConfig): Promise<void> {
-    const { auth, workbookId, worksheetId } = config;
-    const accessToken = await this.microsoftService.getAccessToken(
-      auth.refreshToken,
-    );
-    const client = await this.microsoftGraphService.createClient(accessToken);
-    const sessionId = await this.microsoftGraphService.createWorkbookSession(
-      client,
-      workbookId,
-      false,
-    );
-    const [worksheets] = await Promise.all([
-      this.microsoftGraphService.getWorkbookFileInfo({
-        client,
-        workbookId: config.workbookId,
-        workbookSessionId: sessionId,
-        select: [''],
-      }),
-      this.microsoftGraphService
-        .listWorksheets(client, workbookId, sessionId)
-        .then((worksheets) => {
-          const worksheet = worksheets.find(
-            (discoveredWorksheet) => discoveredWorksheet.id === worksheetId,
-          );
-          if (!worksheet) {
-            throw new ExternalError(
-              ERROR_CODE.WORKSHEET_NOT_FOUND,
-              "Worksheet doesn't exist",
-            );
-          }
-        }),
-    ]);
-    await this.checkEmpty(client, sessionId, config);
-    this.microsoftGraphService.closeWorkbookSession(
-      client,
-      workbookId,
-      sessionId,
-    );
+    // const { auth, workbookId, worksheetId } = config;
+    // const accessToken = await this.microsoftService.getAccessToken(
+    // auth.refreshToken,
+    // );
+    // const client = await this.microsoftGraphService.createClient(accessToken);
+    // const sessionId = await this.microsoftGraphService.createWorkbookSession(
+    // client,
+    // workbookId,
+    // false,
+    // );
+    // const [worksheets] = await Promise.all([
+    // this.microsoftGraphService.getWorkbookFileInfo({
+    // client,
+    // workbookId: config.workbookId,
+    // workbookSessionId: sessionId,
+    // select: [''],
+    // }),
+    // this.microsoftGraphService
+    // .listWorksheets(client, workbookId, sessionId)
+    // .then((worksheets) => {
+    // const worksheet = worksheets.find(
+    // (discoveredWorksheet) => discoveredWorksheet.id === worksheetId,
+    // );
+    // if (!worksheet) {
+    // throw new ExternalError(
+    // ERROR_CODE.WORKSHEET_NOT_FOUND,
+    // "Worksheet doesn't exist",
+    // );
+    // }
+    // }),
+    // ]);
+    // await this.checkEmpty(client, sessionId, config);
+    // this.microsoftGraphService.closeWorkbookSession(
+    // client,
+    // workbookId,
+    // sessionId,
+    // );
   }
 
   public async discoverProvider(
