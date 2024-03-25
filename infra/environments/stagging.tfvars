@@ -22,8 +22,8 @@ upstash_kafka_region          = "us-east-1"
 mongodb_user             = "admin"
 postgres_user            = "admin"
 
-dest_db_schema = "public"
-formsync_db_schema = "public"
+dest_db_schema = "appalloy"
+formsync_db_schema = "appalloy"
 
 redis_host = "" // internal k8s
 redis_port = "" // internal k8s
