@@ -46,14 +46,14 @@ availableSecrets:
       env: 'ORCHESTRATOR_CLIENT_KEY'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_GOOGLE_CREDENTIALS_DOCKER_ARTIFACT/versions/latest
       env: 'GOOGLE_CREDENTIALS_DOCKER_ARTIFACT'
-    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_K3S_ENDPOINT/versions/latest
-      env: 'K3S_ENDPOINT'
-    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_K3S_CA_CERTIFICATE/versions/latest
-      env: 'K3S_CA_CERTIFICATE'
-    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_K3S_CLIENT_CERTIFICATE/versions/latest
-      env: 'K3S_CLIENT_CERTIFICATE'
-    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_K3S_CLIENT_KEY/versions/latest
-      env: 'K3S_CLIENT_KEY'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_K8S_ENDPOINT/versions/latest
+      env: 'K8S_ENDPOINT'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_K8S_CA_CERTIFICATE/versions/latest
+      env: 'K8S_CA_CERTIFICATE'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_K8S_CLIENT_CERTIFICATE/versions/latest
+      env: 'K8S_CLIENT_CERTIFICATE'
+    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_K8S_CLIENT_KEY/versions/latest
+      env: 'K8S_CLIENT_KEY'
 
 steps:
   - id: 'TF INIT'
@@ -95,10 +95,10 @@ steps:
         'ORCHESTRATOR_CLIENT_CERT',
         'ORCHESTRATOR_CLIENT_KEY',
         'GOOGLE_CREDENTIALS_DOCKER_ARTIFACT',
-        'K3S_ENDPOINT',
-        'K3S_CA_CERTIFICATE',
-        'K3S_CLIENT_CERTIFICATE',
-        'K3S_CLIENT_KEY',
+        'K8S_ENDPOINT',
+        'K8S_CA_CERTIFICATE',
+        'K8S_CLIENT_CERTIFICATE',
+        'K8S_CLIENT_KEY',
       ]
     args:
       - '-c'
@@ -127,10 +127,10 @@ steps:
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
         export TF_VAR_orchestrator_client_cert=$$ORCHESTRATOR_CLIENT_CERT
         export TF_VAR_orchestrator_client_key=$$ORCHESTRATOR_CLIENT_KEY
-        export TF_VAR_K3S_ENDPOINT=$$K3S_ENDPOINT
-        export TF_VAR_K3S_CA_CERTIFICATE=$$K3S_CA_CERTIFICATE
-        export TF_VAR_K3S_CLIENT_CERTIFICATE=$$K3S_CLIENT_CERTIFICATE
-        export TF_VAR_K3S_CLIENT_KEY=$$K3S_CLIENT_KEY
+        export TF_VAR_K8S_ENDPOINT=$$K8S_ENDPOINT
+        export TF_VAR_K8S_CA_CERTIFICATE=$$K8S_CA_CERTIFICATE
+        export TF_VAR_K8S_CLIENT_CERTIFICATE=$$K8S_CLIENT_CERTIFICATE
+        export TF_VAR_K8S_CLIENT_KEY=$$K8S_CLIENT_KEY
 
         terraform plan -var-file="environments/${_ENVIRONMENT}.tfvars" -out=tfplan
 
@@ -163,10 +163,10 @@ steps:
         'ORCHESTRATOR_CLIENT_CERT',
         'ORCHESTRATOR_CLIENT_KEY',
         'GOOGLE_CREDENTIALS_DOCKER_ARTIFACT',
-        'K3S_ENDPOINT',
-        'K3S_CA_CERTIFICATE',
-        'K3S_CLIENT_CERTIFICATE',
-        'K3S_CLIENT_KEY',
+        'K8S_ENDPOINT',
+        'K8S_CA_CERTIFICATE',
+        'K8S_CLIENT_CERTIFICATE',
+        'K8S_CLIENT_KEY',
       ]
     args:
       - '-c'
@@ -195,10 +195,10 @@ steps:
         export TF_VAR_orchestrator_address=$$ORCHESTRATOR_ADDRESS
         export TF_VAR_orchestrator_client_cert=$$ORCHESTRATOR_CLIENT_CERT
         export TF_VAR_orchestrator_client_key=$$ORCHESTRATOR_CLIENT_KEY
-        export TF_VAR_K3S_ENDPOINT=$$K3S_ENDPOINT
-        export TF_VAR_K3S_CA_CERTIFICATE=$$K3S_CA_CERTIFICATE
-        export TF_VAR_K3S_CLIENT_CERTIFICATE=$$K3S_CLIENT_CERTIFICATE
-        export TF_VAR_K3S_CLIENT_KEY=$$K3S_CLIENT_KEY
+        export TF_VAR_K8S_ENDPOINT=$$K8S_ENDPOINT
+        export TF_VAR_K8S_CA_CERTIFICATE=$$K8S_CA_CERTIFICATE
+        export TF_VAR_K8S_CLIENT_CERTIFICATE=$$K8S_CLIENT_CERTIFICATE
+        export TF_VAR_K8S_CLIENT_KEY=$$K8S_CLIENT_KEY
 
         terraform apply -no-color -auto-approve tfplan
 #        terraform destroy -var-file="environments/stagging.tfvars" -auto-approve

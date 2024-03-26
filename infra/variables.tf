@@ -455,23 +455,23 @@ variable "GOOGLE_CREDENTIALS" {
   sensitive = true
 }
 
-variable "K3S_CLIENT_CERTIFICATE" {
+variable "K8S_CLIENT_CERTIFICATE" {
   type      = string
   sensitive = true
   default   = ""
 }
-variable "K3S_CLIENT_KEY" {
+variable "K8S_CLIENT_KEY" {
   type      = string
   sensitive = true
   default   = ""
 }
-variable "K3S_CA_CERTIFICATE" {
+variable "K8S_CA_CERTIFICATE" {
   type      = string
   sensitive = true
   default   = ""
 }
 
-variable "K3S_ENDPOINT" {
+variable "K8S_ENDPOINT" {
   type      = string
   sensitive = true
   default   = ""

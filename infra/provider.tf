@@ -68,11 +68,11 @@ data "digitalocean_kubernetes_cluster" "default_cluster" {
 
 locals {
   doks_config         = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].raw_config : null
-  doks_endpoint       = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].endpoint : var.K3S_ENDPOINT
+  doks_endpoint       = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].endpoint : var.K8S_ENDPOINT
   doks_token          = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].token : null
-  doks_ca_certificate = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].cluster_ca_certificate : var.K3S_CA_CERTIFICATE
-  client_certificate  = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].client_certificate : var.K3S_CLIENT_CERTIFICATE
-  client_key          = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].client_key : var.K3S_CLIENT_KEY
+  doks_ca_certificate = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].cluster_ca_certificate : var.K8S_CA_CERTIFICATE
+  client_certificate  = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].client_certificate : var.K8S_CLIENT_CERTIFICATE
+  client_key          = local.is_production ? data.digitalocean_kubernetes_cluster.default_cluster[0].kube_config[0].client_key : var.K8S_CLIENT_KEY
 }
 
 provider "kubernetes" {
