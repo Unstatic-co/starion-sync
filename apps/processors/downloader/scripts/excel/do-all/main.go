@@ -175,9 +175,14 @@ func main() {
     // Check the file
     headers, err := reader.Read()
 	if err != nil {
+		if err == io.EOF {
+			// empty sheet
+			emitErrorAndExit(0, "Spreadsheet is empty or contains no header row", true)
+        }
 		emitErrorAndExit(0, fmt.Sprintf("Error reading CSV file: %s", err), false)
 	}
 	if len(headers) == 0 {
+		// empty sheet
 		emitErrorAndExit(0, "Spreadsheet is empty or contains no header row", true)
 	}
 	realIdColIndex := -1
