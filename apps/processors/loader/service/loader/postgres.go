@@ -29,7 +29,7 @@ import (
 
 var (
 	dataTableColumns = map[name.TableColumn]string{
-		name.IdColumn:            "uuid PRIMARY KEY NOT NULL",
+		name.IdColumn:            "uuid DEFAULT gen_random_uuid() PRIMARY KEY NOT NULL",
 		name.TableDataDataColumn: "jsonb",
 		name.MetadataColumn:      "jsonb",
 		name.CreatedAtColumn:     "timestamptz DEFAULT NOW() NOT NULL",
