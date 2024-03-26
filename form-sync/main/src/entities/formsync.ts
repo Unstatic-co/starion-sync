@@ -4,7 +4,7 @@ import { Column, Entity, JoinColumn, OneToOne, PrimaryColumn } from 'typeorm';
 @Entity()
 export class FormSync {
   @PrimaryColumn({
-    generated: 'uuid',
+    // generated: 'uuid',
     default: () => 'gen_random_uuid()',
   })
   id: string;
@@ -35,7 +35,7 @@ export class FormSync {
 @Entity()
 export class DelayedFormSync {
   @PrimaryColumn({
-    generated: 'uuid',
+    // generated: 'uuid',
     default: () => 'gen_random_uuid()',
   })
   formSyncId: string;
