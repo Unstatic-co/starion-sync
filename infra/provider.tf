@@ -35,10 +35,6 @@ terraform {
   backend "gcs" {}
 }
 
-provider "fly" {
-  fly_api_token = var.fly_api_token
-}
-
 provider "google" {
   project = var.gcp_project
   region  = var.gcp_region
