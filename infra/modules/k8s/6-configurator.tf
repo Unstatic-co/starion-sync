@@ -183,43 +183,43 @@ resource "kubernetes_service" "configurator_service" {
 # }
 
 
-resource "kubernetes_manifest" "configurator_ingress" {
-  depends_on = [kubernetes_service.configurator_service, kubernetes_manifest.cert_issuer_sync]
-  manifest = {
-    apiVersion = "networking.k8s.io/v1"
-    kind       = "Ingress"
-    metadata = {
-      name      = "configurator-ingress"
-      namespace = kubernetes_namespace.namespace.metadata.0.name
-      annotations = {
-        "kubernetes.io/ingress.class"                 = "nginx"
-        "nginx.ingress.kubernetes.io/proxy-body-size" = "0"
-        "cert-manager.io/cluster-issuer"              = var.letsencrypt_cluster_issuer_name
-      }
-    }
-    spec = {
-      ingressClassName = "nginx"
-      tls = [{
-        hosts      = [var.configurator_domain]
-        secretName = "${var.letsencrypt_cluster_issuer_name}-configurator"
-      }]
-      rules = [{
-        host = var.configurator_domain
-        http = {
-          paths = [{
-            path     = "/"
-            pathType = "Prefix"
-            backend = {
-              service = {
-                name = kubernetes_service.configurator_service.metadata[0].name
-                port = {
-                  number = 8080
-                }
-              }
-            }
-          }]
-        }
-      }]
-    }
-  }
-}
+# resource "kubernetes_manifest" "configurator_ingress" {
+  # depends_on = [kubernetes_service.configurator_service, kubernetes_manifest.cert_issuer_sync]
+  # manifest = {
+    # apiVersion = "networking.k8s.io/v1"
+    # kind       = "Ingress"
+    # metadata = {
+      # name      = "configurator-ingress"
+      # namespace = kubernetes_namespace.namespace.metadata.0.name
+      # annotations = {
+        # "kubernetes.io/ingress.class"                 = "nginx"
+        # "nginx.ingress.kubernetes.io/proxy-body-size" = "0"
+        # "cert-manager.io/cluster-issuer"              = var.letsencrypt_cluster_issuer_name
+      # }
+    # }
+    # spec = {
+      # ingressClassName = "nginx"
+      # tls = [{
+        # hosts      = [var.configurator_domain]
+        # secretName = "${var.letsencrypt_cluster_issuer_name}-configurator"
+      # }]
+      # rules = [{
+        # host = var.configurator_domain
+        # http = {
+          # paths = [{
+            # path     = "/"
+            # pathType = "Prefix"
+            # backend = {
+              # service = {
+                # name = kubernetes_service.configurator_service.metadata[0].name
+                # port = {
+                  # number = 8080
+                # }
+              # }
+            # }
+          # }]
+        # }
+      # }]
+    # }
+  # }
+# }
