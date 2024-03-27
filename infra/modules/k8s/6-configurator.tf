@@ -14,7 +14,7 @@ locals {
   configurator_env = {
     NODE_ENV                       = var.environment
     PORT                           = "8080"
-    LOG_LEVEL                      = var.is_production ? "info" : "debug"
+    LOG_LEVEL                      = var.is_production ? "debug" : "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
     DB_URI                         = var.db_uri

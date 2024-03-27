@@ -14,7 +14,7 @@ locals {
 
   webhook_trigger_env = {
     NODE_ENV                 = var.environment
-    LOG_LEVEL                = var.is_production ? "info" : "debug"
+    LOG_LEVEL                = var.is_production ? "debug" : "debug"
     PORT                     = "8080"
     DB_TYPE                  = "mongodb"
     DB_URI                   = var.db_uri

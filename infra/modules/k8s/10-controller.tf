@@ -13,7 +13,7 @@ locals {
   controller_image_url          = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${var.gcp_docker_repository_name}/${local.controller_image_name}:${local.controller_hash}"
   controller_env = {
     NODE_ENV                       = var.environment
-    LOG_LEVEL                      = var.is_production ? "info" : "debug"
+    LOG_LEVEL                      = var.is_production ? "debug" : "debug"
     BROKER_URIS                    = var.broker_uris
     DB_TYPE                        = "mongodb"
     DB_URI                         = var.db_uri

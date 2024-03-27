@@ -12,7 +12,7 @@ locals {
   cron_trigger_image_url  = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${var.gcp_docker_repository_name}/${local.cron_trigger_image_name}:${local.cron_trigger_hash}"
   cron_trigger_env = {
     NODE_ENV                = var.environment
-    LOG_LEVEL               = var.is_production ? "info" : "debug"
+    LOG_LEVEL               = var.is_production ? "debug" : "debug"
     DB_TYPE                 = "mongodb"
     DB_URI                  = var.db_uri
     BROKER_TYPE             = "kafka"
