@@ -79,7 +79,7 @@ k8s_deployment_comparer = {
   }
 }
 k8s_deployment_loader = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "500m"
     memory = "256Mi"
@@ -162,13 +162,13 @@ k8s_deployment_controller = {
 }
 
 k8s_deployment_worker = {
-  replicas = 1
+  replicas = 2
   limits = {
     cpu    = "500m"
     memory = "512Mi"
   }
   requests = {
-    cpu    = "100m"
+    cpu    = "1m"
     memory = "256Mi"
   }
 }
