@@ -153,36 +153,6 @@ resource "kubernetes_service" "configurator_service" {
   }
 }
 
-resource "kubernetes_ingress" "configurator_ingress" {
-  metadata {
-    name      = "configurator-ingress"
-    namespace = kubernetes_namespace.namespace.metadata.0.name
-    annotations = {
-      "kubernetes.io/ingress.class" = "nginx"
-    }
-  }
-  spec {
-    tls {
-      hosts = [
-        var.configurator_domain
-      ]
-      secret_name = "letsencrypt-nginx-sync-configurator"
-    }
-    rule {
-      http {
-        path {
-          path = "/*"
-          backend {
-            service_name = kubernetes_service.configurator_service.metadata.0.name
-            service_port = 8080
-          }
-        }
-      }
-    }
-  }
-}
-
-
 resource "kubernetes_manifest" "configurator_ingress" {
   depends_on = [kubernetes_service.configurator_service, kubernetes_manifest.cert_issuer_sync]
   manifest = {
