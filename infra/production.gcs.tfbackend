@@ -1,2 +1,2 @@
-bucket = "tf-state-starion-sync-production"
+bucket = "tf-state-appalloy-sync-production"
 prefix = ""

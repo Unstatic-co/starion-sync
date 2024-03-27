@@ -66,12 +66,12 @@ resource "null_resource" "controller_builder" {
 resource "kubernetes_deployment" "controller" {
   depends_on = [
     null_resource.controller_builder,
-    kubernetes_namespace.backend_sync_app,
+    kubernetes_namespace.namespace,
     kubernetes_secret.artifact_registry_secret
   ]
   metadata {
     name      = local.controller_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.controller_image_name
     }
@@ -129,10 +129,10 @@ resource "kubernetes_deployment" "controller" {
 }
 
 resource "kubernetes_service" "controller_service" {
-  depends_on = [kubernetes_deployment.controller, kubernetes_namespace.backend_sync_app]
+  depends_on = [kubernetes_deployment.controller, kubernetes_namespace.namespace]
   metadata {
     name      = local.controller_image_name_service
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.controller_image_name_service
     }

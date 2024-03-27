@@ -1,10 +1,8 @@
 variable "project" {
   type    = string
-  default = "starion-sync"
 }
 variable "environment" {
   type    = string
-  default = "stagging"
 }
 variable "is_production" {
   type    = bool

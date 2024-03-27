@@ -2,7 +2,7 @@ locals {
   project_environment = var.environment == "stagging" ? "staging" : var.environment
 }
 
-resource "digitalocean_project" "starion_sync" {
+resource "digitalocean_project" "project" {
   count = local.project_count
 
   name        = "${var.project}-${var.environment}"

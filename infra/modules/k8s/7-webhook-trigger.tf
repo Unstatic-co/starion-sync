@@ -34,7 +34,7 @@ locals {
     REDIS_TLS_ENABLED        = var.redis_tls_enabled
     GOOGLE_CLIENT_ID         = var.google_client_id
     GOOGLE_CLIENT_SECRET     = var.google_client_secret
-    WEBHOOK_TRIGGER_BASE_URL = local.webhook_trigger_base_url
+    WEBHOOK_TRIGGER_BASE_URL = var.webhook_trigger_public_url
     TRIGGER_REDEPLOY         = "false"
   }
 }
@@ -65,13 +65,13 @@ resource "null_resource" "webhook_trigger_builder" {
 resource "kubernetes_deployment" "webook_trigger" {
   depends_on = [
     null_resource.webhook_trigger_builder,
-    kubernetes_namespace.backend_sync_app,
+    kubernetes_namespace.namespace,
     kubernetes_secret.artifact_registry_secret
   ]
 
   metadata {
     name      = local.webhook_trigger_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.webhook_trigger_image_name
     }
@@ -129,10 +129,10 @@ resource "kubernetes_deployment" "webook_trigger" {
 }
 
 resource "kubernetes_service" "webhook_trigger_service" {
-  depends_on = [kubernetes_deployment.webook_trigger, kubernetes_namespace.backend_sync_app]
+  depends_on = [kubernetes_deployment.webook_trigger, kubernetes_namespace.namespace]
   metadata {
     name      = local.webhook_trigger_image_name_service
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.webhook_trigger_image_name_service
     }
@@ -156,7 +156,7 @@ resource "kubernetes_manifest" "webhook_trigger_ingress" {
     kind       = "Ingress"
     metadata = {
       name      = "webhook-trigger-ingress"
-      namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+      namespace = kubernetes_namespace.namespace.metadata.0.name
       annotations = {
         "kubernetes.io/ingress.class"                 = "nginx"
         "nginx.ingress.kubernetes.io/proxy-body-size" = "0"

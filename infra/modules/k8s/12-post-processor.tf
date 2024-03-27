@@ -67,12 +67,12 @@ resource "null_resource" "post_processor_builder" {
 resource "kubernetes_deployment" "post_processor" {
   depends_on = [
     null_resource.post_processor_builder,
-    kubernetes_namespace.backend_sync_app,
+    kubernetes_namespace.namespace,
     kubernetes_secret.artifact_registry_secret
   ]
   metadata {
     name      = local.post_processor_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.post_processor_image_name
     }
@@ -130,10 +130,10 @@ resource "kubernetes_deployment" "post_processor" {
 }
 
 resource "kubernetes_service" "post_processor_service" {
-  depends_on = [kubernetes_deployment.post_processor, kubernetes_namespace.backend_sync_app]
+  depends_on = [kubernetes_deployment.post_processor, kubernetes_namespace.namespace]
   metadata {
     name      = local.post_processor_image_name_service
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.post_processor_image_name_service
     }

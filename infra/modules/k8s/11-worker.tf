@@ -70,12 +70,12 @@ resource "null_resource" "worker_builder" {
 resource "kubernetes_deployment" "worker" {
   depends_on = [
     null_resource.worker_builder,
-    kubernetes_namespace.backend_sync_app,
+    kubernetes_namespace.namespace,
     kubernetes_secret.artifact_registry_secret
   ]
   metadata {
     name      = local.worker_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.worker_image_name
     }
@@ -133,10 +133,10 @@ resource "kubernetes_deployment" "worker" {
 }
 
 resource "kubernetes_service" "worker_service" {
-  depends_on = [kubernetes_deployment.worker, kubernetes_namespace.backend_sync_app]
+  depends_on = [kubernetes_deployment.worker, kubernetes_namespace.namespace]
   metadata {
     name      = local.worker_image_name_service
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.worker_image_name_service
     }

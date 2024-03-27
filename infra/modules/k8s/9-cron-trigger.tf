@@ -59,12 +59,12 @@ resource "null_resource" "cron_trigger_builder" {
 resource "kubernetes_deployment" "cron_trigger" {
   depends_on = [
     null_resource.cron_trigger_builder,
-    kubernetes_namespace.backend_sync_app,
+    kubernetes_namespace.namespace,
     kubernetes_secret.artifact_registry_secret
   ]
   metadata {
     name      = local.cron_trigger_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.cron_trigger_image_name
     }

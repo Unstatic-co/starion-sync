@@ -1,11 +1,9 @@
 variable "project" {
   type    = string
-  default = "starion-sync"
 }
 
 variable "environment" {
   type    = string
-  default = "stagging"
 }
 
 variable "is_production" {
@@ -30,21 +28,22 @@ variable "github_branch" {
   type = string
 }
 
+#k8s
+variable "k8s_namespace" {
+  type = string
+}
+
 variable "gcp_project" {
   type    = string
-  default = "starion-stagging"
 }
 variable "gcp_region" {
   type    = string
-  default = "us-central1"
 }
 variable "gcp_secret_prefix" {
   type    = string
-  default = "STARION_SYNC"
 }
 variable "gcp_docker_repository_name" {
   type    = string
-  default = "starion-sync-k8-repository"
 }
 variable "gcp_deploy_service_account_id" {
   type = string
@@ -240,15 +239,15 @@ variable "letsencrypt_email" {
 }
 
 variable "configurator_domain" {
-  type = string #ex: configurator.starion-stagging.com
+  type = string
 }
 
 variable "webhook_trigger_domain" {
-  type = string #ex: sync-webhook-trigger.starion-stagging.com
+  type = string
 }
 
 variable "formsync_domain" {
-  type = string #ex: sync-form.starion-stagging.com
+  type = string
 }
 
 variable "replicas_count" {
@@ -260,16 +259,21 @@ variable "replicas_count" {
 variable "downloader_url" {
   type = string
 }
-
 variable "comparer_url" {
   type = string
 }
-
 variable "loader_url" {
   type = string
 }
-
 variable "metadata_url" {
+  type = string
+}
+
+# public urls
+variable "configurator_public_url" {
+  type = string
+}
+variable "webhook_trigger_public_url" {
   type = string
 }
 

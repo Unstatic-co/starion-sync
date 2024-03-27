@@ -54,10 +54,10 @@ resource "null_resource" "loader_builder" {
 
 
 resource "kubernetes_deployment" "loader" {
-  depends_on = [null_resource.loader_builder, kubernetes_namespace.backend_sync_app, kubernetes_secret.artifact_registry_secret]
+  depends_on = [null_resource.loader_builder, kubernetes_namespace.namespace, kubernetes_secret.artifact_registry_secret]
   metadata {
     name      = local.loader_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.loader_image_name
     }
@@ -154,10 +154,10 @@ resource "kubernetes_deployment" "loader" {
 }
 
 resource "kubernetes_service" "loader_service" {
-  depends_on = [kubernetes_deployment.loader, kubernetes_namespace.backend_sync_app]
+  depends_on = [kubernetes_deployment.loader, kubernetes_namespace.namespace]
   metadata {
     name      = local.loader_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.loader_image_name_service
     }

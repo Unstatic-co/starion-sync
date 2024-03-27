@@ -1,7 +1,7 @@
 resource "digitalocean_database_cluster" "redis" {
   count = local.redis_count
 
-  project_id = digitalocean_project.starion_sync[0].id
+  project_id = digitalocean_project.project[0].id
   region     = var.do_region
 
   name            = "redis"
@@ -16,14 +16,14 @@ resource "digitalocean_database_cluster" "redis" {
   }
 
   depends_on = [
-    digitalocean_project.starion_sync
+    digitalocean_project.project
   ]
 }
 
 resource "digitalocean_database_cluster" "mongodb" {
   count = local.mongodb_count
 
-  project_id = digitalocean_project.starion_sync[0].id
+  project_id = digitalocean_project.project[0].id
   region     = var.do_region
 
   name       = "mongodb"
@@ -36,14 +36,14 @@ resource "digitalocean_database_cluster" "mongodb" {
   }
 
   depends_on = [
-    digitalocean_project.starion_sync
+    digitalocean_project.project
   ]
 }
 
 resource "digitalocean_database_cluster" "postgres" {
   count = local.postgres_count
 
-  project_id = digitalocean_project.starion_sync[0].id
+  project_id = digitalocean_project.project[0].id
   region     = var.do_region
 
   name       = "postgres"
@@ -57,6 +57,6 @@ resource "digitalocean_database_cluster" "postgres" {
   }
 
   depends_on = [
-    digitalocean_project.starion_sync
+    digitalocean_project.project
   ]
 }

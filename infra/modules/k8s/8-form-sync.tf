@@ -27,7 +27,7 @@ locals {
     REDIS_DB = var.redis_db
     REDIS_TLS_ENABLED        = var.redis_tls_enabled
     METADATA_HOST_URL       = var.metadata_url
-    STARION_SYNC_BASE_URL   = local.configurator_url
+    STARION_SYNC_BASE_URL   = var.configurator_public_url
     WEBHOOK_PUBLIC_KEY      = var.webhook_public_key
     STARION_SYNC_API_KEY    = random_shuffle.configurator_api_key.result[0]
     MICROSOFT_CLIENT_ID     = var.microsoft_client_id
@@ -63,12 +63,12 @@ resource "null_resource" "formsync_builder" {
 resource "kubernetes_deployment" "formsync" {
   depends_on = [
     null_resource.formsync_builder,
-    kubernetes_namespace.backend_sync_app,
+    kubernetes_namespace.namespace,
     kubernetes_secret.artifact_registry_secret
   ]
   metadata {
     name      = local.formsync_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.formsync_image_name
     }
@@ -131,10 +131,10 @@ resource "kubernetes_deployment" "formsync" {
 }
 
 resource "kubernetes_service" "formsync_service" {
-  depends_on = [kubernetes_deployment.formsync, kubernetes_namespace.backend_sync_app]
+  depends_on = [kubernetes_deployment.formsync, kubernetes_namespace.namespace]
   metadata {
     name      = local.formsync_image_name_service
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.formsync_image_name_service
     }
@@ -158,7 +158,7 @@ resource "kubernetes_manifest" "formsync_ingress" {
     kind       = "Ingress"
     metadata = {
       name      = "form-ingress"
-      namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+      namespace = kubernetes_namespace.namespace.metadata.0.name
       annotations = {
         "kubernetes.io/ingress.class"                 = "nginx"
         "nginx.ingress.kubernetes.io/proxy-body-size" = "0"

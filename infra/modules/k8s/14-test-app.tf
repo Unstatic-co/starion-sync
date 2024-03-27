@@ -42,12 +42,12 @@ resource "null_resource" "test_app_builder" {
 resource "kubernetes_deployment" "test_app" {
   depends_on = [
     null_resource.test_app_builder,
-    kubernetes_namespace.backend_sync_app,
+    kubernetes_namespace.namespace,
     kubernetes_secret.artifact_registry_secret
   ]
   metadata {
     name      = local.test_app_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.test_app_image_name
     }

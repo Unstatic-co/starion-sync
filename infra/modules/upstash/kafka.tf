@@ -1,11 +1,11 @@
-resource "upstash_kafka_cluster" "starion-sync" {
+resource "upstash_kafka_cluster" "kafka_cluster" {
   cluster_name = "${var.project}-${var.environment}-kafka"
   region       = var.kafka_region
   multizone    = false
 }
 
-resource "upstash_kafka_credential" "starion-sync" {
-  cluster_id      = upstash_kafka_cluster.starion-sync.cluster_id
+resource "upstash_kafka_credential" "kafka_credential" {
+  cluster_id      = upstash_kafka_cluster.kafka_cluster.cluster_id
   credential_name = "${var.project}-${var.environment}-kafka-credential"
   topic           = "*"
   permissions     = "ALL"
@@ -21,7 +21,7 @@ resource "upstash_kafka_topic" "datasource_error" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "datasource_deleted" {
@@ -32,7 +32,7 @@ resource "upstash_kafka_topic" "datasource_deleted" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "connection_created" {
@@ -43,7 +43,7 @@ resource "upstash_kafka_topic" "connection_created" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "connection_deleted" {
@@ -54,7 +54,7 @@ resource "upstash_kafka_topic" "connection_deleted" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "workflow_triggered" {
@@ -65,7 +65,7 @@ resource "upstash_kafka_topic" "workflow_triggered" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "syncflow_scheduled" {
@@ -76,7 +76,7 @@ resource "upstash_kafka_topic" "syncflow_scheduled" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "syncflow_succeed" {
@@ -87,7 +87,7 @@ resource "upstash_kafka_topic" "syncflow_succeed" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "syncflow_completed" {
@@ -98,7 +98,7 @@ resource "upstash_kafka_topic" "syncflow_completed" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "syncflow_failed" {
@@ -109,7 +109,7 @@ resource "upstash_kafka_topic" "syncflow_failed" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "notify_table" {
@@ -120,7 +120,7 @@ resource "upstash_kafka_topic" "notify_table" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "google_sheet_full_sync_download" {
@@ -131,7 +131,7 @@ resource "upstash_kafka_topic" "google_sheet_full_sync_download" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "google_sheet_full_sync_proceed" {
@@ -142,7 +142,7 @@ resource "upstash_kafka_topic" "google_sheet_full_sync_proceed" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }
 
 resource "upstash_kafka_topic" "data_provider_deleted" {
@@ -153,5 +153,5 @@ resource "upstash_kafka_topic" "data_provider_deleted" {
   max_message_size = 829213
   cleanup_policy   = "delete"
 
-  cluster_id = upstash_kafka_cluster.starion-sync.cluster_id
+  cluster_id = upstash_kafka_cluster.kafka_cluster.cluster_id
 }

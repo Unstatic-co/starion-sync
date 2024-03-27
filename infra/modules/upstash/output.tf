@@ -1,12 +1,12 @@
 output "kafka_username" {
-  value = upstash_kafka_credential.starion-sync.username
+  value = upstash_kafka_credential.kafka_credential.username
 }
 
 output "kafka_password" {
-  value     = upstash_kafka_credential.starion-sync.password
+  value     = upstash_kafka_credential.kafka_credential.password
   sensitive = true
 }
 
 output "kafka_uri" {
-  value = upstash_kafka_cluster.starion-sync.tcp_endpoint
+  value = upstash_kafka_cluster.kafka_credential.tcp_endpoint
 }

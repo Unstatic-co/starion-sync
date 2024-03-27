@@ -61,12 +61,12 @@ resource "null_resource" "webhook_builder" {
 resource "kubernetes_deployment" "webhook" {
   depends_on = [
     null_resource.webhook_builder,
-    kubernetes_namespace.backend_sync_app,
+    kubernetes_namespace.namespace,
     kubernetes_secret.artifact_registry_secret
   ]
   metadata {
     name      = local.webhook_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.webhook_image_name
     }
@@ -124,10 +124,10 @@ resource "kubernetes_deployment" "webhook" {
 }
 
 resource "kubernetes_service" "webhook_service" {
-  depends_on = [kubernetes_deployment.webhook, kubernetes_namespace.backend_sync_app]
+  depends_on = [kubernetes_deployment.webhook, kubernetes_namespace.namespace]
   metadata {
     name      = local.webhook_image_name_service
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.webhook_image_name_service
     }

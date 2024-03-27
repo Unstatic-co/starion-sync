@@ -1,9 +1,5 @@
 # *************************************** DEPLOY IMAGE ***************************************
 
-# data "google_container_registry_image" "starion_sync_deploy_image" {
-# name = "starion-sync-deploy-image"
-# }
-
 locals {
   cloudbuild_path = "${path.root}/cloudbuild"
   deploy_image_files = sort(setunion(
@@ -14,8 +10,8 @@ locals {
   deploy_image_url = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project}/${var.gcp_docker_repository_name}/deploy-image:latest"
 }
 
-resource "google_cloudbuild_trigger" "starion_sync_deploy_image_builder" {
-  name     = "starion-sync-deploy-image"
+resource "google_cloudbuild_trigger" "deploy_image_builder" {
+  name     = "${var.project}-deploy-image"
   location = var.gcp_region
 
   build {
@@ -54,7 +50,7 @@ data "google_service_account" "deploy_service_account" {
   project    = var.gcp_project
 }
 
-resource "google_cloudbuild_trigger" "starion_sync_deploy" {
+resource "google_cloudbuild_trigger" "deploy_trigger" {
   name     = "${var.project}-deploy"
   location = var.gcp_region
   filename = "infra/cloudbuild/cloudbuild.yml"

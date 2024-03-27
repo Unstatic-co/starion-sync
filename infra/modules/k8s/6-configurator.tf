@@ -70,12 +70,12 @@ resource "null_resource" "configurator_builder" {
 resource "kubernetes_deployment" "configurator" {
   depends_on = [
     null_resource.configurator_builder,
-    kubernetes_namespace.backend_sync_app,
+    kubernetes_namespace.namespace,
     kubernetes_secret.artifact_registry_secret
   ]
   metadata {
     name      = local.configurator_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.configurator_image_name
     }
@@ -133,10 +133,10 @@ resource "kubernetes_deployment" "configurator" {
 }
 
 resource "kubernetes_service" "configurator_service" {
-  depends_on = [kubernetes_deployment.configurator, kubernetes_namespace.backend_sync_app]
+  depends_on = [kubernetes_deployment.configurator, kubernetes_namespace.namespace]
   metadata {
     name      = local.configurator_image_name
-    namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+    namespace = kubernetes_namespace.namespace.metadata.0.name
     labels = {
       app = local.configurator_image_name_service
     }
@@ -156,7 +156,7 @@ resource "kubernetes_service" "configurator_service" {
 # resource "kubernetes_ingress" "configurator_ingress" {
 #   metadata {
 #     name      = "configurator-ingress"
-#     namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+#     namespace = kubernetes_namespace.namespace.metadata.0.name
 #     annotations = {
 #       "kubernetes.io/ingress.class" = "nginx"
 #     }
@@ -190,7 +190,7 @@ resource "kubernetes_manifest" "configurator_ingress" {
     kind       = "Ingress"
     metadata = {
       name      = "configurator-ingress"
-      namespace = kubernetes_namespace.backend_sync_app.metadata.0.name
+      namespace = kubernetes_namespace.namespace.metadata.0.name
       annotations = {
         "kubernetes.io/ingress.class"                 = "nginx"
         "nginx.ingress.kubernetes.io/proxy-body-size" = "0"

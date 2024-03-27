@@ -1,9 +1,5 @@
 terraform {
   required_providers {
-    fly = {
-      source  = "fly-apps/fly"
-      version = "~> 0.0.23"
-    }
     google = {
       source  = "hashicorp/google"
       version = "~> 5.1.0"
@@ -63,7 +59,7 @@ provider "digitalocean" {
 
 data "digitalocean_kubernetes_cluster" "default_cluster" {
   count = local.is_production ? 1 : 0
-  name  = var.cluster_name
+  name  = var.k8s_cluster_name
 }
 
 locals {
