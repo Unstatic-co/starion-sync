@@ -26,7 +26,7 @@ resource "kubernetes_secret" "artifact_registry_secret" {
 }
 
 resource "kubernetes_manifest" "cert_issuer_sync" {
-  depends_on = [kubernetes_namespace.namespace]
+  depends_on = [kubernetes_namespace.namespace, helm_release.cert_manager]
 
   manifest = {
     apiVersion = "cert-manager.io/v1"
