@@ -25,32 +25,32 @@ resource "kubernetes_secret" "artifact_registry_secret" {
   type = "kubernetes.io/dockerconfigjson"
 }
 
-resource "kubernetes_manifest" "cert_issuer_sync" {
-  depends_on = [kubernetes_namespace.namespace, helm_release.cert_manager]
+# resource "kubernetes_manifest" "cert_issuer_sync" {
+  # depends_on = [kubernetes_namespace.namespace, helm_release.cert_manager]
 
-  manifest = {
-    apiVersion = "cert-manager.io/v1"
-    kind       = "ClusterIssuer"
-    metadata = {
-      name = var.letsencrypt_cluster_issuer_name
-    }
-    spec = {
-      acme = {
-        email  = var.letsencrypt_email
-        server = "https://acme-v02.api.letsencrypt.org/directory"
-        privateKeySecretRef = {
-          name = "${var.letsencrypt_cluster_issuer_name}-cluster-secret"
-        }
-        solvers = [
-          {
-            http01 = {
-              ingress = {
-                class = "nginx"
-              }
-            }
-          }
-        ]
-      }
-    }
-  }
-}
+  # manifest = {
+    # apiVersion = "cert-manager.io/v1"
+    # kind       = "ClusterIssuer"
+    # metadata = {
+      # name = var.letsencrypt_cluster_issuer_name
+    # }
+    # spec = {
+      # acme = {
+        # email  = var.letsencrypt_email
+        # server = "https://acme-v02.api.letsencrypt.org/directory"
+        # privateKeySecretRef = {
+          # name = "${var.letsencrypt_cluster_issuer_name}-cluster-secret"
+        # }
+        # solvers = [
+          # {
+            # http01 = {
+              # ingress = {
+                # class = "nginx"
+              # }
+            # }
+          # }
+        # ]
+      # }
+    # }
+  # }
+# }
