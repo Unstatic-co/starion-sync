@@ -8,5 +8,5 @@ output "kafka_password" {
 }
 
 output "kafka_uri" {
-  value = upstash_kafka_cluster.kafka_credential.tcp_endpoint
+  value = upstash_kafka_cluster.kafka_cluster.tcp_endpoint
 }
