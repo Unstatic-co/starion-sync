@@ -120,6 +120,9 @@ export const WorkerProvider = {
           '../../../../../libs/modules/src/orchestrator/payload-converter',
         ),
       },
+      maxConcurrentActivityTaskExecutions: 300,
+      maxConcurrentLocalActivityExecutions: 300,
+      maxConcurrentWorkflowTaskExecutions: 300,
       taskQueue,
       activities,
     });
