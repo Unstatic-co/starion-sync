@@ -1,7 +1,5 @@
 availableSecrets:
   secretManager:
-    - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_FLY_API_TOKEN/versions/latest
-      env: 'FLY_API_TOKEN'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_CF_API_TOKEN/versions/latest
       env: 'CF_API_TOKEN'
     - versionName: projects/$PROJECT_ID/secrets/${_SECRET_PREFIX}_UPSTASH_API_KEY/versions/latest
@@ -72,7 +70,6 @@ steps:
     entrypoint: 'sh'
     secretEnv:
       [
-        'FLY_API_TOKEN',
         'CF_API_TOKEN',
         'UPSTASH_API_KEY',
         'DO_TOKEN',
@@ -105,7 +102,6 @@ steps:
       - |
         export GOOGLE_CREDENTIALS=$$GOOGLE_CREDENTIALS_DOCKER_ARTIFACT
         export TF_VAR_GOOGLE_CREDENTIALS=$$GOOGLE_CREDENTIALS_DOCKER_ARTIFACT
-        export TF_VAR_fly_api_token=$$FLY_API_TOKEN
         export TF_VAR_cf_api_token=$$CF_API_TOKEN
         export TF_VAR_upstash_api_key=$$UPSTASH_API_KEY
         export TF_VAR_do_token=$$DO_TOKEN
@@ -140,7 +136,6 @@ steps:
     entrypoint: 'bash'
     secretEnv:
       [
-        'FLY_API_TOKEN',
         'CF_API_TOKEN',
         'UPSTASH_API_KEY',
         'DO_TOKEN',
@@ -173,7 +168,6 @@ steps:
       - |-
         export GOOGLE_CREDENTIALS=$$GOOGLE_CREDENTIALS_DOCKER_ARTIFACT
         export TF_VAR_GOOGLE_CREDENTIALS=$$GOOGLE_CREDENTIALS_DOCKER_ARTIFACT
-        export TF_VAR_fly_api_token=$$FLY_API_TOKEN
         export TF_VAR_cf_api_token=$$CF_API_TOKEN
         export TF_VAR_upstash_api_key=$$UPSTASH_API_KEY
         export TF_VAR_do_token=$$DO_TOKEN

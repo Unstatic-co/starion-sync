@@ -24,15 +24,6 @@ variable "github_branch" {
 }
 
 
-variable "fly_api_token" {
-  type      = string
-  sensitive = true
-}
-variable "fly_region" {
-  type    = string
-  default = "lax"
-}
-
 variable "gcp_project" {
   type    = string
 }
