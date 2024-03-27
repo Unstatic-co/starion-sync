@@ -86,7 +86,7 @@ variable "redis_password" {
   sensitive = true
 }
 variable "redis_db" {
-  type = string
+  type = number
 }
 
 variable "mongodb_user" { # stagging

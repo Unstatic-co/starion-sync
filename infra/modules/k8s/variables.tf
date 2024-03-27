@@ -153,7 +153,7 @@ variable "redis_password" {
   sensitive = true
 }
 variable "redis_db" {
-  type = string
+  type = number
 }
 variable "redis_tls_enabled" {
   type = bool
