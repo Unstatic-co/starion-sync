@@ -149,43 +149,43 @@ resource "kubernetes_service" "webhook_trigger_service" {
   }
 }
 
-# resource "kubernetes_manifest" "webhook_trigger_ingress" {
-  # depends_on = [kubernetes_service.webhook_trigger_service, kubernetes_manifest.cert_issuer_sync]
-  # manifest = {
-    # apiVersion = "networking.k8s.io/v1"
-    # kind       = "Ingress"
-    # metadata = {
-      # name      = "webhook-trigger-ingress"
-      # namespace = kubernetes_namespace.namespace.metadata.0.name
-      # annotations = {
-        # "kubernetes.io/ingress.class"                 = "nginx"
-        # "nginx.ingress.kubernetes.io/proxy-body-size" = "0"
-        # "cert-manager.io/cluster-issuer"              = var.letsencrypt_cluster_issuer_name
-      # }
-    # }
-    # spec = {
-      # ingressClassName = "nginx"
-      # tls = [{
-        # hosts      = [var.webhook_trigger_domain]
-        # secretName = "${var.letsencrypt_cluster_issuer_name}-webhook-trigger"
-      # }]
-      # rules = [{
-        # host = var.webhook_trigger_domain
-        # http = {
-          # paths = [{
-            # path     = "/"
-            # pathType = "Prefix"
-            # backend = {
-              # service = {
-                # name = kubernetes_service.webhook_trigger_service.metadata[0].name
-                # port = {
-                  # number = 8080
-                # }
-              # }
-            # }
-          # }]
-        # }
-      # }]
-    # }
-  # }
-# }
+resource "kubernetes_manifest" "webhook_trigger_ingress" {
+  depends_on = [kubernetes_service.webhook_trigger_service, kubernetes_manifest.cert_issuer_sync]
+  manifest = {
+    apiVersion = "networking.k8s.io/v1"
+    kind       = "Ingress"
+    metadata = {
+      name      = "webhook-trigger-ingress"
+      namespace = kubernetes_namespace.namespace.metadata.0.name
+      annotations = {
+        "kubernetes.io/ingress.class"                 = "nginx"
+        "nginx.ingress.kubernetes.io/proxy-body-size" = "0"
+        "cert-manager.io/cluster-issuer"              = var.letsencrypt_cluster_issuer_name
+      }
+    }
+    spec = {
+      ingressClassName = "nginx"
+      tls = [{
+        hosts      = [var.webhook_trigger_domain]
+        secretName = "${var.letsencrypt_cluster_issuer_name}-webhook-trigger"
+      }]
+      rules = [{
+        host = var.webhook_trigger_domain
+        http = {
+          paths = [{
+            path     = "/"
+            pathType = "Prefix"
+            backend = {
+              service = {
+                name = kubernetes_service.webhook_trigger_service.metadata[0].name
+                port = {
+                  number = 8080
+                }
+              }
+            }
+          }]
+        }
+      }]
+    }
+  }
+}
