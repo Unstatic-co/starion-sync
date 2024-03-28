@@ -58,7 +58,7 @@ configurator_public_url = "https://sync-configurator.appalloy.net"
 webhook_trigger_public_url = "https://sync-webhook-trigger.appalloy.net"
 
 k8s_deployment_downloader = {
-  replicas = 2
+  replicas = 5
   limits = {
     cpu    = "1.0"
     memory = "1Gi"
