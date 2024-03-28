@@ -19,9 +19,13 @@ export class TransactionManager implements ITransactionManager {
   ): Promise<T> {
     const session = await this.connection.startSession();
     let result;
-    await session.withTransaction(async () => {
-      result = await fn(session);
-    });
+    try {
+      await session.withTransaction(async () => {
+        result = await fn(session);
+      });
+    } finally {
+      await session.endSession();
+    }
     return result;
   }
 }
