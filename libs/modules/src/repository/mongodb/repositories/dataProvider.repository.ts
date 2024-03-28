@@ -36,10 +36,9 @@ export class DataProviderRepository implements IDataProviderRepository {
     if (options?.includeDeleted) {
       delete conditions.isDeleted;
     }
-    let query = this.dataProviderModel.findOne(conditions);
-    if (options?.session) {
-      query = query.session(options.session);
-    }
+    const query = options?.session
+      ? this.dataProviderModel.findOne(conditions).session(options.session)
+      : this.dataProviderModel.findOne(conditions);
     const result = await query;
     if (!result) return null;
     return result.toObject();
@@ -53,10 +52,9 @@ export class DataProviderRepository implements IDataProviderRepository {
     if (options?.includeDeleted) {
       delete conditions.isDeleted;
     }
-    let query = this.dataProviderModel.findOne(conditions);
-    if (options?.session) {
-      query = query.session(options.session);
-    }
+    const query = options?.session
+      ? this.dataProviderModel.findOne(conditions).session(options.session)
+      : this.dataProviderModel.findOne(conditions);
     const result = await query;
     if (!result) return null;
     return result.toObject();
@@ -72,6 +70,7 @@ export class DataProviderRepository implements IDataProviderRepository {
     const query = options?.session
       ? dataProvider.save({ session: options.session })
       : dataProvider.save();
+    await query;
     return dataProvider.toObject() as DataProvider;
   }
 

@@ -89,7 +89,7 @@ export class WorkflowService {
 
           const triggerFromDb = await this.triggerRepository.getById(
             trigger.id,
-            { session: transaction.session },
+            { session: transaction },
           );
           if (!triggerFromDb) {
             this.logger.warn(`Trigger not found: ${trigger.id}`);

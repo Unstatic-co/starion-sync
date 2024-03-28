@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DataProviderService } from '../data-provider/data-provider.service';
 import {
+  DataProvider,
   DataSource,
   DataSourceId,
   ERROR_CODE,
@@ -107,18 +108,35 @@ export class DataSourceService {
           type,
           config as ProviderConfigDto,
         );
-      let dataProvider = await this.dataProviderRepository.getByExternalId(
-        dataProviderExternalId,
+
+      let dataProvider: DataProvider;
+      await this.transactionManager.runWithTransaction(
+        async (transactionObject: TransactionObject) => {
+          this.logger.debug(`session: ${transactionObject}`);
+          dataProvider = await this.dataProviderRepository.getByExternalId(
+            dataProviderExternalId,
+            { session: transactionObject },
+          );
+          this.logger.debug(
+            `Found data provider: ${dataProvider ? dataProvider.id : 'null'}`,
+          );
+          if (!dataProvider) {
+            this.logger.debug(
+              `Create provider with external id: ${dataProviderExternalId}`,
+            );
+            dataProvider = (
+              await this.dataProviderService.create(
+                {
+                  type,
+                  config,
+                  metadata,
+                },
+                transactionObject,
+              )
+            ).data;
+          }
+        },
       );
-      if (!dataProvider) {
-        dataProvider = (
-          await this.dataProviderService.create({
-            type,
-            config,
-            metadata,
-          })
-        ).data;
-      }
 
       const fullConfig = await this.discovererService.discoverConfig(
         dataProvider.type,
@@ -137,6 +155,7 @@ export class DataSourceService {
         providerType: type,
         metadata,
       });
+
       return {
         data: dataSource,
         isAlreadyCreated,

@@ -1,4 +1,7 @@
-import { IDataProviderRepository } from '@lib/modules/repository';
+import {
+  IDataProviderRepository,
+  TransactionObject,
+} from '@lib/modules/repository';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   CreateDataProviderDto,
@@ -63,12 +66,17 @@ export class DataProviderService implements IDataProviderService {
     return this.dataProviderRepository.getByExternalId(externalId);
   }
 
-  public async create(dto: CreateDataProviderDto) {
+  public async create(
+    dto: CreateDataProviderDto,
+    transaction?: TransactionObject,
+  ) {
     let isAlreadyCreated = false;
     const { type, config, metadata } = dto;
     const externalId = this.getOrGenerateProviderExternalId(type, config);
     const existingDataProvider =
-      await this.dataProviderRepository.getByExternalId(externalId);
+      await this.dataProviderRepository.getByExternalId(externalId, {
+        session: transaction,
+      });
     if (existingDataProvider) {
       isAlreadyCreated = true;
       return {
@@ -77,12 +85,15 @@ export class DataProviderService implements IDataProviderService {
       };
     }
     return {
-      data: await this.dataProviderRepository.create({
-        type,
-        externalId,
-        config: config as unknown as ProviderConfig,
-        metadata,
-      }),
+      data: await this.dataProviderRepository.create(
+        {
+          type,
+          externalId,
+          config: config as unknown as ProviderConfig,
+          metadata,
+        },
+        { session: transaction },
+      ),
       isAlreadyCreated,
     };
   }
