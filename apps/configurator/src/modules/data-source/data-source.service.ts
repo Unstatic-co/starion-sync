@@ -103,40 +103,15 @@ export class DataSourceService {
       const { type, config, metadata } = dto;
       const { externalId, externalLocalId } =
         this.getOrGenerateDataSourceExternalId(type, config);
-      const dataProviderExternalId =
-        this.dataProviderService.getOrGenerateProviderExternalId(
-          type,
-          config as ProviderConfigDto,
-        );
 
-      let dataProvider: DataProvider;
-      await this.transactionManager.runWithTransaction(
-        async (transactionObject: TransactionObject) => {
-          this.logger.debug(`session: ${transactionObject}`);
-          dataProvider = await this.dataProviderRepository.getByExternalId(
-            dataProviderExternalId,
-            { session: transactionObject },
-          );
-          this.logger.debug(
-            `Found data provider: ${dataProvider ? dataProvider.id : 'null'}`,
-          );
-          if (!dataProvider) {
-            this.logger.debug(
-              `Create provider with external id: ${dataProviderExternalId}`,
-            );
-            dataProvider = (
-              await this.dataProviderService.create(
-                {
-                  type,
-                  config,
-                  metadata,
-                },
-                transactionObject,
-              )
-            ).data;
-          }
+      const createResult = await this.dataProviderService.create(
+        {
+          type,
+          config,
+          metadata,
         },
-      );
+      )
+      const dataProvider = createResult.data;
 
       const fullConfig = await this.discovererService.discoverConfig(
         dataProvider.type,

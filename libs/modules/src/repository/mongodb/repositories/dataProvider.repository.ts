@@ -63,15 +63,24 @@ export class DataProviderRepository implements IDataProviderRepository {
   public async create(
     arg: CreateDataProviderData,
     options?: QueryOptions,
-  ): Promise<DataProvider> {
+  ): Promise<{
+    data: DataProvider | null;
+    isExist: boolean;
+  }> {
     const dataProvider = new this.dataProviderModel({
       ...arg,
     });
-    const query = options?.session
-      ? dataProvider.save({ session: options.session })
-      : dataProvider.save();
-    await query;
-    return dataProvider.toObject() as DataProvider;
+    try {
+      const query = options?.session
+        ? dataProvider.save({ session: options.session })
+        : dataProvider.save();
+      await query;
+      return { data: dataProvider.toObject() as DataProvider, isExist: false };
+    } catch (error) {
+      if (error.code === 11000) {
+        return { data: null, isExist: true };
+      }
+    }
   }
 
   public async update(data: UpdateDataProviderData, options?: QueryOptions) {

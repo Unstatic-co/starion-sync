@@ -18,7 +18,10 @@ export interface IDataProviderRepository extends IRepository {
   create(
     data: CreateDataProviderData,
     options?: QueryOptions,
-  ): Promise<DataProvider>;
+  ): Promise<{
+    data: DataProvider | null;
+    isExist: boolean;
+  }>;
   update(
     data: UpdateDataProviderData,
     options?: QueryOptions,

@@ -70,22 +70,10 @@ export class DataProviderService implements IDataProviderService {
     dto: CreateDataProviderDto,
     transaction?: TransactionObject,
   ) {
-    let isAlreadyCreated = false;
     const { type, config, metadata } = dto;
     const externalId = this.getOrGenerateProviderExternalId(type, config);
-    const existingDataProvider =
-      await this.dataProviderRepository.getByExternalId(externalId, {
-        session: transaction,
-      });
-    if (existingDataProvider) {
-      isAlreadyCreated = true;
-      return {
-        data: existingDataProvider,
-        isAlreadyCreated,
-      };
-    }
-    return {
-      data: await this.dataProviderRepository.create(
+
+    const createResult = await this.dataProviderRepository.create(
         {
           type,
           externalId,
@@ -93,9 +81,21 @@ export class DataProviderService implements IDataProviderService {
           metadata,
         },
         { session: transaction },
-      ),
-      isAlreadyCreated,
-    };
+      )
+
+    if (createResult.isExist) {
+      this.logger.debug(`Provider with external id ${externalId} already exists`);
+      const existedProvider = await this.getByExternalId(externalId);
+      return {
+        data: existedProvider as DataProvider,
+        isAlreadyCreated: true,
+      };
+    } else {
+      return {
+        data: createResult.data,
+        isAlreadyCreated: false,
+      };
+    }
   }
 
   public async update(id: ProviderId, data: UpdateDataProviderDto) {

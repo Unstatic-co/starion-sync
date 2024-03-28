@@ -71,3 +71,5 @@ export const DataProviderSchema =
 DataProviderSchema.virtual('id').get(function () {
   return this._id.toHexString(); // eslint-disable-line
 });
+
+DataProviderSchema.index({ externalId: 1, isDeleted: 1 }, { unique: true, background: true });
