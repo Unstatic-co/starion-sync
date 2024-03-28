@@ -31,7 +31,7 @@ redis_host= "redis-do-user-4642503-0.c.db.ondigitalocean.com"
 redis_port= "25061"
 redis_db = 1
 
-orchestrator_namespace   = "starion-sync-production.gin8b"
+orchestrator_namespace   = "appalloy-sync-production.gin8b"
 orchestrator_tls_enabled = true
 
 s3_region = "us-east-1"
