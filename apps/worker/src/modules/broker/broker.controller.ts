@@ -39,7 +39,7 @@ export class BrokerController {
     this.logger.log(
       `handleGoogleSheetsDownloadEvent: syncflowId = ${payload.syncflow.id}`,
     );
-    return this.orchestratorService.executeWorkflow('googleSheetsDownload', {
+    await this.orchestratorService.executeWorkflow('googleSheetsDownload', {
       workflowId: `${payload.syncflow.id}-${payload.version}-download`,
       args: [payload],
       workflowIdReusePolicy:
